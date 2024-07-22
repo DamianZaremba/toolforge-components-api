@@ -1,0 +1,34 @@
+replicas: 2
+
+image:
+  # name and tag are currently used by CI
+  name: tools-harbor.wmcloud.org/toolforge/components-api
+  # Override if needed for development purposes
+  tag: OVERWRITTEN_BY_CI
+  pullPolicy: IfNotPresent
+
+resources:
+  limits:
+    memory: 500Mi
+    cpu: 500m
+  requests:
+    memory: 100Mi
+    cpu: 500m
+
+
+nginx:
+  image:
+    repository: docker-registry.tools.wmflabs.org/nginx
+    nginxTag: latest
+    pullpolicy: Always
+
+certificates:
+  internalClusterDomain: "cluster.local"
+  apiGatewayCa:
+    name: api-gateway-backend-ca
+    kind: ClusterIssuer
+    group: cert-manager.io
+
+config:
+  debug: false
+  port: 8000
