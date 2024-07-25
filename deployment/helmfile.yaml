@@ -1,0 +1,20 @@
+# ONLY FOR LOCAL DEVELOPMENT - use the toolforge-deploy repository for other environment or MR review
+releases:
+  - name: components-api
+    chart: ./chart/
+    namespace: components-api
+    createNamespace: true
+
+    values:
+      - replicas: 1
+        image:
+          tag: dev
+          pullPolicy: Never
+        config:
+          debug: true
+        certificates:
+          internalClusterDomain: cluster.local
+
+# Specify an environment for each project.
+environments:
+  local: {}

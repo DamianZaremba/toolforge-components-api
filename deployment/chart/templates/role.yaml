@@ -1,0 +1,8 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: components-api
+  labels:
+    name: components-api
+# TODO: add some real rules as needed
+rules: []
