@@ -51,7 +51,7 @@ spec:
           startupProbe:
             failureThreshold: 10
             httpGet:
-              path: /healthz
+              path: /v1/healthz
               port: 9000
               scheme: HTTP
             initialDelaySeconds: 1
@@ -60,7 +60,7 @@ spec:
             timeoutSeconds: 10
           livenessProbe:
             httpGet:
-              path: /healthz
+              path: /v1/healthz
               port: 9000
             initialDelaySeconds: 3
             periodSeconds: 3
