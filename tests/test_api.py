@@ -7,7 +7,7 @@ from components.main import create_app
 from components.models.api_models import (
     HealthState,
     HealthzResponse,
-    Message,
+    ResponseMessages,
     ToolConfig,
     ToolConfigResponse,
 )
@@ -72,7 +72,7 @@ def test_get_tool_config_returns_not_found_when_tool_does_not_exist(client: Test
 def test_get_tool_config_retrieves_the_set_config_happy_path(client: TestClient):
     my_tool_config = get_tool_config()
     expected_response = ToolConfigResponse(
-        messages=Message(),
+        messages=ResponseMessages(),
         data=my_tool_config,
     )
     response = client.post(

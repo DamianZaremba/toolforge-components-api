@@ -21,7 +21,7 @@ class ToolConfig(BaseModel):
     components: dict[str, ComponentInfo] = Field(..., min_length=1)
 
 
-class Message(BaseModel):
+class ResponseMessages(BaseModel):
     info: list[str] = []
     warning: list[str] = []
     error: list[str] = []
@@ -29,7 +29,7 @@ class Message(BaseModel):
 
 class ApiResponse(BaseModel, Generic[T]):
     data: T
-    messages: Message = Message()
+    messages: ResponseMessages = ResponseMessages()
 
 
 class HealthState(BaseModel):
