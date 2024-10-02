@@ -41,10 +41,6 @@ class MockStorage(Storage):
         self.tool_configs[toolname] = config
 
 
-# Important: Create a single instance of MockStorage
-mock_storage = MockStorage()
-
-
 class KubernetesStorage(Storage):
     def get_tool_config(self, toolname: str) -> ToolConfig:
         raise NotImplementedError(
@@ -57,12 +53,21 @@ class KubernetesStorage(Storage):
         )
 
 
+# cached loaded storage
+storage: Storage | None = None
+
+
 def get_storage(settings: Settings = Depends(get_settings)) -> Storage:
-    if settings.storage_type == "mock":
-        logger.info("Returning mock storage")
-        return mock_storage
-    elif settings.storage_type == "kubernetes":
-        logger.info("Returning kubernetes storage")
-        return KubernetesStorage()
-    else:
-        raise ValueError(f"Invalid storage type: {settings.storage_type}")
+    global storage
+    if storage is None:
+        if settings.storage_type == "mock":
+            logger.info("Returning mock storage")
+            storage = MockStorage()
+
+        elif settings.storage_type == "kubernetes":
+            logger.info("Returning kubernetes storage")
+            storage = KubernetesStorage()
+        else:
+            raise ValueError(f"Invalid storage type: {settings.storage_type}")
+
+    return storage
