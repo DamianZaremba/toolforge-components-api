@@ -1,15 +1,12 @@
 import logging
 
 import toml
-from fastapi import FastAPI
+from fastapi import APIRouter, FastAPI
 
 from components.api import base, tool
 from components.settings import get_settings
 
 LOGGER = logging.getLogger(__name__)
-
-
-API_PREFIX = "/v1"
 
 
 def get_project_metadata():
@@ -33,7 +30,16 @@ def create_app() -> FastAPI:
     LOGGER.debug("Got settings: %r", settings)
 
     app = FastAPI(title=title, version=version)
-    app.include_router(base.router, prefix=API_PREFIX)
-    app.include_router(tool.router, prefix=API_PREFIX, tags=["tool"])
+
+    # Top-level API router
+    api_router = APIRouter(prefix="/v1")
+
+    api_router.include_router(base.router)
+    api_router.include_router(tool.router, tags=["tool"])
+
+    app.include_router(api_router)
 
     return app
+
+
+app = create_app()

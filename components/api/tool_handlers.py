@@ -1,52 +1,48 @@
+import logging
+
 from fastapi import HTTPException
 
-from components.models.pydantic import (
-    ApiResponse,
-    Config,
-    ConfigResponse,
-    Deployment,
-    DeploymentResponse,
+from ..models.api_models import (
+    Message,
+    ToolConfig,
+    ToolConfigResponse,
 )
+from ..storage import Storage, ToolConfigNotFoundError
 
-# Mock data
-MOCK_CONFIGS = {"tf-test": {"config": "tf-test_config"}}
-
-MOCK_DEPLOYMENTS = {
-    "12345": Deployment(deploy_id="12345", toolname="tf-test", status="in_progress")
-}
-
-MOCK_TOOL_NAME = "tf-test"
+logger = logging.getLogger(__name__)
 
 
-def get_tool_config(toolname: str) -> ConfigResponse:
+def retrieve_tool_config(toolname: str, storage: Storage) -> ToolConfigResponse:
     """Retrieve the configuration for a specific tool."""
-    if toolname in MOCK_CONFIGS:
-        return ConfigResponse(data=MOCK_CONFIGS[toolname], messages={})
-    raise HTTPException(status_code=404, detail="Configuration not found")
+    logger.info(f"Retrieving config for tool: {toolname}")
+    try:
+        config = storage.get_tool_config(toolname)
+        logger.info(f"Config retrieved successfully for tool: {toolname}")
+        return ToolConfigResponse(data=config, messages={})
+    except ToolConfigNotFoundError as e:
+        logger.warning(str(e))
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error retrieving config for tool {toolname}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
-def update_tool_config(toolname: str, config: Config) -> ApiResponse:
+def modify_tool_config(
+    toolname: str, config: ToolConfig, storage: Storage
+) -> ToolConfigResponse:
     """Update the configuration for a specific tool."""
-    return ApiResponse(
-        data={"message": f"Configuration for {toolname} updated successfully"},
-        messages={},
-    )
-
-
-def create_deployment(toolname: str) -> DeploymentResponse:
-    """Create a new deployment for a specific tool."""
-    new_deploy_id = str(len(MOCK_DEPLOYMENTS) + 1).zfill(5)
-    new_deployment = Deployment(
-        deploy_id=new_deploy_id, toolname=toolname, status="started"
-    )
-    MOCK_DEPLOYMENTS[new_deploy_id] = new_deployment
-    return DeploymentResponse(data=new_deployment, messages={})
-
-
-def get_deployment(toolname: str, deploy_id: str) -> DeploymentResponse:
-    """Retrieve a specific deployment for a tool."""
-    if deploy_id in MOCK_DEPLOYMENTS:
-        deployment = MOCK_DEPLOYMENTS[deploy_id]
-        if deployment.toolname == toolname:
-            return DeploymentResponse(data=deployment, messages={})
-    raise HTTPException(status_code=404, detail="Deployment not found")
+    logger.info(f"Modifying config for tool: {toolname}")
+    try:
+        storage.set_tool_config(toolname, config)
+        logger.info(f"Config updated successfully for tool: {toolname}")
+        return ToolConfigResponse(
+            data=config,
+            messages=Message(
+                info=[
+                    f"Configuration for {toolname} updated successfully. This is now the only stored configuration."
+                ]
+            ),
+        )
+    except Exception as e:
+        logger.error(f"Error updating config for tool {toolname}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))

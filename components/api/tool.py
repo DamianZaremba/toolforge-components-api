@@ -1,36 +1,27 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
-from components.api.tool_handlers import (
-    create_deployment,
-    get_deployment,
-    get_tool_config,
-    update_tool_config,
+from ..models.api_models import (
+    ToolConfig,
+    ToolConfigResponse,
 )
-from components.models.pydantic import (
-    ApiResponse,
-    ConfigResponse,
-    ConfigUpdateRequest,
-    DeploymentResponse,
+from ..storage import Storage, get_storage
+from .tool_handlers import (
+    modify_tool_config,
+    retrieve_tool_config,
 )
 
-router = APIRouter(prefix="/tool")
+router = APIRouter()
 
 
-@router.get("/{toolname}/config", response_model=ConfigResponse)
-def get_config(toolname: str):
-    return get_tool_config(toolname)
+@router.get("/tool/{toolname}/config", response_model=ToolConfigResponse)
+def get_tool_config(toolname: str, storage: Storage = Depends(get_storage)):
+    """Retrieve the configuration for a specific tool."""
+    return retrieve_tool_config(toolname, storage)
 
 
-@router.post("/{toolname}/config", response_model=ApiResponse)
-def update_config(toolname: str, config_request: ConfigUpdateRequest):
-    return update_tool_config(toolname, config_request.config)
-
-
-@router.post("/{toolname}/deploy", response_model=DeploymentResponse)
-def create_deploy(toolname: str):
-    return create_deployment(toolname)
-
-
-@router.get("/{toolname}/deploy/{deploy_id}", response_model=DeploymentResponse)
-def get_deploy(toolname: str, deploy_id: str):
-    return get_deployment(toolname, deploy_id)
+@router.post("/tool/{toolname}/config", response_model=ToolConfigResponse)
+def update_tool_config(
+    toolname: str, config: ToolConfig, storage: Storage = Depends(get_storage)
+):
+    """Update or create the configuration for a specific tool."""
+    return modify_tool_config(toolname, config, storage)
