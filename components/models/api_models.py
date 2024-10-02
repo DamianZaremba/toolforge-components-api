@@ -1,8 +1,9 @@
-from typing import Literal, Optional, TypeAlias
+from typing import Generic, Literal, Optional, TypeAlias, TypeVar
 
-from pydantic import AnyUrl, BaseModel, Field, field_validator
+from pydantic import AnyUrl, BaseModel, Field
 
 ComponentType: TypeAlias = Literal["continuous", "scheduled", "one-off"]
+T = TypeVar("T")
 
 
 class BuildInfo(BaseModel):
@@ -33,10 +34,9 @@ class Message(BaseModel):
     error: list[str] = []
 
 
-class ApiResponse(BaseModel):
-    data: Optional[dict] = None
+class ApiResponse(BaseModel, Generic[T]):
+    data: T
     messages: Message = Message()
 
 
-class ToolConfigResponse(ApiResponse):
-    data: ToolConfig
+ToolConfigResponse = ApiResponse[ToolConfig]
