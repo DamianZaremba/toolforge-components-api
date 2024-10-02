@@ -18,7 +18,7 @@ def retrieve_tool_config(toolname: str, storage: Storage) -> ToolConfigResponse:
     try:
         config = storage.get_tool_config(toolname)
         logger.info(f"Config retrieved successfully for tool: {toolname}")
-        return ToolConfigResponse(data=config, messages={})
+        return ToolConfigResponse(data=config, messages=Message())
     except ToolConfigNotFoundError as e:
         logger.warning(str(e))
         raise HTTPException(status_code=404, detail=str(e))

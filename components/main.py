@@ -9,7 +9,7 @@ from components.settings import get_settings
 LOGGER = logging.getLogger(__name__)
 
 
-def get_project_metadata():
+def get_project_metadata() -> tuple[str, str]:
     with open("pyproject.toml", "r") as pyproject_file:
         pyproject_data = toml.load(pyproject_file)
         metadata = pyproject_data["tool"]["poetry"]
