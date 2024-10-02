@@ -5,7 +5,7 @@ from fastapi import APIRouter, FastAPI
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from .api import base, tool
+from .api import base_router, tool_router
 from .api.exceptions import (
     ToolAuthError,
     http_exception_handler,
@@ -42,8 +42,8 @@ def create_app() -> FastAPI:
     # Top-level API router
     api_router = APIRouter(prefix="/v1")
 
-    api_router.include_router(base.router)
-    api_router.include_router(tool.router, tags=["tool"])
+    api_router.include_router(base_router.router)
+    api_router.include_router(tool_router.router, tags=["tool"])
 
     app.include_router(api_router)
 

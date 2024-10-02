@@ -6,8 +6,8 @@ from ..models.api_models import (
     ToolConfigResponse,
 )
 from ..storage import Storage, get_storage
+from . import tool_handlers as handlers
 from .auth import ensure_authenticated
-from .tool_handlers import modify_tool_config, retrieve_tool_config
 
 router = APIRouter()
 
@@ -19,7 +19,7 @@ def get_tool_config(
     storage: Storage = Depends(get_storage),
 ) -> ToolConfigResponse:
     """Retrieve the configuration for a specific tool."""
-    config = retrieve_tool_config(toolname, storage)
+    config = handlers.get_tool_config(toolname, storage)
     return ToolConfigResponse(data=config, messages=ResponseMessages())
 
 
@@ -31,10 +31,19 @@ def update_tool_config(
     storage: Storage = Depends(get_storage),
 ) -> ToolConfigResponse:
     """Update or create the configuration for a specific tool."""
-    updated_config = modify_tool_config(toolname, config, storage)
+    updated_config = handlers.update_tool_config(toolname, config, storage)
     return ToolConfigResponse(
         data=updated_config,
         messages=ResponseMessages(
             info=[f"Configuration for {toolname} updated successfully."]
         ),
     )
+
+
+@router.delete("/tool/{toolname}/config")
+def delete_tool_config(
+    toolname: str, storage: Storage = Depends(get_storage)
+) -> ToolConfigResponse:
+    """Delete the configuration for a specific tool."""
+    config = handlers.delete_tool_config(toolname, storage)
+    return ToolConfigResponse(data=config, messages=ResponseMessages())

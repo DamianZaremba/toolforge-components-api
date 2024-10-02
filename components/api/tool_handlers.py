@@ -5,19 +5,20 @@ from fastapi import HTTPException
 from ..models.api_models import (
     ToolConfig,
 )
-from ..storage import Storage, ToolConfigNotFoundError
+from ..storage import Storage
+from ..storage.exceptions import NotFoundInStorage
 
 logger = logging.getLogger(__name__)
 
 
-def retrieve_tool_config(toolname: str, storage: Storage) -> ToolConfig:
+def get_tool_config(toolname: str, storage: Storage) -> ToolConfig:
     """Retrieve the configuration for a specific tool."""
     logger.info(f"Retrieving config for tool: {toolname}")
     try:
         config = storage.get_tool_config(toolname)
         logger.info(f"Config retrieved successfully for tool: {toolname}")
         return config
-    except ToolConfigNotFoundError as e:
+    except NotFoundInStorage as e:
         logger.warning(str(e))
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
@@ -25,7 +26,7 @@ def retrieve_tool_config(toolname: str, storage: Storage) -> ToolConfig:
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-def modify_tool_config(
+def update_tool_config(
     toolname: str, config: ToolConfig, storage: Storage
 ) -> ToolConfig:
     """Update the configuration for a specific tool."""
@@ -36,4 +37,16 @@ def modify_tool_config(
         return config
     except Exception as e:
         logger.error(f"Error updating config for tool {toolname}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+def delete_tool_config(toolname: str, storage: Storage) -> ToolConfig:
+    """Delete the configuration for a specific tool."""
+    logger.info(f"Deleting config for tool: {toolname}")
+    try:
+        old_config = storage.delete_tool_config(toolname)
+        logger.info(f"Config deleted successfully for tool: {toolname}")
+        return old_config
+    except Exception as e:
+        logger.error(f"Error deleting config for tool {toolname}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

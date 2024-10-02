@@ -22,10 +22,12 @@ spec:
           image: "{{ .Values.image.name }}:{{ .Values.image.tag }}"
           imagePullPolicy: "{{ .Values.image.pullPolicy }}"
           env:
-            - name: "DEBUG"
-              value: "{{ .Values.config.debug }}"
+            - name: "LOG_LEVEL"
+              value: "{{ if .Values.config.debug }}debug{{ else }}info{{ end }}"
             - name: "PORT"
               value: "{{ .Values.config.port }}"
+            - name: "STORAGE_TYPE"
+              value: "kubernetes"
           resources: {{- toYaml .Values.resources | nindent 12 }}
           securityContext:
             readOnlyRootFilesystem: true

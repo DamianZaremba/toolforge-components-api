@@ -5,4 +5,10 @@ metadata:
   labels:
     name: components-api
 # TODO: add some real rules as needed
-rules: []
+rules:
+  - apiGroups:
+      - toolforge.org
+    resources:
+      - toolconfigs
+    verbs:
+      - "*"
