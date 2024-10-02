@@ -7,7 +7,7 @@ ComponentType: TypeAlias = Literal["continuous", "scheduled", "one-off"]
 
 class BuildInfo(BaseModel):
     repository: AnyUrl
-    ref: Optional[str] = "main"
+    ref: Optional[str] = "refs/heads/main"
 
 
 class ComponentInfo(BaseModel):
