@@ -32,7 +32,7 @@ def create_app() -> FastAPI:
     app = FastAPI(title=title, version=version)
 
     # Top-level API router
-    api_router = APIRouter(prefix=settings.api_prefix)
+    api_router = APIRouter(prefix="/v1")
 
     api_router.include_router(base.router)
     api_router.include_router(tool.router, tags=["tool"])

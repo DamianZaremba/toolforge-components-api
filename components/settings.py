@@ -12,7 +12,6 @@ class Settings(BaseSettings):
     port: int = 8000
     address: str = "127.0.0.1"
     storage_type: Literal["mock", "kubernetes"] = "mock"
-    api_prefix: str = "/v1"
 
 
 @lru_cache()
