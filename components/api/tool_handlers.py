@@ -3,6 +3,7 @@ import logging
 from fastapi import HTTPException
 
 from ..models.api_models import (
+    Message,
     ToolConfig,
     ToolConfigResponse,
 )
@@ -36,11 +37,11 @@ def modify_tool_config(
         logger.info(f"Config updated successfully for tool: {toolname}")
         return ToolConfigResponse(
             data=config,
-            messages={
-                "info": [
+            messages=Message(
+                info=[
                     f"Configuration for {toolname} updated successfully. This is now the only stored configuration."
                 ]
-            },
+            ),
         )
     except Exception as e:
         logger.error(f"Error updating config for tool {toolname}: {str(e)}")
