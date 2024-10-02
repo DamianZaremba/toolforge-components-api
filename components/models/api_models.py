@@ -1,4 +1,4 @@
-from typing import Generic, Literal, Optional, TypeAlias, TypeVar
+from typing import Generic, Literal, TypeAlias, TypeVar
 
 from pydantic import AnyUrl, BaseModel, Field
 
@@ -8,7 +8,7 @@ T = TypeVar("T")
 
 class BuildInfo(BaseModel):
     repository: AnyUrl
-    ref: Optional[str] = "refs/heads/main"
+    ref: str | None = None
 
 
 class ComponentInfo(BaseModel):

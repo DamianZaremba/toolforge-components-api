@@ -6,10 +6,7 @@ from ..models.api_models import (
     ToolConfigResponse,
 )
 from ..storage import Storage, get_storage
-from .tool_handlers import (
-    modify_tool_config,
-    retrieve_tool_config,
-)
+from .tool_handlers import modify_tool_config, retrieve_tool_config
 
 router = APIRouter()
 
@@ -32,8 +29,6 @@ def update_tool_config(
     return ToolConfigResponse(
         data=updated_config,
         messages=ResponseMessages(
-            info=[
-                f"Configuration for {toolname} updated successfully. This is now the only stored configuration."
-            ]
+            info=[f"Configuration for {toolname} updated successfully."]
         ),
     )
