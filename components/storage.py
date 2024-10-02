@@ -24,8 +24,8 @@ class ToolConfigNotFoundError(Exception):
 
 
 class MockStorage(Storage):
-    def __init__(self):
-        self.tool_configs = {}
+    def __init__(self) -> None:
+        self.tool_configs: dict[str, ToolConfig] = {}
         logger.info("MockStorage initialized.")
 
     def get_tool_config(self, toolname: str) -> ToolConfig:

@@ -4,7 +4,13 @@ import pytest
 from fastapi.testclient import TestClient
 
 from components.main import create_app
-from components.models.api_models import Message, ToolConfig, ToolConfigResponse
+from components.models.api_models import (
+    HealthState,
+    HealthzResponse,
+    Message,
+    ToolConfig,
+    ToolConfigResponse,
+)
 
 
 @pytest.fixture
@@ -29,17 +35,14 @@ def get_tool_config(**overrides) -> ToolConfig:
     return ToolConfig.model_validate(params)
 
 
-def test_healthz_endpoint(client: TestClient):
-    """
-    Test the /healthz endpoint to ensure it returns the correct status.
-    """
-    response = client.get("/v1/healthz")
-    assert (
-        response.status_code == http.HTTPStatus.OK
-    ), f"Unexpected status code: {response.status_code}"
-    assert response.json() == {
-        "status": "ok"
-    }, f"Unexpected response content: {response.json()}"
+def test_healthz_endpoint_returns_correct_status(client: TestClient):
+    expected_state = HealthState(status="OK")
+
+    raw_response = client.get("/v1/healthz")
+
+    assert raw_response.status_code == http.HTTPStatus.OK
+    gotten_state = HealthzResponse.model_validate(raw_response.json()).data
+    assert gotten_state == expected_state
 
 
 def test_update_tool_config_sets_when_valid_config(client: TestClient):

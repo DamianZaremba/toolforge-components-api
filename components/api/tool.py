@@ -13,15 +13,17 @@ from .tool_handlers import (
 router = APIRouter()
 
 
-@router.get("/tool/{toolname}/config", response_model=ToolConfigResponse)
-def get_tool_config(toolname: str, storage: Storage = Depends(get_storage)):
+@router.get("/tool/{toolname}/config")
+def get_tool_config(
+    toolname: str, storage: Storage = Depends(get_storage)
+) -> ToolConfigResponse:
     """Retrieve the configuration for a specific tool."""
     return retrieve_tool_config(toolname, storage)
 
 
-@router.post("/tool/{toolname}/config", response_model=ToolConfigResponse)
+@router.post("/tool/{toolname}/config")
 def update_tool_config(
     toolname: str, config: ToolConfig, storage: Storage = Depends(get_storage)
-):
+) -> ToolConfigResponse:
     """Update or create the configuration for a specific tool."""
     return modify_tool_config(toolname, config, storage)

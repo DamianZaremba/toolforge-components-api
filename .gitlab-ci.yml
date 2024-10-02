@@ -2,8 +2,6 @@ include:
   - project: "repos/cloud/cicd/gitlab-ci"
     file: "py3.11-bookworm-tox/gitlab-ci.yaml"
   - project: "repos/cloud/cicd/gitlab-ci"
-    file: "toolforge-cd/run_pre_commit.yaml"
-  - project: "repos/cloud/cicd/gitlab-ci"
     file: "toolforge-cd/only_image_publish.yaml"
   - project: "repos/cloud/cicd/gitlab-ci"
     file: "toolforge-cd/only_helm_publish.yaml"

@@ -32,4 +32,9 @@ class ApiResponse(BaseModel, Generic[T]):
     messages: Message = Message()
 
 
+class HealthState(BaseModel):
+    status: Literal["OK", "ERROR"]
+
+
 ToolConfigResponse = ApiResponse[ToolConfig]
+HealthzResponse = ApiResponse[HealthState]
