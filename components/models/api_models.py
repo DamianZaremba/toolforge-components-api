@@ -20,13 +20,6 @@ class ToolConfig(BaseModel):
     config_version: str
     components: dict[str, ComponentInfo] = Field(..., min_length=1)
 
-    @field_validator("components")
-    @classmethod
-    def check_components_not_empty(cls, v: dict) -> dict:
-        if not v:
-            raise ValueError("ToolConfig must contain at least one component")
-        return v
-
 
 class Message(BaseModel):
     info: list[str] = []
