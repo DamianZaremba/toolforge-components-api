@@ -8,6 +8,11 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from ..models.api_models import ApiResponse, ResponseMessages
 
 
+class ToolAuthError(Exception):
+    def __init__(self, message: str = "Tool not authenticated"):
+        self.message = message
+
+
 def _format_validation_error(error: dict[str, Any]) -> str:
     error_type = error.get("type", "")
     if error_type == "json_invalid":
@@ -56,5 +61,19 @@ async def validation_exception_handler(
     )
     return JSONResponse(
         status_code=422,
+        content=api_response.model_dump(exclude_unset=True),
+    )
+
+
+async def tool_auth_exception_handler(
+    _request: Request, exc: Exception
+) -> JSONResponse:
+    if not isinstance(exc, ToolAuthError):
+        raise Exception("Unable to handle {exc}")
+    api_response: ApiResponse[None] = ApiResponse(
+        data=None, messages=ResponseMessages(error=[exc.message])
+    )
+    return JSONResponse(
+        status_code=403,
         content=api_response.model_dump(exclude_unset=True),
     )
