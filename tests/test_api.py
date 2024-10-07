@@ -14,9 +14,16 @@ from components.models.api_models import (
 
 
 @pytest.fixture
-def client():
+def test_client():
     app = create_app()
-    return TestClient(app)
+    with TestClient(app) as client:
+        yield client
+
+
+@pytest.fixture
+def authenticated_client(test_client):
+    test_client.headers.update({"x-toolforge-tool": "test-tool-1"})
+    return test_client
 
 
 def get_tool_config(**overrides) -> ToolConfig:
@@ -35,19 +42,21 @@ def get_tool_config(**overrides) -> ToolConfig:
     return ToolConfig.model_validate(params)
 
 
-def test_healthz_endpoint_returns_correct_status(client: TestClient):
+def test_healthz_endpoint_returns_ok_status(test_client: TestClient):
     expected_state = HealthState(status="OK")
 
-    raw_response = client.get("/v1/healthz")
+    raw_response = test_client.get("/v1/healthz")
 
     assert raw_response.status_code == http.HTTPStatus.OK
     gotten_state = HealthzResponse.model_validate(raw_response.json()).data
     assert gotten_state == expected_state
 
 
-def test_update_tool_config_sets_when_valid_config(client: TestClient):
+def test_update_tool_config_succeeds_with_valid_config(
+    authenticated_client: TestClient,
+):
     expected_tool_config = get_tool_config()
-    raw_response = client.post(
+    raw_response = authenticated_client.post(
         "/v1/tool/test-tool-1/config", content=expected_tool_config.model_dump_json()
     )
 
@@ -57,30 +66,43 @@ def test_update_tool_config_sets_when_valid_config(client: TestClient):
     assert gotten_response.messages != []
 
 
-def test_update_tool_config_fails_when_invalid_config_sent(client: TestClient):
-    raw_response = client.post("/v1/tool/test-tool-1/config", content="")
+def test_update_tool_config_fails_with_invalid_config_data(
+    authenticated_client: TestClient,
+):
+    raw_response = authenticated_client.post("/v1/tool/test-tool-1/config", content="")
 
     assert raw_response.status_code == http.HTTPStatus.UNPROCESSABLE_ENTITY
 
 
-def test_get_tool_config_returns_not_found_when_tool_does_not_exist(client: TestClient):
-    raw_response = client.get("/v1/tool/idontexist/config")
+def test_update_tool_config_fails_without_auth_header(test_client: TestClient):
+    expected_tool_config = get_tool_config()
+    raw_response = test_client.post(
+        "/v1/tool/test-tool-1/config", content=expected_tool_config.model_dump_json()
+    )
+
+    assert raw_response.status_code == 403
+
+
+def test_get_tool_config_returns_not_found_when_tool_does_not_exist(
+    authenticated_client: TestClient,
+):
+    raw_response = authenticated_client.get("/v1/tool/idontexist/config")
 
     assert raw_response.status_code == http.HTTPStatus.NOT_FOUND
 
 
-def test_get_tool_config_retrieves_the_set_config_happy_path(client: TestClient):
+def test_get_tool_config_retrieves_the_set_config(authenticated_client: TestClient):
     my_tool_config = get_tool_config()
     expected_response = ToolConfigResponse(
         messages=ResponseMessages(),
         data=my_tool_config,
     )
-    response = client.post(
+    response = authenticated_client.post(
         "/v1/tool/test-tool-1/config", content=my_tool_config.model_dump_json()
     )
     response.raise_for_status()
 
-    response = client.get("/v1/tool/test-tool-1/config")
+    response = authenticated_client.get("/v1/tool/test-tool-1/config")
 
     assert response.status_code == http.HTTPStatus.OK
     gotten_response = ToolConfigResponse.model_validate(response.json())
