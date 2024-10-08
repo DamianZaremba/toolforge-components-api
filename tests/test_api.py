@@ -1,6 +1,5 @@
-import http
-
 import pytest
+from fastapi import status
 from fastapi.testclient import TestClient
 
 from components.main import create_app
@@ -47,7 +46,7 @@ def test_healthz_endpoint_returns_ok_status(test_client: TestClient):
 
     raw_response = test_client.get("/v1/healthz")
 
-    assert raw_response.status_code == http.HTTPStatus.OK
+    assert raw_response.status_code == status.HTTP_200_OK
     gotten_state = HealthzResponse.model_validate(raw_response.json()).data
     assert gotten_state == expected_state
 
@@ -60,7 +59,7 @@ def test_update_tool_config_succeeds_with_valid_config(
         "/v1/tool/test-tool-1/config", content=expected_tool_config.model_dump_json()
     )
 
-    assert raw_response.status_code == http.HTTPStatus.OK
+    assert raw_response.status_code == status.HTTP_200_OK
     gotten_response = ToolConfigResponse.model_validate(raw_response.json())
     assert gotten_response.data == expected_tool_config
     assert gotten_response.messages != []
@@ -71,7 +70,7 @@ def test_update_tool_config_fails_with_invalid_config_data(
 ):
     raw_response = authenticated_client.post("/v1/tool/test-tool-1/config", content="")
 
-    assert raw_response.status_code == http.HTTPStatus.UNPROCESSABLE_ENTITY
+    assert raw_response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 def test_update_tool_config_fails_without_auth_header(test_client: TestClient):
@@ -80,7 +79,7 @@ def test_update_tool_config_fails_without_auth_header(test_client: TestClient):
         "/v1/tool/test-tool-1/config", content=expected_tool_config.model_dump_json()
     )
 
-    assert raw_response.status_code == 403
+    assert raw_response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 def test_get_tool_config_returns_not_found_when_tool_does_not_exist(
@@ -88,7 +87,7 @@ def test_get_tool_config_returns_not_found_when_tool_does_not_exist(
 ):
     raw_response = authenticated_client.get("/v1/tool/idontexist/config")
 
-    assert raw_response.status_code == http.HTTPStatus.NOT_FOUND
+    assert raw_response.status_code == status.HTTP_404_NOT_FOUND
 
 
 def test_get_tool_config_retrieves_the_set_config(authenticated_client: TestClient):
@@ -104,6 +103,6 @@ def test_get_tool_config_retrieves_the_set_config(authenticated_client: TestClie
 
     response = authenticated_client.get("/v1/tool/test-tool-1/config")
 
-    assert response.status_code == http.HTTPStatus.OK
+    assert response.status_code == status.HTTP_200_OK
     gotten_response = ToolConfigResponse.model_validate(response.json())
     assert gotten_response == expected_response
