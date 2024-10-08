@@ -15,7 +15,6 @@ resources:
     memory: 100Mi
     cpu: 500m
 
-
 nginx:
   image:
     repository: docker-registry.tools.wmflabs.org/nginx

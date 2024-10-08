@@ -8,6 +8,7 @@ variants:
         PORT: "8000"
         ADDRESS: "127.0.0.1"
         LOG_LEVEL: "info"
+        STORAGE_TYPE: "kubernetes"
     lives:
       in: /components
     builders:

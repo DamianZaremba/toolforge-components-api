@@ -4,9 +4,11 @@ This is the Toolforge components-api.
 
 For now, it is just a skeleton FastAPI application.
 
-To deploy it, follow the same pattern as the other Toolforge components (jobs-api, envvars-api...)
+To deploy it, follow the same pattern as the other Toolforge components
+(jobs-api, envvars-api...)
 
-For local development, you can use the following command to start the application:
+For local development, you can use the following command to start the
+application:
 
 ```bash
 poetry run uvicorn --factory components.main:create_app --workers=2 --reload
@@ -14,20 +16,60 @@ poetry run uvicorn --factory components.main:create_app --workers=2 --reload
 
 This will start the application on <http://localhost:8000>.
 
+## Developing tricks
+
+### Using the kubernetes storage connecting directly to lima-kilo
+
+For this you can start your lima-kilo installation, then copy the `.kube/config`
+file locally:
+
+```
+dcaro@lima-kilo$ cat ~/.kube/config
+.... some data, copy-paste to a local file
+
+dcaro@mylaptop$ vim ~/.kube/lima-kilo-config
+... paste the data there
+```
+
+Create a tunnel to the k8s cluster API (whichever way you prefer, this is just
+one of many):
+
+```
+dcaro@mylaptop$ limactl list
+WARN[0000] provisioning scripts should not reference the LIMA_CIDATA variables
+NAME         STATUS     SSH                VMTYPE    ARCH      CPUS    MEMORY    DISK      DIR
+lima-kilo    Running    127.0.0.1:44417    qemu      x86_64    16      8GiB      100GiB    ~/.lima/lima-kilo
+                         ^note this ip/port
+
+dcaro@mylaptop$ ssh -NfL 33785:127.0.0.1:33785 127.0.0.1 -p 44417
+# the 33785 port comes from the kubeconfig
+```
+
+Then tell the components api where to find the kubeconfig
+
+```
+dcaro@mylaptop$ env KUBECONFIG=~/.kube/lima-kilo-config STORAGE_TYPE=kubernetes LOG_LEVEL=debug poetry run fastapi run components/main.py
+```
+
 ## API Endpoints
 
 The API provides the following endpoints:
 
 ### Tool Configuration
 
-- `GET /v1/tool/{toolname}/config`: Retrieve the configuration for a specific tool.
-- `POST /v1/tool/{toolname}/config`: Update the configuration for a specific tool.
+- `GET /v1/tool/{toolname}/config`: Retrieve the configuration for a specific
+  tool.
+- `POST /v1/tool/{toolname}/config`: Update the configuration for a specific
+  tool.
 
 ### Deployments
 
-- `POST /v1/tool/{toolname}/deploy`: Create a new deployment for a specific tool.
-- `GET /v1/tool/{toolname}/deploy/{deploy_id}`: Retrieve information about a specific deployment.
+- `POST /v1/tool/{toolname}/deploy`: Create a new deployment for a specific
+  tool.
+- `GET /v1/tool/{toolname}/deploy/{deploy_id}`: Retrieve information about a
+  specific deployment.
 
 All endpoints are prefixed with `/v1` to ensure versioning of the API.
 
-For detailed information about request and response formats, please refer to the API documentation or the OpenAPI specification.
+For detailed information about request and response formats, please refer to the
+API documentation or the OpenAPI specification.
