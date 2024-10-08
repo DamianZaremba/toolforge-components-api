@@ -3,6 +3,7 @@ import logging
 from fastapi import HTTPException
 
 from ..models.api_models import (
+    Deployment,
     ToolConfig,
 )
 from ..storage import Storage
@@ -49,4 +50,40 @@ def delete_tool_config(toolname: str, storage: Storage) -> ToolConfig:
         return old_config
     except Exception as e:
         logger.error(f"Error deleting config for tool {toolname}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+def get_tool_deployment(
+    tool_name: str, deployment_name: str, storage: Storage
+) -> Deployment:
+    logger.info(f"Retrieving deployment {deployment_name} for tool {tool_name}")
+    try:
+        config = storage.get_deployment(
+            tool_name=tool_name, deployment_name=deployment_name
+        )
+        logger.info(f"Deployment retrieved successfully for tool: {tool_name}")
+        return config
+
+    except NotFoundInStorage as e:
+        logger.warning(str(e))
+        raise HTTPException(status_code=404, detail=str(e))
+
+    except Exception as e:
+        logger.error(f"Error retrieving deployment for tool {tool_name}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+def create_tool_deployment(
+    tool_name: str, deployment: Deployment, storage: Storage
+) -> Deployment:
+    """Update the configuration for a specific tool."""
+    logger.info(f"Modifying config for tool: {tool_name}")
+    try:
+        storage.create_deployment(tool_name=tool_name, deployment=deployment)
+        logger.info(f"Created deployment {deployment} for tool {tool_name}")
+        return deployment
+    except Exception as e:
+        logger.error(
+            f"Error creating deployment {deployment} for tool {tool_name}: {str(e)}"
+        )
         raise HTTPException(status_code=500, detail=str(e))

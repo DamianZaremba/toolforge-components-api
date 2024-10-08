@@ -9,23 +9,25 @@ from components.models.api_models import (
     ResponseMessages,
     ToolConfig,
     ToolConfigResponse,
+    ToolDeploymentResponse,
 )
+from components.settings import Settings
 
 
 @pytest.fixture
 def test_client():
-    app = create_app()
+    app = create_app(settings=Settings(log_level="debug"))
     with TestClient(app) as client:
         yield client
 
 
 @pytest.fixture
-def authenticated_client(test_client):
+def authenticated_client(test_client) -> TestClient:
     test_client.headers.update({"x-toolforge-tool": "test-tool-1"})
     return test_client
 
 
-def get_tool_config(**overrides) -> ToolConfig:
+def get_fake_tool_config(**overrides) -> ToolConfig:
     params = {
         "config_version": "v1",
         "components": {
@@ -51,92 +53,145 @@ def test_healthz_endpoint_returns_ok_status(test_client: TestClient):
     assert gotten_state == expected_state
 
 
-def test_update_tool_config_succeeds_with_valid_config(
-    authenticated_client: TestClient,
-):
-    expected_tool_config = get_tool_config()
-    raw_response = authenticated_client.post(
-        "/v1/tool/test-tool-1/config", content=expected_tool_config.model_dump_json()
-    )
+class TestUpdateToolConfig:
+    def test_succeeds_with_valid_config(
+        self,
+        authenticated_client: TestClient,
+    ):
+        expected_tool_config = get_fake_tool_config()
+        raw_response = authenticated_client.post(
+            "/v1/tool/test-tool-1/config",
+            content=expected_tool_config.model_dump_json(),
+        )
 
-    assert raw_response.status_code == status.HTTP_200_OK
-    gotten_response = ToolConfigResponse.model_validate(raw_response.json())
-    assert gotten_response.data == expected_tool_config
-    assert gotten_response.messages != []
+        assert raw_response.status_code == status.HTTP_200_OK
+        gotten_response = ToolConfigResponse.model_validate(raw_response.json())
+        assert gotten_response.data == expected_tool_config
+        assert gotten_response.messages != []
 
+    def test_fails_with_invalid_config_data(
+        self,
+        authenticated_client: TestClient,
+    ):
+        raw_response = authenticated_client.post(
+            "/v1/tool/test-tool-1/config", content=""
+        )
 
-def test_update_tool_config_fails_with_invalid_config_data(
-    authenticated_client: TestClient,
-):
-    raw_response = authenticated_client.post("/v1/tool/test-tool-1/config", content="")
+        assert raw_response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
-    assert raw_response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    def test_fails_without_auth_header(self, test_client: TestClient):
+        expected_tool_config = get_fake_tool_config()
+        raw_response = test_client.post(
+            "/v1/tool/test-tool-1/config",
+            content=expected_tool_config.model_dump_json(),
+        )
 
-
-def test_update_tool_config_fails_without_auth_header(test_client: TestClient):
-    expected_tool_config = get_tool_config()
-    raw_response = test_client.post(
-        "/v1/tool/test-tool-1/config", content=expected_tool_config.model_dump_json()
-    )
-
-    assert raw_response.status_code == status.HTTP_401_UNAUTHORIZED
-
-
-def test_get_tool_config_returns_not_found_when_tool_does_not_exist(
-    authenticated_client: TestClient,
-):
-    raw_response = authenticated_client.get("/v1/tool/idontexist/config")
-
-    assert raw_response.status_code == status.HTTP_404_NOT_FOUND
+        assert raw_response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
-def test_get_tool_config_retrieves_the_set_config(authenticated_client: TestClient):
-    my_tool_config = get_tool_config()
-    expected_response = ToolConfigResponse(
-        messages=ResponseMessages(),
-        data=my_tool_config,
-    )
-    response = authenticated_client.post(
-        "/v1/tool/test-tool-1/config", content=my_tool_config.model_dump_json()
-    )
-    response.raise_for_status()
+class TestGetToolConfig:
+    def test_returns_not_found_when_tool_does_not_exist(
+        self,
+        authenticated_client: TestClient,
+    ):
+        raw_response = authenticated_client.get("/v1/tool/idontexist/config")
 
-    response = authenticated_client.get("/v1/tool/test-tool-1/config")
+        assert raw_response.status_code == status.HTTP_404_NOT_FOUND
 
-    assert response.status_code == status.HTTP_200_OK
-    gotten_response = ToolConfigResponse.model_validate(response.json())
-    assert gotten_response == expected_response
+    def test_retrieves_the_set_config(self, authenticated_client: TestClient):
+        my_tool_config = get_fake_tool_config()
+        expected_response = ToolConfigResponse(
+            messages=ResponseMessages(),
+            data=my_tool_config,
+        )
+        response = authenticated_client.post(
+            "/v1/tool/test-tool-1/config", content=my_tool_config.model_dump_json()
+        )
+        response.raise_for_status()
 
+        response = authenticated_client.get("/v1/tool/test-tool-1/config")
 
-def test_delete_tool_config_fails_when_config_does_not_exist(
-    authenticated_client: TestClient,
-):
-    response = authenticated_client.delete("/v1/tool/nonexistent-tool/config")
-
-    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
-    json_response = response.json()
-    assert "data" not in json_response
-    assert (
-        "No configuration found for tool: nonexistent-tool"
-        in json_response["messages"]["error"]
-    )
+        assert response.status_code == status.HTTP_200_OK
+        gotten_response = ToolConfigResponse.model_validate(response.json())
+        assert gotten_response == expected_response
 
 
-def test_delete_tool_config_succeeds_when_config_exists(
-    authenticated_client: TestClient,
-):
-    my_tool_config = get_tool_config()
-    response = authenticated_client.post(
-        "/v1/tool/test-tool-1/config", content=my_tool_config.model_dump_json()
-    )
-    response.raise_for_status()
+class TestCreateDeployment:
+    def test_fails_without_auth_header(self, test_client: TestClient):
+        raw_response = test_client.post("/v1/tool/test-tool-1/deployment")
 
-    response = authenticated_client.delete("/v1/tool/test-tool-1/config")
+        assert raw_response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    assert response.status_code == status.HTTP_200_OK
-    gotten_response = ToolConfigResponse.model_validate(response.json())
-    assert gotten_response.data == my_tool_config
-    assert gotten_response.messages != []
+    def test_fails_if_tool_has_no_config(self, authenticated_client: TestClient):
+        authenticated_client.delete("/v1/tool/test-tool-1/config")
+        raw_response = authenticated_client.get("/v1/tool/test-tool-1/config")
+        assert raw_response.status_code == status.HTTP_404_NOT_FOUND
 
-    response = authenticated_client.get("/v1/tool/test-tool-1/config")
-    assert response.status_code == status.HTTP_404_NOT_FOUND
+        raw_response = authenticated_client.post("/v1/tool/test-tool-1/deployment")
+
+        assert raw_response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_returns_not_found_when_tool_does_not_exist(
+        self,
+        authenticated_client: TestClient,
+    ):
+        raw_response = authenticated_client.post("/v1/tool/idontexist/deployment")
+
+        assert raw_response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_retrieves_the_new_deployment(self, authenticated_client: TestClient):
+        my_tool_config = get_fake_tool_config()
+        response = authenticated_client.post(
+            "/v1/tool/test-tool-1/config", content=my_tool_config.model_dump_json()
+        )
+        response.raise_for_status()
+
+        response = authenticated_client.post("/v1/tool/test-tool-1/deployment")
+        response.raise_for_status()
+
+        expected_deployment = ToolDeploymentResponse.model_validate(response.json())
+
+        response = authenticated_client.get(
+            f"/v1/tool/test-tool-1/deployment/{expected_deployment.data.deploy_id}"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        gotten_deployment = ToolDeploymentResponse.model_validate(response.json())
+        # we kinda ignore the messages
+        assert expected_deployment.data == gotten_deployment.data
+
+
+class TestDeleteToolConfig:
+    def test_fails_when_config_does_not_exist(
+        self,
+        authenticated_client: TestClient,
+    ):
+        response = authenticated_client.delete("/v1/tool/nonexistent-tool/config")
+
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        json_response = response.json()
+        assert "data" not in json_response
+        assert (
+            "No configuration found for tool: nonexistent-tool"
+            in json_response["messages"]["error"]
+        )
+
+    def test_succeeds_when_config_exists(
+        self,
+        authenticated_client: TestClient,
+    ):
+        my_tool_config = get_fake_tool_config()
+        response = authenticated_client.post(
+            "/v1/tool/test-tool-1/config", content=my_tool_config.model_dump_json()
+        )
+        response.raise_for_status()
+
+        response = authenticated_client.delete("/v1/tool/test-tool-1/config")
+
+        assert response.status_code == status.HTTP_200_OK
+        gotten_response = ToolConfigResponse.model_validate(response.json())
+        assert gotten_response.data == my_tool_config
+        assert gotten_response.messages != []
+
+        response = authenticated_client.get("/v1/tool/test-tool-1/config")
+        assert response.status_code == status.HTTP_404_NOT_FOUND

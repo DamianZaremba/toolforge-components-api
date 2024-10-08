@@ -4,7 +4,7 @@ from typing import Any
 
 import kubernetes  # type: ignore
 
-from ..models.api_models import ToolConfig
+from ..models.api_models import Deployment, ToolConfig
 from .base import Storage
 from .exceptions import NotFoundInStorage, StorageError
 
@@ -128,3 +128,9 @@ class KubernetesStorage(Storage):
             raise StorageError(
                 f"Got unexpected error when trying to delete config for {tool_name}"
             ) from error
+
+    def get_deployment(self, tool_name: str, delpoyment_name: str) -> Deployment:
+        raise NotImplementedError
+
+    def create_deployment(self, tool_name: str, deployment: Deployment) -> None:
+        raise NotImplementedError

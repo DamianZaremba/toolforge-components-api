@@ -10,7 +10,7 @@ from .api.exceptions import (
     http_exception_handler,
     validation_exception_handler,
 )
-from .settings import get_settings
+from .settings import Settings, get_settings
 
 LOGGER = logging.getLogger(__name__)
 
@@ -25,8 +25,9 @@ def get_project_metadata() -> tuple[str, str]:
 title, version = get_project_metadata()
 
 
-def create_app() -> FastAPI:
-    settings = get_settings()
+def create_app(settings: Settings | None = None) -> FastAPI:
+    if not settings:
+        settings = get_settings()
     try:
         level = getattr(logging, settings.log_level.upper())
     except AttributeError:
