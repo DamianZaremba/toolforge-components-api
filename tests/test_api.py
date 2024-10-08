@@ -106,3 +106,37 @@ def test_get_tool_config_retrieves_the_set_config(authenticated_client: TestClie
     assert response.status_code == status.HTTP_200_OK
     gotten_response = ToolConfigResponse.model_validate(response.json())
     assert gotten_response == expected_response
+
+
+def test_delete_tool_config_fails_when_config_does_not_exist(
+    authenticated_client: TestClient,
+):
+    response = authenticated_client.delete("/v1/tool/nonexistent-tool/config")
+
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    json_response = response.json()
+    assert json_response["data"] is None
+    assert (
+        "No configuration found for tool: nonexistent-tool"
+        in json_response["messages"]["error"]
+    )
+
+
+def test_delete_tool_config_succeeds_when_config_exists(
+    authenticated_client: TestClient,
+):
+    my_tool_config = get_tool_config()
+    response = authenticated_client.post(
+        "/v1/tool/test-tool-1/config", content=my_tool_config.model_dump_json()
+    )
+    response.raise_for_status()
+
+    response = authenticated_client.delete("/v1/tool/test-tool-1/config")
+
+    assert response.status_code == status.HTTP_200_OK
+    gotten_response = ToolConfigResponse.model_validate(response.json())
+    assert gotten_response.data == my_tool_config
+    assert gotten_response.messages != []
+
+    response = authenticated_client.get("/v1/tool/test-tool-1/config")
+    assert response.status_code == status.HTTP_404_NOT_FOUND
