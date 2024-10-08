@@ -42,7 +42,9 @@ def update_tool_config(
 
 @router.delete("/tool/{toolname}/config")
 def delete_tool_config(
-    toolname: str, storage: Storage = Depends(get_storage)
+    toolname: str,
+    _: str = Depends(ensure_authenticated),
+    storage: Storage = Depends(get_storage),
 ) -> ToolConfigResponse:
     """Delete the configuration for a specific tool."""
     config = handlers.delete_tool_config(toolname, storage)
