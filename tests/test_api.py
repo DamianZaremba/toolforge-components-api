@@ -115,7 +115,7 @@ def test_delete_tool_config_fails_when_config_does_not_exist(
 
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     json_response = response.json()
-    assert json_response["data"] is None
+    assert "data" not in json_response
     assert (
         "No configuration found for tool: nonexistent-tool"
         in json_response["messages"]["error"]

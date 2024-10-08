@@ -36,11 +36,12 @@ async def http_exception_handler(_request: Request, exc: Exception) -> JSONRespo
     if not isinstance(exc, StarletteHTTPException):
         raise Exception("Unable to handle {exc}")
     api_response: ApiResponse[None] = ApiResponse(
-        data=None, messages=ResponseMessages(error=[str(exc.detail)])
+        data=None,
+        messages=ResponseMessages(error=[str(exc.detail)], info=[], warning=[]),
     )
     return JSONResponse(
         status_code=exc.status_code,
-        content=api_response.model_dump(exclude_unset=True),
+        content=api_response.model_dump(exclude_none=True),
     )
 
 
@@ -52,9 +53,10 @@ async def validation_exception_handler(
         raise Exception("Unable to handle {exc}")
     formatted_errors = [_format_validation_error(error) for error in exc.errors()]
     api_response: ApiResponse[None] = ApiResponse(
-        data=None, messages=ResponseMessages(error=formatted_errors)
+        data=None,
+        messages=ResponseMessages(error=formatted_errors, info=[], warning=[]),
     )
     return JSONResponse(
         status_code=422,
-        content=api_response.model_dump(exclude_unset=True),
+        content=api_response.model_dump(exclude_none=True),
     )
