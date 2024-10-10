@@ -1,9 +1,13 @@
 from uuid import UUID
+from unittest.mock import MagicMock
 
 import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
+from toolforge_weld.api_client import ToolforgeClient
+from toolforge_weld.kubernetes_config import Kubeconfig
 
+import components.deploy_task
 from components.main import create_app
 from components.models.api_models import (
     DeploymentTokenResponse,
@@ -30,15 +34,31 @@ def authenticated_client(test_client) -> TestClient:
     return test_client
 
 
+@pytest.fixture
+def fake_toolforge_client(monkeypatch) -> ToolforgeClient:
+    fake_kube_config = Kubeconfig(
+        current_namespace="",
+        current_server="",
+    )
+
+    monkeypatch.setattr(Kubeconfig, "load", lambda *args, **kwargs: fake_kube_config)
+    fake_client = MagicMock(spec=ToolforgeClient)
+
+    monkeypatch.setattr(
+        components.deploy_task, "ToolforgeClient", lambda *args, **kwargs: fake_client
+    )
+
+    return fake_client
+
+
 def get_fake_tool_config(**overrides) -> ToolConfig:
     params = {
         "config_version": "v1",
         "components": {
             "component1": {
-                "build": {
-                    "repository": "https://some.url.local/my-git-repo",
-                },
+                "build": {"use_prebuilt": "silly_image"},
                 "component_type": "continuous",
+                "run": {"command": "some command"},
             }
         },
     }
@@ -142,7 +162,9 @@ class TestCreateDeployment:
 
         assert raw_response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_retrieves_the_new_deployment(self, authenticated_client: TestClient):
+    def test_creates_and_returns_the_new_deployment(
+        self, authenticated_client: TestClient, fake_toolforge_client: MagicMock
+    ):
         my_tool_config = get_fake_tool_config()
         response = authenticated_client.post(
             "/v1/tool/test-tool-1/config", content=my_tool_config.model_dump_json()
@@ -162,6 +184,16 @@ class TestCreateDeployment:
         gotten_deployment = ToolDeploymentResponse.model_validate(response.json())
         # we kinda ignore the messages
         assert expected_deployment.data == gotten_deployment.data
+
+        fake_toolforge_client.post.assert_called_once_with(
+            "/jobs/v1/tool/test-tool-1/jobs/",
+            json={
+                "cmd": "some command",
+                "continuous": True,
+                "name": "component1",
+                "imagename": "silly_image",
+            },
+        )
 
 
 class TestDeleteToolConfig:

@@ -13,9 +13,9 @@ repos:
     rev: v1.11.1
     hooks:
       - id: mypy
-        exclude: ^tests/
         verbose: true
-        args: [--show-error-codes, --strict]
+        exclude: "(^components/gen/|^tests/)"
+        args: ["--show-error-codes", "--strict"]
         additional_dependencies:
           [
             "pydantic",
@@ -23,6 +23,7 @@ repos:
             "types-toml",
             "fastapi",
             "types-PyYAML",
+            "toolforge-weld",
           ]
 
   - repo: https://github.com/pre-commit/pre-commit-hooks

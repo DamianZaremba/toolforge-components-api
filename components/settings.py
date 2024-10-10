@@ -2,6 +2,7 @@ import logging
 from functools import lru_cache
 from typing import Literal
 
+from pydantic import AnyHttpUrl
 from pydantic_settings import BaseSettings
 
 log = logging.getLogger(__name__)
@@ -12,6 +13,10 @@ class Settings(BaseSettings):
     port: int = 8000
     address: str = "127.0.0.1"
     storage_type: Literal["mock", "kubernetes"] = "mock"
+    toolforge_api_url: AnyHttpUrl = AnyHttpUrl(
+        "https://api.svc.tools.eqiad1.wikimedia.cloud:30003"
+    )
+    namespace: str = "components-api"
 
 
 @lru_cache()

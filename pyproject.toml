@@ -13,11 +13,13 @@ pydantic-settings = "^2.3.4"
 toml = "^0.10.2"
 kubernetes = "^31.0.0"
 pyyaml = "^6.0.2"
+toolforge-weld = "^1.6.4"
 
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.1"
 pre-commit = "^3.7.1"
+datamodel-code-generator = {extras = ["http"], version = "^0.26.1"}
 
 [tool.ruff.lint]
 # add isort
@@ -26,3 +28,11 @@ extend-select = ["I"]
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[[tool.mypy.overrides]]
+module = "components.gen.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+ignore_errors = true

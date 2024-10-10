@@ -4,7 +4,7 @@ import string
 from typing import Generic, Literal, Type, TypeAlias, TypeVar
 from uuid import UUID, uuid4
 
-from pydantic import AnyUrl, BaseModel, Field
+from pydantic import BaseModel, Field
 
 # TODO: add the others when we add support for them
 ComponentType: TypeAlias = Literal["continuous"]
@@ -14,33 +14,22 @@ DEPLOYMENT_NAME_MAX_LENGTH = 53
 
 
 class BuildInfo(BaseModel):
-    repository: AnyUrl
-    ref: str | None = None
+    use_prebuilt: str
+
+
+class RunInfo(BaseModel):
+    command: str
 
 
 class ComponentInfo(BaseModel):
     component_type: ComponentType
     build: BuildInfo
+    run: RunInfo
 
 
 class ToolConfig(BaseModel):
     config_version: str
     components: dict[str, ComponentInfo] = Field(..., min_length=1)
-
-
-class ResponseMessages(BaseModel):
-    info: list[str] = []
-    warning: list[str] = []
-    error: list[str] = []
-
-
-class ApiResponse(BaseModel, Generic[T]):
-    data: T
-    messages: ResponseMessages = ResponseMessages()
-
-
-class HealthState(BaseModel):
-    status: Literal["OK", "ERROR"]
 
 
 class DeploymentBuildInfo(BaseModel):
@@ -73,6 +62,20 @@ class Deployment(BaseModel):
 
 class DeploymentToken(BaseModel):
     token: UUID = Field(default_factory=uuid4)
+
+class HealthState(BaseModel):
+    status: Literal["OK", "ERROR"]
+
+
+class ResponseMessages(BaseModel):
+    info: list[str] = []
+    warning: list[str] = []
+    error: list[str] = []
+
+
+class ApiResponse(BaseModel, Generic[T]):
+    data: T
+    messages: ResponseMessages = ResponseMessages()
 
 
 ToolConfigResponse = ApiResponse[ToolConfig]

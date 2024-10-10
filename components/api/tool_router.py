@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends
 
 from ..models.api_models import (
     Deployment,
@@ -83,6 +83,7 @@ def get_tool_deployment(
 @router.post("/{toolname}/deployment")
 def create_tool_deployment(
     toolname: str,
+    background_tasks: BackgroundTasks,
     storage: Storage = Depends(get_storage),
 ) -> ToolDeploymentResponse:
     """Create a new tool deployment."""
@@ -91,14 +92,17 @@ def create_tool_deployment(
     builds = {
         component_name: DeploymentBuildInfo(build_id="TODO")
         for component_name, component_info in tool_config.components.items()
-        if component_info.build.ref
+        if component_info.build and component_info.build.use_prebuilt
     }
     new_deployment = Deployment.get_new_deployment(
         tool_name=toolname,
         builds=builds,
     )
     handlers.create_tool_deployment(
-        tool_name=toolname, deployment=new_deployment, storage=storage
+        tool_name=toolname,
+        deployment=new_deployment,
+        storage=storage,
+        background_tasks=background_tasks,
     )
     return ToolDeploymentResponse(
         data=new_deployment,

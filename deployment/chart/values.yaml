@@ -31,3 +31,4 @@ certificates:
 config:
   debug: false
   port: 8000
+  toolforge_api_url: "https://api.svc.tools.eqiad1.wikimedia.cloud:30003"

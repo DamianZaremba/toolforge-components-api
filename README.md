@@ -16,7 +16,38 @@ poetry run uvicorn --factory components.main:create_app --workers=2 --reload
 
 This will start the application on <http://localhost:8000>.
 
+## API Endpoints
+
+The API provides the following endpoints:
+
+### Tool Configuration
+
+- `GET /v1/tool/{toolname}/config`: Retrieve the configuration for a specific
+  tool.
+- `POST /v1/tool/{toolname}/config`: Update the configuration for a specific
+  tool.
+
+### Deployments
+
+- `POST /v1/tool/{toolname}/deploy`: Create a new deployment for a specific
+  tool.
+- `GET /v1/tool/{toolname}/deploy/{deploy_id}`: Retrieve information about a
+  specific deployment.
+
+All endpoints are prefixed with `/v1` to ensure versioning of the API.
+
+For detailed information about request and response formats, please refer to the
+API documentation or the OpenAPI specification.
+
 ## Developing tricks
+
+### Generating the toolforge models
+
+To regenerate the toolforge models you can just run:
+
+```
+dcaro@lima-kilo$ poetry run datamodel-codegen --url https://api.toolforge.org/openapi.json --output components/gen/toolforge_models.py
+```
 
 ### Using the kubernetes storage connecting directly to lima-kilo
 
@@ -50,26 +81,3 @@ Then tell the components api where to find the kubeconfig
 ```
 dcaro@mylaptop$ env KUBECONFIG=~/.kube/lima-kilo-config STORAGE_TYPE=kubernetes LOG_LEVEL=debug poetry run fastapi run components/main.py
 ```
-
-## API Endpoints
-
-The API provides the following endpoints:
-
-### Tool Configuration
-
-- `GET /v1/tool/{toolname}/config`: Retrieve the configuration for a specific
-  tool.
-- `POST /v1/tool/{toolname}/config`: Update the configuration for a specific
-  tool.
-
-### Deployments
-
-- `POST /v1/tool/{toolname}/deploy`: Create a new deployment for a specific
-  tool.
-- `GET /v1/tool/{toolname}/deploy/{deploy_id}`: Retrieve information about a
-  specific deployment.
-
-All endpoints are prefixed with `/v1` to ensure versioning of the API.
-
-For detailed information about request and response formats, please refer to the
-API documentation or the OpenAPI specification.

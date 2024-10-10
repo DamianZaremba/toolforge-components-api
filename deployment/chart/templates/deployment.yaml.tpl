@@ -28,6 +28,8 @@ spec:
               value: "{{ .Values.config.port }}"
             - name: "STORAGE_TYPE"
               value: "kubernetes"
+            - name: "TOOLFORGE_API_URL"
+              value: "{{ .Values.config.toolforge_api_url }}"
           resources: {{- toYaml .Values.resources | nindent 12 }}
           securityContext:
             readOnlyRootFilesystem: true

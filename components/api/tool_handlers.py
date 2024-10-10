@@ -1,7 +1,8 @@
 import logging
 
-from fastapi import HTTPException
+from fastapi import BackgroundTasks, HTTPException
 
+from ..deploy_task import do_deploy
 from ..models.api_models import (
     Deployment,
     DeploymentToken,
@@ -72,18 +73,28 @@ def get_tool_deployment(
 
 
 def create_tool_deployment(
-    tool_name: str, deployment: Deployment, storage: Storage
+    tool_name: str,
+    deployment: Deployment,
+    storage: Storage,
+    background_tasks: BackgroundTasks,
 ) -> Deployment:
     logger.info(f"Creating deployment for tool: {tool_name}")
     try:
         storage.create_deployment(tool_name=tool_name, deployment=deployment)
         logger.info(f"Created deployment {deployment} for tool {tool_name}")
-        return deployment
     except Exception as e:
         logger.error(
             f"Error creating deployment {deployment} for tool {tool_name}: {str(e)}"
         )
         raise HTTPException(status_code=500, detail=str(e))
+
+    tool_config = get_tool_config(toolname=tool_name, storage=storage)
+    background_tasks.add_task(
+        do_deploy, deployment=deployment, tool_config=tool_config, tool_name=tool_name
+    )
+
+    return deployment
+
 
 
 def create_deployment_token(toolname: str, storage: Storage) -> DeploymentToken:
