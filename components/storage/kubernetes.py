@@ -1,8 +1,8 @@
-import http
 import logging
 from typing import Any
 
 import kubernetes  # type: ignore
+from fastapi import status
 
 from ..models.api_models import Deployment, ToolConfig
 from .base import Storage
@@ -51,7 +51,7 @@ class KubernetesStorage(Storage):
             logger.exception(
                 f"Attempted to get tool config for tool:{tool_name} in namespace:{namespace}"
             )
-            if error.status == http.HTTPStatus.NOT_FOUND:
+            if error.status == status.HTTP_404_NOT_FOUND:
                 raise NotFoundInStorage(
                     f"Unable to find namespace {namespace} or config {config_name} for {tool_name}"
                 ) from error
@@ -66,7 +66,7 @@ class KubernetesStorage(Storage):
         try:
             self._create_tool_config(tool_name=tool_name, config=config)
         except kubernetes.client.ApiException as error:
-            if error.status == http.HTTPStatus.CONFLICT:
+            if error.status == status.HTTP_409_CONFLICT:
                 # it already exists, just update
                 self._delete_tool_config(tool_name=tool_name)
                 self._create_tool_config(tool_name=tool_name, config=config)
@@ -88,14 +88,14 @@ class KubernetesStorage(Storage):
                 body=body,
             )
         except kubernetes.client.ApiException as error:
-            if error.status == http.HTTPStatus.CONFLICT:
+            if error.status == status.HTTP_409_CONFLICT:
                 # bubble up for us to handle
                 raise
 
             logger.exception(
                 f"Attempted to create tool config for tool:{tool_name} in namespace:{namespace} with body: {body}"
             )
-            if error.status == http.HTTPStatus.NOT_FOUND:
+            if error.status == status.HTTP_404_NOT_FOUND:
                 raise NotFoundInStorage(
                     f"Unable to find namespace {namespace} for tool {tool_name}"
                 ) from error
@@ -120,7 +120,7 @@ class KubernetesStorage(Storage):
             logger.exception(
                 f"Attempted to delete tool config for tool:{tool_name} in namespace:{namespace}"
             )
-            if error.status == http.HTTPStatus.NOT_FOUND:
+            if error.status == status.HTTP_404_NOT_FOUND:
                 raise NotFoundInStorage(
                     f"Unable to find namespace {namespace} or config {config_name} for {tool_name}"
                 ) from error
