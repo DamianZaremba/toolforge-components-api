@@ -21,6 +21,16 @@ def _tool_config_to_k8s_crd(tool_name: str, tool_config: ToolConfig) -> dict[str
     return k8s_dict
 
 
+def _deployment_to_k8s_crd(tool_name: str, deployment: Deployment) -> dict[str, Any]:
+    k8s_dict = {
+        "kind": "ToolDeployment",
+        "apiVersion": "toolforge.org/v1",
+        "metadata": {"name": deployment.deploy_id},
+        "spec": deployment.model_dump(mode="json"),
+    }
+    return k8s_dict
+
+
 def _get_k8s_tool_config_name(tool_name: str) -> str:
     return f"{tool_name}-config"
 
@@ -129,8 +139,45 @@ class KubernetesStorage(Storage):
                 f"Got unexpected error when trying to delete config for {tool_name}"
             ) from error
 
-    def get_deployment(self, tool_name: str, delpoyment_name: str) -> Deployment:
-        raise NotImplementedError
+    def get_deployment(self, tool_name: str, deployment_name: str) -> Deployment:
+        namespace = _get_k8s_tool_namespace(tool_name=tool_name)
+        try:
+            k8s_deployment = self.k8s.get_namespaced_custom_object(
+                group="toolforge.org",
+                version="v1",
+                name=deployment_name,
+                plural="tooldeployments",
+                namespace=namespace,
+            )
+        except kubernetes.client.ApiException as error:
+            if error.status == status.HTTP_404_NOT_FOUND:
+                raise NotFoundInStorage(
+                    f"Unable to find namespace {namespace} or deployment {deployment_name} for {tool_name}"
+                ) from error
+
+            raise StorageError(
+                f"Got unexpected error when trying to load deployment for {tool_name}"
+            ) from error
+
+        return Deployment.model_validate(k8s_deployment["spec"])
 
     def create_deployment(self, tool_name: str, deployment: Deployment) -> None:
-        raise NotImplementedError
+        namespace = _get_k8s_tool_namespace(tool_name=tool_name)
+        body = _deployment_to_k8s_crd(deployment=deployment, tool_name=tool_name)
+        try:
+            self.k8s.create_namespaced_custom_object(
+                group="toolforge.org",
+                version="v1",
+                plural="tooldeployments",
+                namespace=namespace,
+                body=body,
+            )
+        except kubernetes.client.ApiException as error:
+            if error.status == status.HTTP_404_NOT_FOUND:
+                raise NotFoundInStorage(
+                    f"Unable to find namespace {namespace} for tool {tool_name}"
+                ) from error
+
+            raise StorageError(
+                f"Got unexpected error ({error}) when trying to create deployment for {tool_name}"
+            ) from error

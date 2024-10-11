@@ -57,7 +57,9 @@ class Deployment(BaseModel):
         cur_timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y%m%d-%H%M%S")
         # We rely on random having enough entropy and having little requests per second requests to not collide.
         random_suffix = "".join(
-            random.choices(string.ascii_uppercase, k=DEPLOYMENT_NAME_MAX_LENGTH)
+            random.choices(
+                string.ascii_lowercase + string.digits, k=DEPLOYMENT_NAME_MAX_LENGTH
+            )
         )
         new_id = f"{tool_name}-{cur_timestamp}-{random_suffix}"
         return Deployment(

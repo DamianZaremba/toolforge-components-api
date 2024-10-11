@@ -10,5 +10,6 @@ rules:
       - toolforge.org
     resources:
       - toolconfigs
+      - tooldeployments
     verbs:
       - "*"
