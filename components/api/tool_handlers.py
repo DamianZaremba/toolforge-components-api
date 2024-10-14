@@ -4,6 +4,7 @@ from fastapi import HTTPException
 
 from ..models.api_models import (
     Deployment,
+    DeploymentToken,
     ToolConfig,
 )
 from ..storage import Storage
@@ -13,7 +14,6 @@ logger = logging.getLogger(__name__)
 
 
 def get_tool_config(toolname: str, storage: Storage) -> ToolConfig:
-    """Retrieve the configuration for a specific tool."""
     logger.info(f"Retrieving config for tool: {toolname}")
     try:
         config = storage.get_tool_config(toolname)
@@ -30,7 +30,6 @@ def get_tool_config(toolname: str, storage: Storage) -> ToolConfig:
 def update_tool_config(
     toolname: str, config: ToolConfig, storage: Storage
 ) -> ToolConfig:
-    """Update the configuration for a specific tool."""
     logger.info(f"Modifying config for tool: {toolname}")
     try:
         storage.set_tool_config(toolname, config)
@@ -42,7 +41,6 @@ def update_tool_config(
 
 
 def delete_tool_config(toolname: str, storage: Storage) -> ToolConfig:
-    """Delete the configuration for a specific tool."""
     logger.info(f"Deleting config for tool: {toolname}")
     try:
         old_config = storage.delete_tool_config(toolname)
@@ -76,8 +74,7 @@ def get_tool_deployment(
 def create_tool_deployment(
     tool_name: str, deployment: Deployment, storage: Storage
 ) -> Deployment:
-    """Update the configuration for a specific tool."""
-    logger.info(f"Modifying config for tool: {tool_name}")
+    logger.info(f"Creating deployment for tool: {tool_name}")
     try:
         storage.create_deployment(tool_name=tool_name, deployment=deployment)
         logger.info(f"Created deployment {deployment} for tool {tool_name}")
@@ -87,3 +84,41 @@ def create_tool_deployment(
             f"Error creating deployment {deployment} for tool {tool_name}: {str(e)}"
         )
         raise HTTPException(status_code=500, detail=str(e))
+
+
+def create_deployment_token(toolname: str, storage: Storage) -> DeploymentToken:
+    logger.info(f"Creating deployment token for tool: {toolname}")
+    try:
+        new_token = storage.create_deployment_token(toolname)
+        logger.info(f"Deployment token created for tool: {toolname}")
+        return new_token
+    except Exception as e:
+        logger.error(f"Error creating deployment token for tool {toolname}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+def get_deployment_token(toolname: str, storage: Storage) -> DeploymentToken:
+    logger.info(f"Retrieving deployment token for tool: {toolname}")
+    try:
+        token = storage.get_deployment_token(toolname)
+        logger.info(f"Deployment token retrieved for tool: {toolname}")
+        return token
+    except NotFoundInStorage as e:
+        logger.warning(str(e))
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error retrieving deployment token for tool {toolname}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+def delete_deployment_token(toolname: str, storage: Storage) -> None:
+    logger.info(f"Deleting deployment token for tool: {toolname}")
+    try:
+        storage.delete_deployment_token(toolname)
+        logger.info(f"Deployment token deleted for tool: {toolname}")
+    except NotFoundInStorage as e:
+        logger.warning(str(e))
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error deleting deployment token for tool {toolname}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")

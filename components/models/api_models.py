@@ -2,6 +2,7 @@ import datetime
 import random
 import string
 from typing import Generic, Literal, Type, TypeAlias, TypeVar
+from uuid import UUID, uuid4
 
 from pydantic import AnyUrl, BaseModel, Field
 
@@ -70,6 +71,11 @@ class Deployment(BaseModel):
         )
 
 
+class DeploymentToken(BaseModel):
+    token: UUID = Field(default_factory=uuid4)
+
+
 ToolConfigResponse = ApiResponse[ToolConfig]
 HealthzResponse = ApiResponse[HealthState]
 ToolDeploymentResponse = ApiResponse[Deployment]
+DeploymentTokenResponse = ApiResponse[DeploymentToken]

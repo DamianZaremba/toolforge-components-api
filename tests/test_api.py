@@ -1,9 +1,12 @@
+from uuid import UUID
+
 import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
 
 from components.main import create_app
 from components.models.api_models import (
+    DeploymentTokenResponse,
     HealthState,
     HealthzResponse,
     ResponseMessages,
@@ -195,3 +198,112 @@ class TestDeleteToolConfig:
 
         response = authenticated_client.get("/v1/tool/test-tool-1/config")
         assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+class TestGetDeploymentToken:
+    def test_fails_without_auth_header(self, test_client: TestClient):
+        raw_response = test_client.get("/v1/tool/test-tool-1/deployment/token")
+
+        assert raw_response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_returns_not_found_when_token_does_not_exist(
+        self, authenticated_client: TestClient
+    ):
+        raw_response = authenticated_client.get(
+            "/v1/tool/test-tool-no-token/deployment/token"
+        )
+
+        assert raw_response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_returns_the_token_when_it_exists(self, authenticated_client: TestClient):
+        create_response = authenticated_client.post(
+            "/v1/tool/test-tool-1/deployment/token"
+        )
+        assert create_response.status_code == status.HTTP_200_OK
+
+        get_response = authenticated_client.get("/v1/tool/test-tool-1/deployment/token")
+        assert get_response.status_code == status.HTTP_200_OK
+
+        # clean up
+        authenticated_client.delete("/v1/tool/test-tool-1/deployment/token")
+
+
+class TestCreateDeploymentToken:
+    def test_fails_without_auth_header(self, test_client: TestClient):
+        raw_response = test_client.post("/v1/tool/test-tool-1/deployment/token")
+        assert raw_response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_returns_the_new_token(self, authenticated_client: TestClient):
+        create_response = authenticated_client.post(
+            "/v1/tool/test-tool-1/deployment/token"
+        )
+        assert create_response.status_code == status.HTTP_200_OK
+        creation_data = DeploymentTokenResponse.model_validate(create_response.json())
+
+        get_response = authenticated_client.get("/v1/tool/test-tool-1/deployment/token")
+        assert get_response.status_code == status.HTTP_200_OK
+        retrieval_data = DeploymentTokenResponse.model_validate(get_response.json())
+
+        assert creation_data.data.token == retrieval_data.data.token
+        assert isinstance(creation_data.data.token, UUID)
+        assert (
+            "Deployment token for test-tool-1 created successfully."
+            in creation_data.messages.info
+        )
+        assert not retrieval_data.messages.info
+
+        # clean up
+        authenticated_client.delete("/v1/tool/test-tool-1/deployment/token")
+
+
+class TestDeleteDeploymentToken:
+    def test_fails_without_auth_header(self, test_client: TestClient):
+        raw_response = test_client.delete("/v1/tool/test-tool-1/deployment/token")
+
+        assert raw_response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_returns_not_found_when_tool_does_not_exist(
+        self, authenticated_client: TestClient
+    ):
+        raw_response = authenticated_client.delete(
+            "/v1/tool/idontexist/deployment/token"
+        )
+
+        assert raw_response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_returns_not_found_when_token_does_not_exist(
+        self, authenticated_client: TestClient
+    ):
+        expected_tool_config = get_fake_tool_config()
+        raw_response = authenticated_client.post(
+            "/v1/tool/test-tool-1/config",
+            content=expected_tool_config.model_dump_json(),
+        )
+
+        assert raw_response.status_code == status.HTTP_200_OK
+        token_response = authenticated_client.delete(
+            "/v1/tool/test-tool-1/deployment/token"
+        )
+        assert token_response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_deletes_the_token_when_it_exists(self, authenticated_client: TestClient):
+        pass
+        # create a token
+        create_response = authenticated_client.post(
+            "/v1/tool/test-tool-1/deployment/token"
+        )
+        assert create_response.status_code == status.HTTP_200_OK
+
+        # get the token
+        get_response = authenticated_client.get("/v1/tool/test-tool-1/deployment/token")
+        assert get_response.status_code == status.HTTP_200_OK
+
+        # delete the token
+        delete_response = authenticated_client.delete(
+            "/v1/tool/test-tool-1/deployment/token"
+        )
+        assert delete_response.status_code == status.HTTP_200_OK
+
+        # try to get the token again
+        get_response = authenticated_client.get("/v1/tool/test-tool-1/deployment/token")
+        assert get_response.status_code == status.HTTP_404_NOT_FOUND

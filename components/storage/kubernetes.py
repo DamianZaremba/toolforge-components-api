@@ -4,7 +4,7 @@ from typing import Any
 import kubernetes  # type: ignore
 from fastapi import status
 
-from ..models.api_models import Deployment, ToolConfig
+from ..models.api_models import Deployment, DeploymentToken, ToolConfig
 from .base import Storage
 from .exceptions import NotFoundInStorage, StorageError
 
@@ -181,3 +181,12 @@ class KubernetesStorage(Storage):
             raise StorageError(
                 f"Got unexpected error ({error}) when trying to create deployment for {tool_name}"
             ) from error
+
+    def get_deployment_token(self, tool_name: str) -> DeploymentToken:
+        raise NotImplementedError
+
+    def create_deployment_token(self, tool_name: str) -> DeploymentToken:
+        raise NotImplementedError
+
+    def delete_deployment_token(self, tool_name: str) -> None:
+        raise NotImplementedError

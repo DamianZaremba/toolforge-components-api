@@ -105,6 +105,88 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /v1/tool/{toolname}/deployment/token:
+    get:
+      tags:
+      - tool
+      summary: Get Tool Deployment Token
+      operationId: get_tool_deployment_token
+      security:
+      - APIKeyHeader: []
+      parameters:
+      - name: toolname
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Toolname
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_DeploymentToken_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - tool
+      summary: Create Tool Deployment Token
+      operationId: create_tool_deployment_token
+      security:
+      - APIKeyHeader: []
+      parameters:
+      - name: toolname
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Toolname
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_DeploymentToken_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - tool
+      summary: Delete Tool Deployment Token
+      operationId: delete_tool_deployment_token
+      security:
+      - APIKeyHeader: []
+      parameters:
+      - name: toolname
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Toolname
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseMessages'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /v1/tool/{toolname}/deployment/{deployment_id}:
     get:
       tags:
@@ -171,6 +253,20 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
 components:
   schemas:
+    ApiResponse_DeploymentToken_:
+      properties:
+        data:
+          $ref: '#/components/schemas/DeploymentToken'
+        messages:
+          $ref: '#/components/schemas/ResponseMessages'
+          default:
+            info: []
+            warning: []
+            error: []
+      type: object
+      required:
+      - data
+      title: ApiResponse[DeploymentToken]
     ApiResponse_Deployment_:
       properties:
         data:
@@ -272,6 +368,14 @@ components:
       required:
       - build_id
       title: DeploymentBuildInfo
+    DeploymentToken:
+      properties:
+        token:
+          type: string
+          format: uuid
+          title: Token
+      type: object
+      title: DeploymentToken
     HTTPValidationError:
       properties:
         detail:

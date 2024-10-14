@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends
 from ..models.api_models import (
     Deployment,
     DeploymentBuildInfo,
+    DeploymentTokenResponse,
     ResponseMessages,
     ToolConfig,
     ToolConfigResponse,
@@ -12,13 +13,17 @@ from ..storage import Storage, get_storage
 from . import tool_handlers as handlers
 from .auth import ensure_authenticated
 
-router = APIRouter()
+router = APIRouter(
+    prefix="/tool",
+    dependencies=[
+        Depends(ensure_authenticated),
+    ],
+)
 
 
-@router.get("/tool/{toolname}/config")
+@router.get("/{toolname}/config")
 def get_tool_config(
     toolname: str,
-    _: str = Depends(ensure_authenticated),
     storage: Storage = Depends(get_storage),
 ) -> ToolConfigResponse:
     """Retrieve the configuration for a specific tool."""
@@ -26,11 +31,10 @@ def get_tool_config(
     return ToolConfigResponse(data=config, messages=ResponseMessages())
 
 
-@router.post("/tool/{toolname}/config")
+@router.post("/{toolname}/config")
 def update_tool_config(
     toolname: str,
     config: ToolConfig,
-    _: str = Depends(ensure_authenticated),
     storage: Storage = Depends(get_storage),
 ) -> ToolConfigResponse:
     """Update or create the configuration for a specific tool."""
@@ -43,10 +47,9 @@ def update_tool_config(
     )
 
 
-@router.delete("/tool/{toolname}/config")
+@router.delete("/{toolname}/config")
 def delete_tool_config(
     toolname: str,
-    _: str = Depends(ensure_authenticated),
     storage: Storage = Depends(get_storage),
 ) -> ToolConfigResponse:
     """Delete the configuration for a specific tool."""
@@ -54,11 +57,20 @@ def delete_tool_config(
     return ToolConfigResponse(data=config, messages=ResponseMessages())
 
 
-@router.get("/tool/{toolname}/deployment/{deployment_id}")
+# This route should be above the get_tool_deployment route or {deploy_id} will match any string, including the token
+@router.get("/{toolname}/deployment/token")
+def get_tool_deployment_token(
+    toolname: str,
+    storage: Storage = Depends(get_storage),
+) -> DeploymentTokenResponse:
+    token = handlers.get_deployment_token(toolname, storage)
+    return DeploymentTokenResponse(data=token, messages=ResponseMessages())
+
+
+@router.get("/{toolname}/deployment/{deployment_id}")
 def get_tool_deployment(
     toolname: str,
     deployment_id: str,
-    _: str = Depends(ensure_authenticated),
     storage: Storage = Depends(get_storage),
 ) -> ToolDeploymentResponse:
     """Retrieve the configuration for a specific tool."""
@@ -68,10 +80,9 @@ def get_tool_deployment(
     return ToolDeploymentResponse(data=deployment, messages=ResponseMessages())
 
 
-@router.post("/tool/{toolname}/deployment")
+@router.post("/{toolname}/deployment")
 def create_tool_deployment(
     toolname: str,
-    _: str = Depends(ensure_authenticated),
     storage: Storage = Depends(get_storage),
 ) -> ToolDeploymentResponse:
     """Create a new tool deployment."""
@@ -94,4 +105,29 @@ def create_tool_deployment(
         messages=ResponseMessages(
             info=[f"Deployment for {toolname} created successfully."]
         ),
+    )
+
+
+@router.post("/{toolname}/deployment/token")
+def create_tool_deployment_token(
+    toolname: str,
+    storage: Storage = Depends(get_storage),
+) -> DeploymentTokenResponse:
+    token = handlers.create_deployment_token(toolname, storage)
+    return DeploymentTokenResponse(
+        data=token,
+        messages=ResponseMessages(
+            info=[f"Deployment token for {toolname} created successfully."]
+        ),
+    )
+
+
+@router.delete("/{toolname}/deployment/token")
+def delete_tool_deployment_token(
+    toolname: str,
+    storage: Storage = Depends(get_storage),
+) -> ResponseMessages:
+    handlers.delete_deployment_token(toolname, storage)
+    return ResponseMessages(
+        info=[f"Deployment token for {toolname} deleted successfully."]
     )

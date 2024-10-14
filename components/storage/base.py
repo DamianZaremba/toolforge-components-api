@@ -1,7 +1,7 @@
 import logging
 from abc import ABC, abstractmethod
 
-from ..models.api_models import Deployment, ToolConfig
+from ..models.api_models import Deployment, DeploymentToken, ToolConfig
 
 logger = logging.getLogger(__name__)
 
@@ -25,4 +25,16 @@ class Storage(ABC):
 
     @abstractmethod
     def create_deployment(self, tool_name: str, deployment: Deployment) -> None:
+        pass
+
+    @abstractmethod
+    def get_deployment_token(self, tool_name: str) -> DeploymentToken:
+        pass
+
+    @abstractmethod
+    def create_deployment_token(self, tool_name: str) -> DeploymentToken:
+        pass
+
+    @abstractmethod
+    def delete_deployment_token(self, tool_name: str) -> None:
         pass
