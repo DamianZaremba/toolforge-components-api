@@ -311,19 +311,12 @@ components:
       title: ApiResponse[ToolConfig]
     BuildInfo:
       properties:
-        repository:
+        use_prebuilt:
           type: string
-          minLength: 1
-          format: uri
-          title: Repository
-        ref:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Ref
+          title: Use Prebuilt
       type: object
       required:
-      - repository
+      - use_prebuilt
       title: BuildInfo
     ComponentInfo:
       properties:
@@ -335,10 +328,13 @@ components:
           title: Component Type
         build:
           $ref: '#/components/schemas/BuildInfo'
+        run:
+          $ref: '#/components/schemas/RunInfo'
       type: object
       required:
       - component_type
       - build
+      - run
       title: ComponentInfo
     Deployment:
       properties:
@@ -419,6 +415,15 @@ components:
           default: []
       type: object
       title: ResponseMessages
+    RunInfo:
+      properties:
+        command:
+          type: string
+          title: Command
+      type: object
+      required:
+      - command
+      title: RunInfo
     ToolConfig-Input:
       properties:
         config_version:

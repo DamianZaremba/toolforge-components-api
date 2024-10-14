@@ -96,7 +96,6 @@ def create_tool_deployment(
     return deployment
 
 
-
 def create_deployment_token(toolname: str, storage: Storage) -> DeploymentToken:
     logger.info(f"Creating deployment token for tool: {toolname}")
     try:

@@ -30,9 +30,15 @@ spec:
               value: "kubernetes"
             - name: "TOOLFORGE_API_URL"
               value: "{{ .Values.config.toolforge_api_url }}"
+            - name: "VERIFY_TOOLFORGE_API_CERT"
+              value: "{{ .Values.config.verify_toolforge_api_cert }}"
           resources: {{- toYaml .Values.resources | nindent 12 }}
           securityContext:
             readOnlyRootFilesystem: true
+          volumeMounts:
+            - mountPath: /etc/components-api
+              name: api-gateway-server-cert
+              readOnly: true
         - name: nginx
           image: "{{ .Values.nginx.image.repository }}:{{ .Values.nginx.image.nginxTag }}"
           imagePullPolicy: Always

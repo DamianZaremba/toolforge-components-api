@@ -1,5 +1,5 @@
-from uuid import UUID
 from unittest.mock import MagicMock
+from uuid import UUID
 
 import pytest
 from fastapi import status
@@ -193,6 +193,7 @@ class TestCreateDeployment:
                 "name": "component1",
                 "imagename": "silly_image",
             },
+            verify=True,
         )
 
 

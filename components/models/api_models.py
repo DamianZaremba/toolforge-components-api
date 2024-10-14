@@ -63,6 +63,7 @@ class Deployment(BaseModel):
 class DeploymentToken(BaseModel):
     token: UUID = Field(default_factory=uuid4)
 
+
 class HealthState(BaseModel):
     status: Literal["OK", "ERROR"]
 

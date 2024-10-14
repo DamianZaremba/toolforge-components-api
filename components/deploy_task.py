@@ -24,7 +24,7 @@ def load_kubeconfig(namespace: str, server: str) -> Kubeconfig:
             ca_file=Path("/etc/components-api/ca.crt"),
             current_server=server,
         )
-        logger.debug("Loaded kubeconfig from service account")
+        logger.debug("Loaded the kubeconfig certs from /etc/components-api")
     except Exception:
         logger.debug("Trying to load the kubeconfig from common paths")
         kubeconfig = Kubeconfig.load()
@@ -70,6 +70,7 @@ def deploy_continuous_jobs(
         toolforge_client.post(
             f"/jobs/v1/tool/{tool_name}/jobs/",
             json=new_job.model_dump(mode="json", exclude_none=True),
+            verify=settings.verify_toolforge_api_cert,
         ),
     )
     logger.debug(f"Deployed continuous job {component_name}: {create_response}")

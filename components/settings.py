@@ -14,8 +14,9 @@ class Settings(BaseSettings):
     address: str = "127.0.0.1"
     storage_type: Literal["mock", "kubernetes"] = "mock"
     toolforge_api_url: AnyHttpUrl = AnyHttpUrl(
-        "https://api.svc.tools.eqiad1.wikimedia.cloud:30003"
+        "https://api.svc.tools.eqiad1.wikimedia.cloud"
     )
+    verify_toolforge_api_cert: bool = True
     namespace: str = "components-api"
 
 

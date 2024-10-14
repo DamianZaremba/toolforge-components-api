@@ -31,4 +31,11 @@ certificates:
 config:
   debug: false
   port: 8000
-  toolforge_api_url: "https://api.svc.tools.eqiad1.wikimedia.cloud:30003"
+  toolforge_api_url: "https://api.svc.tools.eqiad1.wikimedia.cloud"
+  # For toolsbeta
+  #toolforge_api_url: "https://api.svc.beta.tools.eqiad1.wikimedia.cloud"
+  # For lima-kilo
+  #toolforge_api_url: "https://api-gateway.api-gateway.svc"
+  verify_toolforge_api_cert: true
+  # for lima-kilo
+  #verify_toolforge_api_cert: false
