@@ -1,0 +1,376 @@
+openapi: 3.1.0
+info:
+  title: Toolforge Components API
+  version: 0.1.0
+paths:
+  /v1/healthz:
+    get:
+      summary: Healthz
+      operationId: healthz
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_HealthState_'
+  /v1/tool/{toolname}/config:
+    get:
+      tags:
+      - tool
+      summary: Get Tool Config
+      description: Retrieve the configuration for a specific tool.
+      operationId: get_tool_config
+      security:
+      - APIKeyHeader: []
+      parameters:
+      - name: toolname
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Toolname
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ToolConfig_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - tool
+      summary: Update Tool Config
+      description: Update or create the configuration for a specific tool.
+      operationId: update_tool_config
+      security:
+      - APIKeyHeader: []
+      parameters:
+      - name: toolname
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Toolname
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ToolConfig-Input'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ToolConfig_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - tool
+      summary: Delete Tool Config
+      description: Delete the configuration for a specific tool.
+      operationId: delete_tool_config
+      security:
+      - APIKeyHeader: []
+      parameters:
+      - name: toolname
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Toolname
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ToolConfig_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/tool/{toolname}/deployment/{deployment_id}:
+    get:
+      tags:
+      - tool
+      summary: Get Tool Deployment
+      description: Retrieve the configuration for a specific tool.
+      operationId: get_tool_deployment
+      security:
+      - APIKeyHeader: []
+      parameters:
+      - name: toolname
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Toolname
+      - name: deployment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Deployment Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Deployment_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/tool/{toolname}/deployment:
+    post:
+      tags:
+      - tool
+      summary: Create Tool Deployment
+      description: Create a new tool deployment.
+      operationId: create_tool_deployment
+      security:
+      - APIKeyHeader: []
+      parameters:
+      - name: toolname
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Toolname
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Deployment_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+components:
+  schemas:
+    ApiResponse_Deployment_:
+      properties:
+        data:
+          $ref: '#/components/schemas/Deployment'
+        messages:
+          $ref: '#/components/schemas/ResponseMessages'
+          default:
+            info: []
+            warning: []
+            error: []
+      type: object
+      required:
+      - data
+      title: ApiResponse[Deployment]
+    ApiResponse_HealthState_:
+      properties:
+        data:
+          $ref: '#/components/schemas/HealthState'
+        messages:
+          $ref: '#/components/schemas/ResponseMessages'
+          default:
+            info: []
+            warning: []
+            error: []
+      type: object
+      required:
+      - data
+      title: ApiResponse[HealthState]
+    ApiResponse_ToolConfig_:
+      properties:
+        data:
+          $ref: '#/components/schemas/ToolConfig-Output'
+        messages:
+          $ref: '#/components/schemas/ResponseMessages'
+          default:
+            info: []
+            warning: []
+            error: []
+      type: object
+      required:
+      - data
+      title: ApiResponse[ToolConfig]
+    BuildInfo:
+      properties:
+        repository:
+          type: string
+          minLength: 1
+          format: uri
+          title: Repository
+        ref:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Ref
+      type: object
+      required:
+      - repository
+      title: BuildInfo
+    ComponentInfo:
+      properties:
+        component_type:
+          type: string
+          enum:
+          - continuous
+          - scheduled
+          - one-off
+          title: Component Type
+        build:
+          $ref: '#/components/schemas/BuildInfo'
+      type: object
+      required:
+      - component_type
+      - build
+      title: ComponentInfo
+    Deployment:
+      properties:
+        deploy_id:
+          type: string
+          title: Deploy Id
+        creation_time:
+          type: string
+          title: Creation Time
+        builds:
+          additionalProperties:
+            $ref: '#/components/schemas/DeploymentBuildInfo'
+          type: object
+          title: Builds
+      type: object
+      required:
+      - deploy_id
+      - creation_time
+      - builds
+      title: Deployment
+    DeploymentBuildInfo:
+      properties:
+        build_id:
+          type: string
+          title: Build Id
+      type: object
+      required:
+      - build_id
+      title: DeploymentBuildInfo
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    HealthState:
+      properties:
+        status:
+          type: string
+          enum:
+          - OK
+          - ERROR
+          title: Status
+      type: object
+      required:
+      - status
+      title: HealthState
+    ResponseMessages:
+      properties:
+        info:
+          items:
+            type: string
+          type: array
+          title: Info
+          default: []
+        warning:
+          items:
+            type: string
+          type: array
+          title: Warning
+          default: []
+        error:
+          items:
+            type: string
+          type: array
+          title: Error
+          default: []
+      type: object
+      title: ResponseMessages
+    ToolConfig-Input:
+      properties:
+        config_version:
+          type: string
+          title: Config Version
+        components:
+          additionalProperties:
+            $ref: '#/components/schemas/ComponentInfo'
+          type: object
+          minProperties: 1
+          title: Components
+      type: object
+      required:
+      - config_version
+      - components
+      title: ToolConfig
+    ToolConfig-Output:
+      properties:
+        config_version:
+          type: string
+          title: Config Version
+        components:
+          additionalProperties:
+            $ref: '#/components/schemas/ComponentInfo'
+          type: object
+          minProperties: 1
+          title: Components
+      type: object
+      required:
+      - config_version
+      - components
+      title: ToolConfig
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+  securitySchemes:
+    APIKeyHeader:
+      type: apiKey
+      in: header
+      name: x-toolforge-tool

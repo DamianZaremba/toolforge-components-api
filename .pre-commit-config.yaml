@@ -17,7 +17,13 @@ repos:
         verbose: true
         args: [--show-error-codes, --strict]
         additional_dependencies:
-          ["pydantic", "pydantic_settings", "types-toml", "fastapi"]
+          [
+            "pydantic",
+            "pydantic_settings",
+            "types-toml",
+            "fastapi",
+            "types-PyYAML",
+          ]
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
@@ -34,3 +40,11 @@ repos:
     rev: v0.10.0.1
     hooks:
       - id: shellcheck
+
+  - repo: local
+    hooks:
+      - id: export-openapi
+        name: export openapi spec
+        entry: poetry run python openapi/export-openapi.py components.main:create_app
+        language: system
+        pass_filenames: false
