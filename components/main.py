@@ -3,6 +3,7 @@ import logging
 import toml
 from fastapi import APIRouter, FastAPI
 from fastapi.exceptions import RequestValidationError
+from fastapi.routing import APIRoute
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .api import base_router, tool_router
@@ -23,6 +24,18 @@ def get_project_metadata() -> tuple[str, str]:
 
 
 title, version = get_project_metadata()
+
+
+def use_route_names_as_operation_ids(app: FastAPI) -> None:
+    """
+    Simplify operation IDs so that generated API clients have simpler function
+    names.
+
+    Should be called only after all routes have been added.
+    """
+    for route in app.routes:
+        if isinstance(route, APIRoute):
+            route.operation_id = route.name
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -49,6 +62,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # Custom exception handlers
     app.add_exception_handler(StarletteHTTPException, http_exception_handler)
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
+
+    use_route_names_as_operation_ids(app)
+
     return app
 
 
