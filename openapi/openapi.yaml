@@ -235,8 +235,7 @@ components:
           type: string
           enum:
           - continuous
-          - scheduled
-          - one-off
+          const: continuous
           title: Component Type
         build:
           $ref: '#/components/schemas/BuildInfo'

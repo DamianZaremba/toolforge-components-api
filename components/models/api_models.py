@@ -5,7 +5,8 @@ from typing import Generic, Literal, Type, TypeAlias, TypeVar
 
 from pydantic import AnyUrl, BaseModel, Field
 
-ComponentType: TypeAlias = Literal["continuous", "scheduled", "one-off"]
+# TODO: add the others when we add support for them
+ComponentType: TypeAlias = Literal["continuous"]
 T = TypeVar("T")
 # this comes from k8s name limitations, handy for us, but any is as god
 DEPLOYMENT_NAME_MAX_LENGTH = 53
