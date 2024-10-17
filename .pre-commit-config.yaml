@@ -24,6 +24,7 @@ repos:
             "fastapi",
             "types-PyYAML",
             "toolforge-weld",
+            "types-requests",
           ]
 
   - repo: https://github.com/pre-commit/pre-commit-hooks

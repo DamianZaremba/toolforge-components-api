@@ -57,7 +57,7 @@ def delete_tool_config(
     return ToolConfigResponse(data=config, messages=ResponseMessages())
 
 
-# This route should be above the get_tool_deployment route or {deploy_id} will match any string, including the token
+# This route should be above the get_tool_deployment route or {deployment_id} will match any string, including the token
 @router.get("/{toolname}/deployment/token")
 def get_tool_deployment_token(
     toolname: str,
@@ -130,8 +130,11 @@ def create_tool_deployment_token(
 def delete_tool_deployment_token(
     toolname: str,
     storage: Storage = Depends(get_storage),
-) -> ResponseMessages:
-    handlers.delete_deployment_token(toolname, storage)
-    return ResponseMessages(
-        info=[f"Deployment token for {toolname} deleted successfully."]
+) -> DeploymentTokenResponse:
+    token = handlers.delete_deployment_token(toolname, storage)
+    return DeploymentTokenResponse(
+        data=token,
+        messages=ResponseMessages(
+            info=[f"Deployment token for {toolname} deleted successfully."]
+        ),
     )

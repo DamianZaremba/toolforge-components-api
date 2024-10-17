@@ -1,10 +1,19 @@
 import logging
 from typing import Any
+from uuid import UUID
 
 import kubernetes  # type: ignore
 from fastapi import status
+from requests.exceptions import HTTPError
 
+from ..client import get_toolforge_client
+from ..gen.toolforge_models import (
+    EnvvarsEnvvar,
+    EnvvarsEnvvarName,
+    EnvvarsGetResponse,
+)
 from ..models.api_models import Deployment, DeploymentToken, ToolConfig
+from ..settings import get_settings
 from .base import Storage
 from .exceptions import NotFoundInStorage, StorageError
 
@@ -45,6 +54,7 @@ class KubernetesStorage(Storage):
         kubernetes.config.load_config()
         # we only need the crds API, only using it as storage
         self.k8s = kubernetes.client.CustomObjectsApi()
+        self.toolforge_client = get_toolforge_client()
 
     def get_tool_config(self, tool_name: str) -> ToolConfig:
         namespace = _get_k8s_tool_namespace(tool_name=tool_name)
@@ -183,10 +193,92 @@ class KubernetesStorage(Storage):
             ) from error
 
     def get_deployment_token(self, tool_name: str) -> DeploymentToken:
-        raise NotImplementedError
+        settings = get_settings()
 
-    def create_deployment_token(self, tool_name: str) -> DeploymentToken:
-        raise NotImplementedError
+        try:
+            response_data = self.toolforge_client.get(
+                f"/envvars/v1/tool/{tool_name}/envvars/TOOL_DEPLOY_TOKEN",
+                verify=settings.verify_toolforge_api_cert,
+            )
+            get_response = EnvvarsGetResponse.model_validate(response_data)
+        except HTTPError as http_err:
+            if (
+                http_err.response is not None
+                and http_err.response.status_code == status.HTTP_404_NOT_FOUND
+            ):
+                raise NotFoundInStorage(
+                    f"Deployment token not found for tool: {tool_name}"
+                ) from http_err
+            else:
+                logger.error(
+                    f"HTTP error occurred while retrieving deployment token for tool {tool_name}: {http_err}"
+                )
+                raise StorageError(
+                    f"Failed to retrieve deployment token for tool {tool_name}: {http_err}"
+                ) from http_err
+        except Exception as error:
+            logger.error(
+                f"Unexpected error occurred while retrieving deployment token for tool {tool_name}: {error}"
+            )
+            raise StorageError(
+                f"Unexpected error when trying to load deployment token for {tool_name}"
+            ) from error
 
-    def delete_deployment_token(self, tool_name: str) -> None:
-        raise NotImplementedError
+        if not get_response.envvar or not get_response.envvar.value:
+            raise NotFoundInStorage(
+                f"No valid deployment token found for tool: {tool_name}"
+            )
+
+        return DeploymentToken(token=UUID(get_response.envvar.value))
+
+    def set_deployment_token(self, tool_name: str, token: DeploymentToken) -> None:
+        settings = get_settings()
+
+        envvar = EnvvarsEnvvar(
+            name=EnvvarsEnvvarName("TOOL_DEPLOY_TOKEN"),
+            value=str(token.token),
+        )
+
+        try:
+            response_data = self.toolforge_client.post(
+                f"/envvars/v1/tool/{tool_name}/envvars",
+                json=envvar.model_dump(mode="json", exclude_none=True),
+                verify=settings.verify_toolforge_api_cert,
+            )
+            response = EnvvarsGetResponse.model_validate(response_data)
+            logger.debug(f"Deployment token set for tool: {tool_name}: {response}")
+        except Exception as error:
+            logger.error(
+                f"Error setting deployment token for tool {tool_name}: {str(error)}"
+            )
+            raise StorageError(
+                f"Got unexpected error when trying to set deployment token for {tool_name}"
+            ) from error
+
+    def delete_deployment_token(self, tool_name: str) -> DeploymentToken:
+        settings = get_settings()
+
+        token = self.get_deployment_token(tool_name)
+
+        try:
+            self.toolforge_client.delete(
+                f"/envvars/v1/tool/{tool_name}/envvars/TOOL_DEPLOY_TOKEN",
+                verify=settings.verify_toolforge_api_cert,
+            )
+            logger.info(f"Deployment token deleted for tool: {tool_name}")
+        except HTTPError as http_err:
+            logger.error(
+                f"HTTP error occurred while deleting deployment token for tool {tool_name}: {http_err}"
+            )
+            raise StorageError(
+                f"Failed to delete deployment token for tool {tool_name}: {http_err}"
+            ) from http_err
+        except Exception as error:
+            logger.error(
+                f"Unexpected error occurred while deleting deployment token for tool {tool_name}: {error}"
+            )
+            raise StorageError(
+                f"Unexpected error when trying to delete deployment token for tool {tool_name}"
+            ) from error
+
+        return token

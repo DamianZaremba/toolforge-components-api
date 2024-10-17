@@ -180,7 +180,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ResponseMessages'
+                $ref: '#/components/schemas/ApiResponse_DeploymentToken_'
         '422':
           description: Validation Error
           content:

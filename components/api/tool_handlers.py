@@ -1,4 +1,5 @@
 import logging
+from uuid import uuid4
 
 from fastapi import BackgroundTasks, HTTPException
 
@@ -89,8 +90,12 @@ def create_tool_deployment(
         raise HTTPException(status_code=500, detail=str(e))
 
     tool_config = get_tool_config(toolname=tool_name, storage=storage)
+
     background_tasks.add_task(
-        do_deploy, deployment=deployment, tool_config=tool_config, tool_name=tool_name
+        do_deploy,
+        deployment=deployment,
+        tool_config=tool_config,
+        tool_name=tool_name,
     )
 
     return deployment
@@ -99,7 +104,8 @@ def create_tool_deployment(
 def create_deployment_token(toolname: str, storage: Storage) -> DeploymentToken:
     logger.info(f"Creating deployment token for tool: {toolname}")
     try:
-        new_token = storage.create_deployment_token(toolname)
+        new_token = DeploymentToken(token=uuid4())
+        storage.set_deployment_token(toolname, new_token)
         logger.info(f"Deployment token created for tool: {toolname}")
         return new_token
     except Exception as e:
@@ -121,14 +127,15 @@ def get_deployment_token(toolname: str, storage: Storage) -> DeploymentToken:
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-def delete_deployment_token(toolname: str, storage: Storage) -> None:
+def delete_deployment_token(toolname: str, storage: Storage) -> DeploymentToken:
     logger.info(f"Deleting deployment token for tool: {toolname}")
     try:
-        storage.delete_deployment_token(toolname)
+        token = storage.delete_deployment_token(toolname)
         logger.info(f"Deployment token deleted for tool: {toolname}")
+        return token
     except NotFoundInStorage as e:
         logger.warning(str(e))
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        logger.error(f"Error deleting deployment token for tool {toolname}: {str(e)}")
+        logger.error(f"Error deleting deployment token for tool {toolname}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")

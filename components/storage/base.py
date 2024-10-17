@@ -32,9 +32,9 @@ class Storage(ABC):
         pass
 
     @abstractmethod
-    def create_deployment_token(self, tool_name: str) -> DeploymentToken:
+    def set_deployment_token(self, tool_name: str, token: DeploymentToken) -> None:
         pass
 
     @abstractmethod
-    def delete_deployment_token(self, tool_name: str) -> None:
+    def delete_deployment_token(self, tool_name: str) -> DeploymentToken:
         pass

@@ -1,5 +1,4 @@
 import logging
-from uuid import uuid4
 
 from ..models.api_models import Deployment, DeploymentToken, ToolConfig
 from .base import Storage
@@ -54,16 +53,15 @@ class MockStorage(Storage):
         logger.info(f"Found token {token.token} for tool: {tool_name}")
         return token
 
-    def create_deployment_token(self, tool_name: str) -> DeploymentToken:
-        logger.info(f"Creating deployment token for tool: {tool_name}")
-        new_token = DeploymentToken(token=uuid4())
-        self._deployment_tokens[tool_name] = new_token
-        logger.info(f"Deployment token created for tool: {tool_name}")
-        return new_token
+    def set_deployment_token(self, tool_name: str, token: DeploymentToken) -> None:
+        logger.info(f"Setting deployment token for tool: {tool_name}")
+        self._deployment_tokens[tool_name] = token
+        logger.info(f"Deployment token set for tool: {tool_name}")
 
-    def delete_deployment_token(self, tool_name: str) -> None:
+    def delete_deployment_token(self, tool_name: str) -> DeploymentToken:
         logger.info(f"Deleting deployment token for tool: {tool_name}")
         if tool_name not in self._deployment_tokens:
             raise NotFoundInStorage(f"No deployment token found for tool: {tool_name}")
-        del self._deployment_tokens[tool_name]
+        token = self._deployment_tokens.pop(tool_name)
         logger.info(f"Deployment token deleted for tool: {tool_name}")
+        return token

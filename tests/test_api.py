@@ -35,7 +35,7 @@ def authenticated_client(test_client) -> TestClient:
 
 
 @pytest.fixture
-def fake_toolforge_client(monkeypatch) -> ToolforgeClient:
+def fake_toolforge_client(monkeypatch) -> MagicMock:
     fake_kube_config = Kubeconfig(
         current_namespace="",
         current_server="",
@@ -45,7 +45,7 @@ def fake_toolforge_client(monkeypatch) -> ToolforgeClient:
     fake_client = MagicMock(spec=ToolforgeClient)
 
     monkeypatch.setattr(
-        components.deploy_task, "ToolforgeClient", lambda *args, **kwargs: fake_client
+        components.deploy_task, "get_toolforge_client", lambda: fake_client
     )
 
     return fake_client
@@ -320,23 +320,25 @@ class TestDeleteDeploymentToken:
         assert token_response.status_code == status.HTTP_404_NOT_FOUND
 
     def test_deletes_the_token_when_it_exists(self, authenticated_client: TestClient):
-        pass
-        # create a token
+        # Create a token
         create_response = authenticated_client.post(
             "/v1/tool/test-tool-1/deployment/token"
         )
         assert create_response.status_code == status.HTTP_200_OK
+        creation_data = DeploymentTokenResponse.model_validate(create_response.json())
 
-        # get the token
+        # Get the token
         get_response = authenticated_client.get("/v1/tool/test-tool-1/deployment/token")
         assert get_response.status_code == status.HTTP_200_OK
 
-        # delete the token
+        # Delete the token
         delete_response = authenticated_client.delete(
             "/v1/tool/test-tool-1/deployment/token"
         )
         assert delete_response.status_code == status.HTTP_200_OK
+        deletion_data = DeploymentTokenResponse.model_validate(delete_response.json())
+        assert deletion_data.data.token == creation_data.data.token
 
-        # try to get the token again
+        # Try to get the token again
         get_response = authenticated_client.get("/v1/tool/test-tool-1/deployment/token")
         assert get_response.status_code == status.HTTP_404_NOT_FOUND

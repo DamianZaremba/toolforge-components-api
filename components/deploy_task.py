@@ -1,11 +1,9 @@
-from functools import lru_cache
 from logging import getLogger
-from pathlib import Path
 from typing import cast
 
 from toolforge_weld.api_client import ToolforgeClient
-from toolforge_weld.kubernetes_config import Kubeconfig
 
+from .client import get_toolforge_client
 from .gen.toolforge_models import JobsJobResponse, JobsNewJob
 from .models.api_models import Deployment, RunInfo, ToolConfig
 from .settings import get_settings
@@ -13,26 +11,12 @@ from .settings import get_settings
 logger = getLogger(__name__)
 
 
-@lru_cache()
-def load_kubeconfig(namespace: str, server: str) -> Kubeconfig:
-    try:
-        logger.debug("Trying to load the kubeconfig certs from /etc/components-api")
-        kubeconfig = Kubeconfig(
-            current_namespace=namespace,
-            client_cert_file=Path("/etc/components-api/tls.crt"),
-            client_key_file=Path("/etc/components-api/tls.key"),
-            ca_file=Path("/etc/components-api/ca.crt"),
-            current_server=server,
-        )
-        logger.debug("Loaded the kubeconfig certs from /etc/components-api")
-    except Exception:
-        logger.debug("Trying to load the kubeconfig from common paths")
-        kubeconfig = Kubeconfig.load()
-        logger.debug("Loaded kubeconfig from common path")
-    return kubeconfig
-
-
-def do_deploy(tool_name: str, tool_config: ToolConfig, deployment: Deployment) -> None:
+def do_deploy(
+    tool_name: str,
+    tool_config: ToolConfig,
+    deployment: Deployment,
+) -> None:
+    toolforge_client = get_toolforge_client()
     for component_name, component_info in tool_config.components.items():
         # TODO: add support to load all the components jobs and then sync the current status
         if component_info.component_type == "continuous":
@@ -41,22 +25,21 @@ def do_deploy(tool_name: str, tool_config: ToolConfig, deployment: Deployment) -
                 run_info=component_info.run,
                 component_name=component_name,
                 image_name=component_info.build.use_prebuilt,
+                toolforge_client=toolforge_client,
             )
 
 
 def deploy_continuous_jobs(
-    tool_name: str, component_name: str, run_info: RunInfo, image_name: str
+    tool_name: str,
+    component_name: str,
+    run_info: RunInfo,
+    image_name: str,
+    toolforge_client: ToolforgeClient,
 ) -> None:
     # TODO: support multiple run infos/jobs
 
     settings = get_settings()
-    toolforge_client = ToolforgeClient(
-        server=str(settings.toolforge_api_url),
-        kubeconfig=load_kubeconfig(
-            namespace=settings.namespace, server=str(settings.toolforge_api_url)
-        ),
-        user_agent="Toolforge components-api",
-    )
+
     # TODO: delete all the other jobs that we don't manage
     logger.debug(
         f"Creating job for component {component_name} with image {image_name} and run_info {run_info}"
