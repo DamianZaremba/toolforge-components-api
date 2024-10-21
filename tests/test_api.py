@@ -1,69 +1,25 @@
 from unittest.mock import MagicMock
 from uuid import UUID
 
-import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
-from toolforge_weld.api_client import ToolforgeClient
-from toolforge_weld.kubernetes_config import Kubeconfig
 
-import components.deploy_task
-from components.main import create_app
 from components.models.api_models import (
     DeploymentTokenResponse,
     HealthState,
     HealthzResponse,
     ResponseMessages,
-    ToolConfig,
     ToolConfigResponse,
     ToolDeploymentResponse,
 )
-from components.settings import Settings
-
-
-@pytest.fixture
-def test_client():
-    app = create_app(settings=Settings(log_level="debug"))
-    with TestClient(app) as client:
-        yield client
-
-
-@pytest.fixture
-def authenticated_client(test_client) -> TestClient:
-    test_client.headers.update({"x-toolforge-tool": "test-tool-1"})
-    return test_client
-
-
-@pytest.fixture
-def fake_toolforge_client(monkeypatch) -> MagicMock:
-    fake_kube_config = Kubeconfig(
-        current_namespace="",
-        current_server="",
-    )
-
-    monkeypatch.setattr(Kubeconfig, "load", lambda *args, **kwargs: fake_kube_config)
-    fake_client = MagicMock(spec=ToolforgeClient)
-
-    monkeypatch.setattr(
-        components.deploy_task, "get_toolforge_client", lambda: fake_client
-    )
-
-    return fake_client
-
-
-def get_fake_tool_config(**overrides) -> ToolConfig:
-    params = {
-        "config_version": "v1",
-        "components": {
-            "component1": {
-                "build": {"use_prebuilt": "silly_image"},
-                "component_type": "continuous",
-                "run": {"command": "some command"},
-            }
-        },
-    }
-    params.update(overrides)
-    return ToolConfig.model_validate(params)
+from tests.helpers import (
+    create_deployment_token,
+    create_tool_config,
+    delete_deployment_token,
+    delete_tool_config,
+    get_deployment_token,
+    get_fake_tool_config,
+)
 
 
 def test_healthz_endpoint_returns_ok_status(test_client: TestClient):
@@ -77,10 +33,7 @@ def test_healthz_endpoint_returns_ok_status(test_client: TestClient):
 
 
 class TestUpdateToolConfig:
-    def test_succeeds_with_valid_config(
-        self,
-        authenticated_client: TestClient,
-    ):
+    def test_succeeds_with_valid_config(self, authenticated_client: TestClient):
         expected_tool_config = get_fake_tool_config()
         raw_response = authenticated_client.post(
             "/v1/tool/test-tool-1/config",
@@ -122,21 +75,20 @@ class TestGetToolConfig:
         assert raw_response.status_code == status.HTTP_404_NOT_FOUND
 
     def test_retrieves_the_set_config(self, authenticated_client: TestClient):
-        my_tool_config = get_fake_tool_config()
+        create_tool_config(authenticated_client)
+
         expected_response = ToolConfigResponse(
             messages=ResponseMessages(),
-            data=my_tool_config,
+            data=get_fake_tool_config(),
         )
-        response = authenticated_client.post(
-            "/v1/tool/test-tool-1/config", content=my_tool_config.model_dump_json()
-        )
-        response.raise_for_status()
 
         response = authenticated_client.get("/v1/tool/test-tool-1/config")
-
         assert response.status_code == status.HTTP_200_OK
+
         gotten_response = ToolConfigResponse.model_validate(response.json())
         assert gotten_response == expected_response
+
+        delete_tool_config(authenticated_client)
 
 
 class TestCreateDeployment:
@@ -146,7 +98,6 @@ class TestCreateDeployment:
         assert raw_response.status_code == status.HTTP_401_UNAUTHORIZED
 
     def test_fails_if_tool_has_no_config(self, authenticated_client: TestClient):
-        authenticated_client.delete("/v1/tool/test-tool-1/config")
         raw_response = authenticated_client.get("/v1/tool/test-tool-1/config")
         assert raw_response.status_code == status.HTTP_404_NOT_FOUND
 
@@ -165,14 +116,10 @@ class TestCreateDeployment:
     def test_creates_and_returns_the_new_deployment(
         self, authenticated_client: TestClient, fake_toolforge_client: MagicMock
     ):
-        my_tool_config = get_fake_tool_config()
-        response = authenticated_client.post(
-            "/v1/tool/test-tool-1/config", content=my_tool_config.model_dump_json()
-        )
-        response.raise_for_status()
+        create_tool_config(authenticated_client)
 
         response = authenticated_client.post("/v1/tool/test-tool-1/deployment")
-        response.raise_for_status()
+        assert response.status_code == status.HTTP_200_OK
 
         expected_deployment = ToolDeploymentResponse.model_validate(response.json())
 
@@ -216,17 +163,13 @@ class TestDeleteToolConfig:
         self,
         authenticated_client: TestClient,
     ):
-        my_tool_config = get_fake_tool_config()
-        response = authenticated_client.post(
-            "/v1/tool/test-tool-1/config", content=my_tool_config.model_dump_json()
-        )
-        response.raise_for_status()
+        my_tool_config = create_tool_config(authenticated_client)
 
         response = authenticated_client.delete("/v1/tool/test-tool-1/config")
 
         assert response.status_code == status.HTTP_200_OK
         gotten_response = ToolConfigResponse.model_validate(response.json())
-        assert gotten_response.data == my_tool_config
+        assert gotten_response.data == my_tool_config.data
         assert gotten_response.messages != []
 
         response = authenticated_client.get("/v1/tool/test-tool-1/config")
@@ -249,16 +192,12 @@ class TestGetDeploymentToken:
         assert raw_response.status_code == status.HTTP_404_NOT_FOUND
 
     def test_returns_the_token_when_it_exists(self, authenticated_client: TestClient):
-        create_response = authenticated_client.post(
-            "/v1/tool/test-tool-1/deployment/token"
-        )
-        assert create_response.status_code == status.HTTP_200_OK
+        create_deployment_token(authenticated_client)
 
         get_response = authenticated_client.get("/v1/tool/test-tool-1/deployment/token")
         assert get_response.status_code == status.HTTP_200_OK
 
-        # clean up
-        authenticated_client.delete("/v1/tool/test-tool-1/deployment/token")
+        delete_deployment_token(authenticated_client)
 
 
 class TestCreateDeploymentToken:
@@ -267,15 +206,11 @@ class TestCreateDeploymentToken:
         assert raw_response.status_code == status.HTTP_401_UNAUTHORIZED
 
     def test_returns_the_new_token(self, authenticated_client: TestClient):
-        create_response = authenticated_client.post(
-            "/v1/tool/test-tool-1/deployment/token"
-        )
-        assert create_response.status_code == status.HTTP_200_OK
-        creation_data = DeploymentTokenResponse.model_validate(create_response.json())
+        create_response = create_deployment_token(authenticated_client)
+        creation_data = DeploymentTokenResponse.model_validate(create_response)
 
-        get_response = authenticated_client.get("/v1/tool/test-tool-1/deployment/token")
-        assert get_response.status_code == status.HTTP_200_OK
-        retrieval_data = DeploymentTokenResponse.model_validate(get_response.json())
+        get_response = get_deployment_token(authenticated_client)
+        retrieval_data = DeploymentTokenResponse.model_validate(get_response)
 
         assert creation_data.data.token == retrieval_data.data.token
         assert isinstance(creation_data.data.token, UUID)
@@ -285,8 +220,7 @@ class TestCreateDeploymentToken:
         )
         assert not retrieval_data.messages.info
 
-        # clean up
-        authenticated_client.delete("/v1/tool/test-tool-1/deployment/token")
+        delete_deployment_token(authenticated_client)
 
 
 class TestDeleteDeploymentToken:
@@ -320,18 +254,9 @@ class TestDeleteDeploymentToken:
         assert token_response.status_code == status.HTTP_404_NOT_FOUND
 
     def test_deletes_the_token_when_it_exists(self, authenticated_client: TestClient):
-        # Create a token
-        create_response = authenticated_client.post(
-            "/v1/tool/test-tool-1/deployment/token"
-        )
-        assert create_response.status_code == status.HTTP_200_OK
-        creation_data = DeploymentTokenResponse.model_validate(create_response.json())
+        create_response = create_deployment_token(authenticated_client)
+        creation_data = DeploymentTokenResponse.model_validate(create_response)
 
-        # Get the token
-        get_response = authenticated_client.get("/v1/tool/test-tool-1/deployment/token")
-        assert get_response.status_code == status.HTTP_200_OK
-
-        # Delete the token
         delete_response = authenticated_client.delete(
             "/v1/tool/test-tool-1/deployment/token"
         )
@@ -339,6 +264,5 @@ class TestDeleteDeploymentToken:
         deletion_data = DeploymentTokenResponse.model_validate(delete_response.json())
         assert deletion_data.data.token == creation_data.data.token
 
-        # Try to get the token again
         get_response = authenticated_client.get("/v1/tool/test-tool-1/deployment/token")
         assert get_response.status_code == status.HTTP_404_NOT_FOUND
