@@ -11,5 +11,6 @@ rules:
     resources:
       - toolconfigs
       - tooldeployments
+      - deploytokens
     verbs:
       - "*"

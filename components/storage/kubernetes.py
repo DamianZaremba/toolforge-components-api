@@ -1,6 +1,5 @@
 import logging
 from typing import Any
-from uuid import UUID
 
 import kubernetes  # type: ignore
 from fastapi import status
@@ -19,6 +18,8 @@ from .exceptions import NotFoundInStorage, StorageError
 
 logger = logging.getLogger(__name__)
 
+DEPLOY_TOKEN_ENVVAR = "TOOL_DEPLOY_TOKEN"
+
 
 def _tool_config_to_k8s_crd(tool_name: str, tool_config: ToolConfig) -> dict[str, Any]:
     k8s_dict = {
@@ -30,12 +31,22 @@ def _tool_config_to_k8s_crd(tool_name: str, tool_config: ToolConfig) -> dict[str
     return k8s_dict
 
 
-def _deployment_to_k8s_crd(tool_name: str, deployment: Deployment) -> dict[str, Any]:
+def _deploy_to_k8s_crd(tool_name: str, deployment: Deployment) -> dict[str, Any]:
     k8s_dict = {
         "kind": "ToolDeployment",
         "apiVersion": "toolforge.org/v1",
         "metadata": {"name": deployment.deploy_id},
         "spec": deployment.model_dump(mode="json"),
+    }
+    return k8s_dict
+
+
+def _deploy_token_to_k8s_crd(tool_name: str, token: DeployToken) -> dict[str, Any]:
+    k8s_dict = {
+        "kind": "DeployToken",
+        "apiVersion": "toolforge.org/v1",
+        "metadata": {"name": tool_name},
+        "spec": token.model_dump(mode="json"),
     }
     return k8s_dict
 
@@ -90,6 +101,10 @@ class KubernetesStorage(Storage):
                 # it already exists, just update
                 self._delete_tool_config(tool_name=tool_name)
                 self._create_tool_config(tool_name=tool_name, config=config)
+            else:
+                raise Exception(
+                    "Unexpected unhandled k8s ApiException, should not have reached here."
+                ) from error
 
     def delete_tool_config(self, tool_name: str) -> ToolConfig:
         old_tool_config = self.get_tool_config(tool_name=tool_name)
@@ -173,7 +188,7 @@ class KubernetesStorage(Storage):
 
     def create_deployment(self, tool_name: str, deployment: Deployment) -> None:
         namespace = _get_k8s_tool_namespace(tool_name=tool_name)
-        body = _deployment_to_k8s_crd(deployment=deployment, tool_name=tool_name)
+        body = _deploy_to_k8s_crd(deployment=deployment, tool_name=tool_name)
         try:
             self.k8s.create_namespaced_custom_object(
                 group="toolforge.org",
@@ -193,49 +208,32 @@ class KubernetesStorage(Storage):
             ) from error
 
     def get_deploy_token(self, tool_name: str) -> DeployToken:
-        settings = get_settings()
-
+        namespace = _get_k8s_tool_namespace(tool_name=tool_name)
         try:
-            response_data = self.toolforge_client.get(
-                f"/envvars/v1/tool/{tool_name}/envvars/TOOL_DEPLOY_TOKEN",
-                verify=settings.verify_toolforge_api_cert,
+            k8s_token = self.k8s.get_namespaced_custom_object(
+                group="toolforge.org",
+                version="v1",
+                name=tool_name,
+                plural="deploytokens",
+                namespace=namespace,
             )
-            get_response = EnvvarsGetResponse.model_validate(response_data)
-        except HTTPError as http_err:
-            if (
-                http_err.response is not None
-                and http_err.response.status_code == status.HTTP_404_NOT_FOUND
-            ):
+        except kubernetes.client.ApiException as error:
+            if error.status == status.HTTP_404_NOT_FOUND:
                 raise NotFoundInStorage(
-                    f"Deploy token not found for tool: {tool_name}"
-                ) from http_err
-            else:
-                logger.error(
-                    f"HTTP error occurred while retrieving deploy token for tool {tool_name}: {http_err}"
-                )
-                raise StorageError(
-                    f"Failed to retrieve deploy token for tool {tool_name}: {http_err}"
-                ) from http_err
-        except Exception as error:
-            logger.error(
-                f"Unexpected error occurred while retrieving deploy token for tool {tool_name}: {error}"
-            )
+                    f"Unable to find namespace {namespace} or deploytoken {tool_name} for {tool_name}"
+                ) from error
+
             raise StorageError(
-                f"Unexpected error when trying to load deploy token for {tool_name}"
+                f"Got unexpected error when trying to load deploy token for {tool_name}"
             ) from error
 
-        if not get_response.envvar or not get_response.envvar.value:
-            raise NotFoundInStorage(
-                f"No valid deploy token found for tool: {tool_name}"
-            )
+        return DeployToken.model_validate(k8s_token["spec"])
 
-        return DeployToken(token=UUID(get_response.envvar.value))
-
-    def set_deploy_token(self, tool_name: str, token: DeployToken) -> None:
+    def _set_deploy_token_envvar(self, tool_name: str, token: DeployToken) -> None:
         settings = get_settings()
 
         envvar = EnvvarsEnvvar(
-            name=EnvvarsEnvvarName("TOOL_DEPLOY_TOKEN"),
+            name=EnvvarsEnvvarName(DEPLOY_TOKEN_ENVVAR),
             value=str(token.token),
         )
 
@@ -255,14 +253,51 @@ class KubernetesStorage(Storage):
                 f"Got unexpected error when trying to set deploy token for {tool_name}"
             ) from error
 
-    def delete_deploy_token(self, tool_name: str) -> DeployToken:
-        settings = get_settings()
+    def _set_deploy_token_crd(self, tool_name: str, token: DeployToken) -> None:
+        namespace = _get_k8s_tool_namespace(tool_name=tool_name)
+        body = _deploy_token_to_k8s_crd(token=token, tool_name=tool_name)
+        try:
+            self.k8s.create_namespaced_custom_object(
+                group="toolforge.org",
+                version="v1",
+                plural="deploytokens",
+                namespace=namespace,
+                body=body,
+            )
+        except kubernetes.client.ApiException as error:
+            if error.status == status.HTTP_404_NOT_FOUND:
+                raise NotFoundInStorage(
+                    f"Unable to find namespace {namespace} for tool {tool_name}"
+                ) from error
 
-        token = self.get_deploy_token(tool_name)
+            if error.status == status.HTTP_409_CONFLICT:
+                # bubble up for us to handle
+                raise error
+
+            raise StorageError(
+                f"Got unexpected error ({error}) when trying to create deploy token for {tool_name}"
+            ) from error
+
+    def set_deploy_token(self, tool_name: str, token: DeployToken) -> None:
+        try:
+            self._set_deploy_token_crd(tool_name=tool_name, token=token)
+        except kubernetes.client.ApiException as error:
+            if error.status == status.HTTP_409_CONFLICT:
+                self._delete_deploy_token_crd(tool_name=tool_name)
+                self._set_deploy_token_crd(tool_name=tool_name, token=token)
+            else:
+                raise Exception(
+                    "Unexpected unhandled k8s ApiException, should not have reached here."
+                ) from error
+
+        self._set_deploy_token_envvar(tool_name=tool_name, token=token)
+
+    def _delete_deploy_token_envvar(self, tool_name: str) -> None:
+        settings = get_settings()
 
         try:
             self.toolforge_client.delete(
-                f"/envvars/v1/tool/{tool_name}/envvars/TOOL_DEPLOY_TOKEN",
+                f"/envvars/v1/tool/{tool_name}/envvars/{DEPLOY_TOKEN_ENVVAR}",
                 verify=settings.verify_toolforge_api_cert,
             )
             logger.info(f"Deploy token deleted for tool: {tool_name}")
@@ -281,4 +316,34 @@ class KubernetesStorage(Storage):
                 f"Unexpected error when trying to delete deploy token for tool {tool_name}"
             ) from error
 
+    def _delete_deploy_token_crd(self, tool_name: str) -> None:
+        namespace = _get_k8s_tool_namespace(tool_name=tool_name)
+        token_name = tool_name
+        try:
+            # delete and recreate to avoid having to figure out what to patch
+            self.k8s.delete_namespaced_custom_object(
+                group="toolforge.org",
+                version="v1",
+                plural="deploytokens",
+                namespace=namespace,
+                name=token_name,
+            )
+        except kubernetes.client.ApiException as error:
+            logger.exception(
+                f"Attempted to delete deploy token for tool:{tool_name} in namespace:{namespace}"
+            )
+            if error.status == status.HTTP_404_NOT_FOUND:
+                raise NotFoundInStorage(
+                    f"Unable to find namespace '{namespace}' or deploy token '{token_name}' for '{tool_name}'"
+                ) from error
+
+            raise StorageError(
+                f"Got unexpected error when trying to delete config for {tool_name}"
+            ) from error
+
+    def delete_deploy_token(self, tool_name: str) -> DeployToken:
+        token = self.get_deploy_token(tool_name)
+
+        self._delete_deploy_token_crd(tool_name=tool_name)
+        self._delete_deploy_token_envvar(tool_name=tool_name)
         return token

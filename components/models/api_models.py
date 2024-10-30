@@ -62,6 +62,9 @@ class Deployment(BaseModel):
 
 class DeployToken(BaseModel):
     token: UUID = Field(default_factory=uuid4)
+    creation_date: datetime.datetime = Field(
+        default_factory=lambda: datetime.datetime.now(tz=datetime.UTC)
+    )
 
 
 class HealthState(BaseModel):

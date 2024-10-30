@@ -342,6 +342,10 @@ components:
           type: string
           format: uuid
           title: Token
+        creation_date:
+          type: string
+          format: date-time
+          title: Creation Date
       type: object
       title: DeployToken
     Deployment:

@@ -1,5 +1,4 @@
 import logging
-from uuid import uuid4
 
 from fastapi import BackgroundTasks, HTTPException
 
@@ -104,7 +103,7 @@ def create_tool_deployment(
 def create_deploy_token(toolname: str, storage: Storage) -> DeployToken:
     logger.info(f"Creating deploy token for tool: {toolname}")
     try:
-        new_token = DeployToken(token=uuid4())
+        new_token = DeployToken()
         storage.set_deploy_token(toolname, new_token)
         logger.info(f"Deploy token created for tool: {toolname}")
         return new_token
