@@ -3,7 +3,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends
 from ..models.api_models import (
     Deployment,
     DeploymentBuildInfo,
-    DeploymentTokenResponse,
+    DeployTokenResponse,
     ResponseMessages,
     ToolConfig,
     ToolConfigResponse,
@@ -59,12 +59,12 @@ def delete_tool_config(
 
 # This route should be above the get_tool_deployment route or {deployment_id} will match any string, including the token
 @router.get("/{toolname}/deployment/token")
-def get_tool_deployment_token(
+def get_tool_deploy_token(
     toolname: str,
     storage: Storage = Depends(get_storage),
-) -> DeploymentTokenResponse:
-    token = handlers.get_deployment_token(toolname, storage)
-    return DeploymentTokenResponse(data=token, messages=ResponseMessages())
+) -> DeployTokenResponse:
+    token = handlers.get_deploy_token(toolname, storage)
+    return DeployTokenResponse(data=token, messages=ResponseMessages())
 
 
 @router.get("/{toolname}/deployment/{deployment_id}")
@@ -113,28 +113,28 @@ def create_tool_deployment(
 
 
 @router.post("/{toolname}/deployment/token")
-def create_tool_deployment_token(
+def create_tool_deploy_token(
     toolname: str,
     storage: Storage = Depends(get_storage),
-) -> DeploymentTokenResponse:
-    token = handlers.create_deployment_token(toolname, storage)
-    return DeploymentTokenResponse(
+) -> DeployTokenResponse:
+    token = handlers.create_deploy_token(toolname, storage)
+    return DeployTokenResponse(
         data=token,
         messages=ResponseMessages(
-            info=[f"Deployment token for {toolname} created successfully."]
+            info=[f"Deploy token for {toolname} created successfully."]
         ),
     )
 
 
 @router.delete("/{toolname}/deployment/token")
-def delete_tool_deployment_token(
+def delete_tool_deploy_token(
     toolname: str,
     storage: Storage = Depends(get_storage),
-) -> DeploymentTokenResponse:
-    token = handlers.delete_deployment_token(toolname, storage)
-    return DeploymentTokenResponse(
+) -> DeployTokenResponse:
+    token = handlers.delete_deploy_token(toolname, storage)
+    return DeployTokenResponse(
         data=token,
         messages=ResponseMessages(
-            info=[f"Deployment token for {toolname} deleted successfully."]
+            info=[f"Deploy token for {toolname} deleted successfully."]
         ),
     )

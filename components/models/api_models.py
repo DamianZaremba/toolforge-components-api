@@ -60,7 +60,7 @@ class Deployment(BaseModel):
         )
 
 
-class DeploymentToken(BaseModel):
+class DeployToken(BaseModel):
     token: UUID = Field(default_factory=uuid4)
 
 
@@ -82,4 +82,4 @@ class ApiResponse(BaseModel, Generic[T]):
 ToolConfigResponse = ApiResponse[ToolConfig]
 HealthzResponse = ApiResponse[HealthState]
 ToolDeploymentResponse = ApiResponse[Deployment]
-DeploymentTokenResponse = ApiResponse[DeploymentToken]
+DeployTokenResponse = ApiResponse[DeployToken]

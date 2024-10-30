@@ -2,7 +2,7 @@ from fastapi import status
 from fastapi.testclient import TestClient
 
 from components.models.api_models import (
-    DeploymentTokenResponse,
+    DeployTokenResponse,
     ToolConfig,
     ToolConfigResponse,
 )
@@ -42,24 +42,24 @@ def delete_tool_config(
     return ToolConfigResponse.model_validate(response.json())
 
 
-def create_deployment_token(
+def create_deploy_token(
     client: TestClient, tool_name: str = "test-tool-1"
-) -> DeploymentTokenResponse:
+) -> DeployTokenResponse:
     response = client.post(f"/v1/tool/{tool_name}/deployment/token")
     assert response.status_code == status.HTTP_200_OK
-    return DeploymentTokenResponse.model_validate(response.json())
+    return DeployTokenResponse.model_validate(response.json())
 
 
-def delete_deployment_token(
+def delete_deploy_token(
     client: TestClient, tool_name: str = "test-tool-1"
-) -> DeploymentTokenResponse:
+) -> DeployTokenResponse:
     response = client.delete(f"/v1/tool/{tool_name}/deployment/token")
     assert response.status_code == status.HTTP_200_OK
-    return DeploymentTokenResponse.model_validate(response.json())
+    return DeployTokenResponse.model_validate(response.json())
 
 
-def get_deployment_token(
+def get_deploy_token(
     client: TestClient, tool_name: str = "test-tool-1"
-) -> DeploymentTokenResponse:
+) -> DeployTokenResponse:
     response = client.get(f"/v1/tool/{tool_name}/deployment/token")
-    return DeploymentTokenResponse.model_validate(response.json())
+    return DeployTokenResponse.model_validate(response.json())

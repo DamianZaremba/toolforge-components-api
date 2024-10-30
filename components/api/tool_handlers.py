@@ -6,7 +6,7 @@ from fastapi import BackgroundTasks, HTTPException
 from ..deploy_task import do_deploy
 from ..models.api_models import (
     Deployment,
-    DeploymentToken,
+    DeployToken,
     ToolConfig,
 )
 from ..storage import Storage
@@ -101,41 +101,41 @@ def create_tool_deployment(
     return deployment
 
 
-def create_deployment_token(toolname: str, storage: Storage) -> DeploymentToken:
-    logger.info(f"Creating deployment token for tool: {toolname}")
+def create_deploy_token(toolname: str, storage: Storage) -> DeployToken:
+    logger.info(f"Creating deploy token for tool: {toolname}")
     try:
-        new_token = DeploymentToken(token=uuid4())
-        storage.set_deployment_token(toolname, new_token)
-        logger.info(f"Deployment token created for tool: {toolname}")
+        new_token = DeployToken(token=uuid4())
+        storage.set_deploy_token(toolname, new_token)
+        logger.info(f"Deploy token created for tool: {toolname}")
         return new_token
     except Exception as e:
-        logger.error(f"Error creating deployment token for tool {toolname}: {str(e)}")
+        logger.error(f"Error creating deploy token for tool {toolname}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-def get_deployment_token(toolname: str, storage: Storage) -> DeploymentToken:
-    logger.info(f"Retrieving deployment token for tool: {toolname}")
+def get_deploy_token(toolname: str, storage: Storage) -> DeployToken:
+    logger.info(f"Retrieving deploy token for tool: {toolname}")
     try:
-        token = storage.get_deployment_token(toolname)
-        logger.info(f"Deployment token retrieved for tool: {toolname}")
+        token = storage.get_deploy_token(toolname)
+        logger.info(f"Deploy token retrieved for tool: {toolname}")
         return token
     except NotFoundInStorage as e:
         logger.warning(str(e))
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        logger.error(f"Error retrieving deployment token for tool {toolname}: {str(e)}")
+        logger.error(f"Error retrieving deploy token for tool {toolname}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-def delete_deployment_token(toolname: str, storage: Storage) -> DeploymentToken:
-    logger.info(f"Deleting deployment token for tool: {toolname}")
+def delete_deploy_token(toolname: str, storage: Storage) -> DeployToken:
+    logger.info(f"Deleting deploy token for tool: {toolname}")
     try:
-        token = storage.delete_deployment_token(toolname)
-        logger.info(f"Deployment token deleted for tool: {toolname}")
+        token = storage.delete_deploy_token(toolname)
+        logger.info(f"Deploy token deleted for tool: {toolname}")
         return token
     except NotFoundInStorage as e:
         logger.warning(str(e))
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        logger.error(f"Error deleting deployment token for tool {toolname}: {e}")
+        logger.error(f"Error deleting deploy token for tool {toolname}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")

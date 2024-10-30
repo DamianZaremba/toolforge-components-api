@@ -12,7 +12,7 @@ from ..gen.toolforge_models import (
     EnvvarsEnvvarName,
     EnvvarsGetResponse,
 )
-from ..models.api_models import Deployment, DeploymentToken, ToolConfig
+from ..models.api_models import Deployment, DeployToken, ToolConfig
 from ..settings import get_settings
 from .base import Storage
 from .exceptions import NotFoundInStorage, StorageError
@@ -192,7 +192,7 @@ class KubernetesStorage(Storage):
                 f"Got unexpected error ({error}) when trying to create deployment for {tool_name}"
             ) from error
 
-    def get_deployment_token(self, tool_name: str) -> DeploymentToken:
+    def get_deploy_token(self, tool_name: str) -> DeployToken:
         settings = get_settings()
 
         try:
@@ -207,31 +207,31 @@ class KubernetesStorage(Storage):
                 and http_err.response.status_code == status.HTTP_404_NOT_FOUND
             ):
                 raise NotFoundInStorage(
-                    f"Deployment token not found for tool: {tool_name}"
+                    f"Deploy token not found for tool: {tool_name}"
                 ) from http_err
             else:
                 logger.error(
-                    f"HTTP error occurred while retrieving deployment token for tool {tool_name}: {http_err}"
+                    f"HTTP error occurred while retrieving deploy token for tool {tool_name}: {http_err}"
                 )
                 raise StorageError(
-                    f"Failed to retrieve deployment token for tool {tool_name}: {http_err}"
+                    f"Failed to retrieve deploy token for tool {tool_name}: {http_err}"
                 ) from http_err
         except Exception as error:
             logger.error(
-                f"Unexpected error occurred while retrieving deployment token for tool {tool_name}: {error}"
+                f"Unexpected error occurred while retrieving deploy token for tool {tool_name}: {error}"
             )
             raise StorageError(
-                f"Unexpected error when trying to load deployment token for {tool_name}"
+                f"Unexpected error when trying to load deploy token for {tool_name}"
             ) from error
 
         if not get_response.envvar or not get_response.envvar.value:
             raise NotFoundInStorage(
-                f"No valid deployment token found for tool: {tool_name}"
+                f"No valid deploy token found for tool: {tool_name}"
             )
 
-        return DeploymentToken(token=UUID(get_response.envvar.value))
+        return DeployToken(token=UUID(get_response.envvar.value))
 
-    def set_deployment_token(self, tool_name: str, token: DeploymentToken) -> None:
+    def set_deploy_token(self, tool_name: str, token: DeployToken) -> None:
         settings = get_settings()
 
         envvar = EnvvarsEnvvar(
@@ -246,39 +246,39 @@ class KubernetesStorage(Storage):
                 verify=settings.verify_toolforge_api_cert,
             )
             response = EnvvarsGetResponse.model_validate(response_data)
-            logger.debug(f"Deployment token set for tool: {tool_name}: {response}")
+            logger.debug(f"Deploy token set for tool: {tool_name}: {response}")
         except Exception as error:
             logger.error(
-                f"Error setting deployment token for tool {tool_name}: {str(error)}"
+                f"Error setting deploy token for tool {tool_name}: {str(error)}"
             )
             raise StorageError(
-                f"Got unexpected error when trying to set deployment token for {tool_name}"
+                f"Got unexpected error when trying to set deploy token for {tool_name}"
             ) from error
 
-    def delete_deployment_token(self, tool_name: str) -> DeploymentToken:
+    def delete_deploy_token(self, tool_name: str) -> DeployToken:
         settings = get_settings()
 
-        token = self.get_deployment_token(tool_name)
+        token = self.get_deploy_token(tool_name)
 
         try:
             self.toolforge_client.delete(
                 f"/envvars/v1/tool/{tool_name}/envvars/TOOL_DEPLOY_TOKEN",
                 verify=settings.verify_toolforge_api_cert,
             )
-            logger.info(f"Deployment token deleted for tool: {tool_name}")
+            logger.info(f"Deploy token deleted for tool: {tool_name}")
         except HTTPError as http_err:
             logger.error(
-                f"HTTP error occurred while deleting deployment token for tool {tool_name}: {http_err}"
+                f"HTTP error occurred while deleting deploy token for tool {tool_name}: {http_err}"
             )
             raise StorageError(
-                f"Failed to delete deployment token for tool {tool_name}: {http_err}"
+                f"Failed to delete deploy token for tool {tool_name}: {http_err}"
             ) from http_err
         except Exception as error:
             logger.error(
-                f"Unexpected error occurred while deleting deployment token for tool {tool_name}: {error}"
+                f"Unexpected error occurred while deleting deploy token for tool {tool_name}: {error}"
             )
             raise StorageError(
-                f"Unexpected error when trying to delete deployment token for tool {tool_name}"
+                f"Unexpected error when trying to delete deploy token for tool {tool_name}"
             ) from error
 
         return token

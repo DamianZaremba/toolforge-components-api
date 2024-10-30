@@ -1,6 +1,6 @@
 import logging
 
-from ..models.api_models import Deployment, DeploymentToken, ToolConfig
+from ..models.api_models import Deployment, DeployToken, ToolConfig
 from .base import Storage
 from .exceptions import NotFoundInStorage
 
@@ -11,7 +11,7 @@ class MockStorage(Storage):
     def __init__(self) -> None:
         self._tool_configs: dict[str, ToolConfig] = {}
         self._per_tool_deployments: dict[str, dict[str, Deployment]] = {}
-        self._deployment_tokens: dict[str, DeploymentToken] = {}
+        self._deploy_tokens: dict[str, DeployToken] = {}
         logger.info("MockStorage initialized.")
 
     def get_tool_config(self, tool_name: str) -> ToolConfig:
@@ -44,24 +44,24 @@ class MockStorage(Storage):
 
         self._per_tool_deployments[tool_name][deployment.deploy_id] = deployment
 
-    def get_deployment_token(self, tool_name: str) -> DeploymentToken:
-        logger.info(f"Retrieving deployment token for tool: {tool_name}")
-        token = self._deployment_tokens.get(tool_name)
+    def get_deploy_token(self, tool_name: str) -> DeployToken:
+        logger.info(f"Retrieving deploy token for tool: {tool_name}")
+        token = self._deploy_tokens.get(tool_name)
         if not token:
-            logger.warning(f"No deployment token found for tool: {tool_name}")
-            raise NotFoundInStorage(f"No deployment token found for tool: {tool_name}")
+            logger.warning(f"No deploy token found for tool: {tool_name}")
+            raise NotFoundInStorage(f"No deploy token found for tool: {tool_name}")
         logger.info(f"Found token {token.token} for tool: {tool_name}")
         return token
 
-    def set_deployment_token(self, tool_name: str, token: DeploymentToken) -> None:
-        logger.info(f"Setting deployment token for tool: {tool_name}")
-        self._deployment_tokens[tool_name] = token
-        logger.info(f"Deployment token set for tool: {tool_name}")
+    def set_deploy_token(self, tool_name: str, token: DeployToken) -> None:
+        logger.info(f"Setting deploy token for tool: {tool_name}")
+        self._deploy_tokens[tool_name] = token
+        logger.info(f"Deploy token set for tool: {tool_name}")
 
-    def delete_deployment_token(self, tool_name: str) -> DeploymentToken:
-        logger.info(f"Deleting deployment token for tool: {tool_name}")
-        if tool_name not in self._deployment_tokens:
-            raise NotFoundInStorage(f"No deployment token found for tool: {tool_name}")
-        token = self._deployment_tokens.pop(tool_name)
-        logger.info(f"Deployment token deleted for tool: {tool_name}")
+    def delete_deploy_token(self, tool_name: str) -> DeployToken:
+        logger.info(f"Deleting deploy token for tool: {tool_name}")
+        if tool_name not in self._deploy_tokens:
+            raise NotFoundInStorage(f"No deploy token found for tool: {tool_name}")
+        token = self._deploy_tokens.pop(tool_name)
+        logger.info(f"Deploy token deleted for tool: {tool_name}")
         return token

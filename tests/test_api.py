@@ -5,7 +5,7 @@ from fastapi import status
 from fastapi.testclient import TestClient
 
 from components.models.api_models import (
-    DeploymentTokenResponse,
+    DeployTokenResponse,
     HealthState,
     HealthzResponse,
     ResponseMessages,
@@ -13,11 +13,11 @@ from components.models.api_models import (
     ToolDeploymentResponse,
 )
 from tests.helpers import (
-    create_deployment_token,
+    create_deploy_token,
     create_tool_config,
-    delete_deployment_token,
+    delete_deploy_token,
     delete_tool_config,
-    get_deployment_token,
+    get_deploy_token,
     get_fake_tool_config,
 )
 
@@ -176,7 +176,7 @@ class TestDeleteToolConfig:
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
-class TestGetDeploymentToken:
+class TestGetDeployToken:
     def test_fails_without_auth_header(self, test_client: TestClient):
         raw_response = test_client.get("/v1/tool/test-tool-1/deployment/token")
 
@@ -192,38 +192,38 @@ class TestGetDeploymentToken:
         assert raw_response.status_code == status.HTTP_404_NOT_FOUND
 
     def test_returns_the_token_when_it_exists(self, authenticated_client: TestClient):
-        create_deployment_token(authenticated_client)
+        create_deploy_token(authenticated_client)
 
         get_response = authenticated_client.get("/v1/tool/test-tool-1/deployment/token")
         assert get_response.status_code == status.HTTP_200_OK
 
-        delete_deployment_token(authenticated_client)
+        delete_deploy_token(authenticated_client)
 
 
-class TestCreateDeploymentToken:
+class TestCreateDeployToken:
     def test_fails_without_auth_header(self, test_client: TestClient):
         raw_response = test_client.post("/v1/tool/test-tool-1/deployment/token")
         assert raw_response.status_code == status.HTTP_401_UNAUTHORIZED
 
     def test_returns_the_new_token(self, authenticated_client: TestClient):
-        create_response = create_deployment_token(authenticated_client)
-        creation_data = DeploymentTokenResponse.model_validate(create_response)
+        create_response = create_deploy_token(authenticated_client)
+        creation_data = DeployTokenResponse.model_validate(create_response)
 
-        get_response = get_deployment_token(authenticated_client)
-        retrieval_data = DeploymentTokenResponse.model_validate(get_response)
+        get_response = get_deploy_token(authenticated_client)
+        retrieval_data = DeployTokenResponse.model_validate(get_response)
 
         assert creation_data.data.token == retrieval_data.data.token
         assert isinstance(creation_data.data.token, UUID)
         assert (
-            "Deployment token for test-tool-1 created successfully."
+            "Deploy token for test-tool-1 created successfully."
             in creation_data.messages.info
         )
         assert not retrieval_data.messages.info
 
-        delete_deployment_token(authenticated_client)
+        delete_deploy_token(authenticated_client)
 
 
-class TestDeleteDeploymentToken:
+class TestDeleteDeployToken:
     def test_fails_without_auth_header(self, test_client: TestClient):
         raw_response = test_client.delete("/v1/tool/test-tool-1/deployment/token")
 
@@ -254,14 +254,14 @@ class TestDeleteDeploymentToken:
         assert token_response.status_code == status.HTTP_404_NOT_FOUND
 
     def test_deletes_the_token_when_it_exists(self, authenticated_client: TestClient):
-        create_response = create_deployment_token(authenticated_client)
-        creation_data = DeploymentTokenResponse.model_validate(create_response)
+        create_response = create_deploy_token(authenticated_client)
+        creation_data = DeployTokenResponse.model_validate(create_response)
 
         delete_response = authenticated_client.delete(
             "/v1/tool/test-tool-1/deployment/token"
         )
         assert delete_response.status_code == status.HTTP_200_OK
-        deletion_data = DeploymentTokenResponse.model_validate(delete_response.json())
+        deletion_data = DeployTokenResponse.model_validate(delete_response.json())
         assert deletion_data.data.token == creation_data.data.token
 
         get_response = authenticated_client.get("/v1/tool/test-tool-1/deployment/token")

@@ -109,8 +109,8 @@ paths:
     get:
       tags:
       - tool
-      summary: Get Tool Deployment Token
-      operationId: get_tool_deployment_token
+      summary: Get Tool Deploy Token
+      operationId: get_tool_deploy_token
       security:
       - APIKeyHeader: []
       parameters:
@@ -126,7 +126,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse_DeploymentToken_'
+                $ref: '#/components/schemas/ApiResponse_DeployToken_'
         '422':
           description: Validation Error
           content:
@@ -136,8 +136,8 @@ paths:
     post:
       tags:
       - tool
-      summary: Create Tool Deployment Token
-      operationId: create_tool_deployment_token
+      summary: Create Tool Deploy Token
+      operationId: create_tool_deploy_token
       security:
       - APIKeyHeader: []
       parameters:
@@ -153,7 +153,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse_DeploymentToken_'
+                $ref: '#/components/schemas/ApiResponse_DeployToken_'
         '422':
           description: Validation Error
           content:
@@ -163,8 +163,8 @@ paths:
     delete:
       tags:
       - tool
-      summary: Delete Tool Deployment Token
-      operationId: delete_tool_deployment_token
+      summary: Delete Tool Deploy Token
+      operationId: delete_tool_deploy_token
       security:
       - APIKeyHeader: []
       parameters:
@@ -180,7 +180,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse_DeploymentToken_'
+                $ref: '#/components/schemas/ApiResponse_DeployToken_'
         '422':
           description: Validation Error
           content:
@@ -253,10 +253,10 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
 components:
   schemas:
-    ApiResponse_DeploymentToken_:
+    ApiResponse_DeployToken_:
       properties:
         data:
-          $ref: '#/components/schemas/DeploymentToken'
+          $ref: '#/components/schemas/DeployToken'
         messages:
           $ref: '#/components/schemas/ResponseMessages'
           default:
@@ -266,7 +266,7 @@ components:
       type: object
       required:
       - data
-      title: ApiResponse[DeploymentToken]
+      title: ApiResponse[DeployToken]
     ApiResponse_Deployment_:
       properties:
         data:
@@ -336,6 +336,14 @@ components:
       - build
       - run
       title: ComponentInfo
+    DeployToken:
+      properties:
+        token:
+          type: string
+          format: uuid
+          title: Token
+      type: object
+      title: DeployToken
     Deployment:
       properties:
         deploy_id:
@@ -364,14 +372,6 @@ components:
       required:
       - build_id
       title: DeploymentBuildInfo
-    DeploymentToken:
-      properties:
-        token:
-          type: string
-          format: uuid
-          title: Token
-      type: object
-      title: DeploymentToken
     HTTPValidationError:
       properties:
         detail:
