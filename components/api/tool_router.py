@@ -11,17 +11,26 @@ from ..models.api_models import (
 )
 from ..storage import Storage, get_storage
 from . import tool_handlers as handlers
-from .auth import ensure_authenticated
+from .auth import ensure_authenticated, ensure_token_or_auth
 
-router = APIRouter(
+# Used for most requests, authenticates only with the header
+header_auth_router = APIRouter(
     prefix="/tool",
     dependencies=[
         Depends(ensure_authenticated),
     ],
 )
 
+# Used only for deployment creation, authenticates with both, token and header
+token_auth_router = APIRouter(
+    prefix="/tool",
+    dependencies=[
+        Depends(ensure_token_or_auth),
+    ],
+)
 
-@router.get("/{toolname}/config")
+
+@header_auth_router.get("/{toolname}/config")
 def get_tool_config(
     toolname: str,
     storage: Storage = Depends(get_storage),
@@ -31,7 +40,7 @@ def get_tool_config(
     return ToolConfigResponse(data=config, messages=ResponseMessages())
 
 
-@router.post("/{toolname}/config")
+@header_auth_router.post("/{toolname}/config")
 def update_tool_config(
     toolname: str,
     config: ToolConfig,
@@ -47,7 +56,7 @@ def update_tool_config(
     )
 
 
-@router.delete("/{toolname}/config")
+@header_auth_router.delete("/{toolname}/config")
 def delete_tool_config(
     toolname: str,
     storage: Storage = Depends(get_storage),
@@ -58,7 +67,7 @@ def delete_tool_config(
 
 
 # This route should be above the get_tool_deployment route or {deployment_id} will match any string, including the token
-@router.get("/{toolname}/deployment/token")
+@header_auth_router.get("/{toolname}/deployment/token")
 def get_tool_deploy_token(
     toolname: str,
     storage: Storage = Depends(get_storage),
@@ -67,7 +76,7 @@ def get_tool_deploy_token(
     return DeployTokenResponse(data=token, messages=ResponseMessages())
 
 
-@router.get("/{toolname}/deployment/{deployment_id}")
+@header_auth_router.get("/{toolname}/deployment/{deployment_id}")
 def get_tool_deployment(
     toolname: str,
     deployment_id: str,
@@ -80,7 +89,7 @@ def get_tool_deployment(
     return ToolDeploymentResponse(data=deployment, messages=ResponseMessages())
 
 
-@router.post("/{toolname}/deployment")
+@token_auth_router.post("/{toolname}/deployment")
 def create_tool_deployment(
     toolname: str,
     background_tasks: BackgroundTasks,
@@ -112,7 +121,7 @@ def create_tool_deployment(
     )
 
 
-@router.post("/{toolname}/deployment/token")
+@header_auth_router.post("/{toolname}/deployment/token")
 def create_tool_deploy_token(
     toolname: str,
     storage: Storage = Depends(get_storage),
@@ -126,7 +135,7 @@ def create_tool_deploy_token(
     )
 
 
-@router.delete("/{toolname}/deployment/token")
+@header_auth_router.delete("/{toolname}/deployment/token")
 def delete_tool_deploy_token(
     toolname: str,
     storage: Storage = Depends(get_storage),

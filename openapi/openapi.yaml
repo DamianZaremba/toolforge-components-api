@@ -231,6 +231,7 @@ paths:
       operationId: create_tool_deployment
       security:
       - APIKeyHeader: []
+      - APIKeyQuery: []
       parameters:
       - name: toolname
         in: path
@@ -486,3 +487,7 @@ components:
       type: apiKey
       in: header
       name: x-toolforge-tool
+    APIKeyQuery:
+      type: apiKey
+      in: query
+      name: token
