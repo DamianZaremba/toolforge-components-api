@@ -55,7 +55,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     api_router = APIRouter(prefix="/v1")
 
     api_router.include_router(base_router.router)
-    api_router.include_router(tool_router.router, tags=["tool"])
+    api_router.include_router(tool_router.header_auth_router, tags=["tool"])
+    api_router.include_router(tool_router.token_auth_router, tags=["tool"])
 
     app.include_router(api_router)
 

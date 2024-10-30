@@ -1,3 +1,4 @@
+import datetime
 import logging
 from functools import lru_cache
 from typing import Literal
@@ -18,6 +19,7 @@ class Settings(BaseSettings):
     )
     verify_toolforge_api_cert: bool = True
     namespace: str = "components-api"
+    token_lifetime: datetime.timedelta = datetime.timedelta(days=365)
 
 
 @lru_cache()

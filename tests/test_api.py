@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock
 from uuid import UUID
 
-from fastapi import status
+from fastapi import FastAPI, status
 from fastapi.testclient import TestClient
 
 from components.models.api_models import (
@@ -113,7 +113,7 @@ class TestCreateDeployment:
 
         assert raw_response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_creates_and_returns_the_new_deployment(
+    def test_creates_and_returns_the_new_deployment_using_header_auth(
         self, authenticated_client: TestClient, fake_toolforge_client: MagicMock
     ):
         create_tool_config(authenticated_client)
@@ -142,6 +142,61 @@ class TestCreateDeployment:
             },
             verify=True,
         )
+
+    def test_creates_and_returns_the_new_deployment_using_token(
+        self,
+        authenticated_client: TestClient,
+        fake_toolforge_client: MagicMock,
+        app: FastAPI,
+    ):
+        create_tool_config(authenticated_client)
+        token_response = create_deploy_token(authenticated_client)
+        token = str(token_response.data.token)
+
+        unauthed_client = TestClient(app)
+
+        response = unauthed_client.post(
+            f"/v1/tool/test-tool-1/deployment?token={token}"
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        expected_deployment = ToolDeploymentResponse.model_validate(response.json())
+
+        response = authenticated_client.get(
+            f"/v1/tool/test-tool-1/deployment/{expected_deployment.data.deploy_id}"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        gotten_deployment = ToolDeploymentResponse.model_validate(response.json())
+        # we kinda ignore the messages
+        assert expected_deployment.data == gotten_deployment.data
+
+        fake_toolforge_client.post.assert_called_once_with(
+            "/jobs/v1/tool/test-tool-1/jobs/",
+            json={
+                "cmd": "some command",
+                "continuous": True,
+                "name": "component1",
+                "imagename": "silly_image",
+            },
+            verify=True,
+        )
+
+    def test_returns_denied_for_bad_token(
+        self,
+        authenticated_client: TestClient,
+        app: FastAPI,
+    ):
+        create_tool_config(authenticated_client)
+        token_response = create_deploy_token(authenticated_client)
+        token = str(token_response.data.token)
+
+        unauthed_client = TestClient(app)
+
+        response = unauthed_client.post(
+            f"/v1/tool/test-tool-1/deployment?token={token}withextrastuff"
+        )
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 class TestDeleteToolConfig:

@@ -1,7 +1,9 @@
 import logging
+from typing import Generator
 from unittest.mock import MagicMock
 
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from toolforge_weld.api_client import ToolforgeClient
 from toolforge_weld.kubernetes_config import Kubeconfig
@@ -14,14 +16,14 @@ logger = logging.getLogger(__name__)
 
 
 @pytest.fixture(scope="session")
-def app():
+def app() -> FastAPI:
     settings = Settings(log_level="debug")
     app = create_app(settings=settings)
     return app
 
 
 @pytest.fixture
-def test_client(app):
+def test_client(app) -> Generator[TestClient, None, None]:
     with TestClient(app) as client:
         yield client
 
