@@ -14,10 +14,10 @@ from ..storage.exceptions import NotFoundInStorage
 logger = logging.getLogger(__name__)
 
 
-def get_tool_config(toolname: str, storage: Storage) -> ToolConfig:
+async def get_tool_config(toolname: str, storage: Storage) -> ToolConfig:
     logger.info(f"Retrieving config for tool: {toolname}")
     try:
-        config = storage.get_tool_config(toolname)
+        config = await storage.get_tool_config(toolname)
         logger.info(f"Config retrieved successfully for tool: {toolname}")
         return config
     except NotFoundInStorage as e:
@@ -28,12 +28,12 @@ def get_tool_config(toolname: str, storage: Storage) -> ToolConfig:
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-def update_tool_config(
+async def update_tool_config(
     toolname: str, config: ToolConfig, storage: Storage
 ) -> ToolConfig:
     logger.info(f"Modifying config for tool: {toolname}")
     try:
-        storage.set_tool_config(toolname, config)
+        await storage.set_tool_config(toolname, config)
         logger.info(f"Config updated successfully for tool: {toolname}")
         return config
     except Exception as e:
@@ -41,10 +41,10 @@ def update_tool_config(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-def delete_tool_config(toolname: str, storage: Storage) -> ToolConfig:
+async def delete_tool_config(toolname: str, storage: Storage) -> ToolConfig:
     logger.info(f"Deleting config for tool: {toolname}")
     try:
-        old_config = storage.delete_tool_config(toolname)
+        old_config = await storage.delete_tool_config(toolname)
         logger.info(f"Config deleted successfully for tool: {toolname}")
         return old_config
     except Exception as e:
@@ -52,12 +52,12 @@ def delete_tool_config(toolname: str, storage: Storage) -> ToolConfig:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-def get_tool_deployment(
+async def get_tool_deployment(
     tool_name: str, deployment_name: str, storage: Storage
 ) -> Deployment:
     logger.info(f"Retrieving deployment {deployment_name} for tool {tool_name}")
     try:
-        config = storage.get_deployment(
+        config = await storage.get_deployment(
             tool_name=tool_name, deployment_name=deployment_name
         )
         logger.info(f"Deployment retrieved successfully for tool: {tool_name}")
@@ -72,7 +72,7 @@ def get_tool_deployment(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-def create_tool_deployment(
+async def create_tool_deployment(
     tool_name: str,
     deployment: Deployment,
     storage: Storage,
@@ -80,7 +80,7 @@ def create_tool_deployment(
 ) -> Deployment:
     logger.info(f"Creating deployment for tool: {tool_name}")
     try:
-        storage.create_deployment(tool_name=tool_name, deployment=deployment)
+        await storage.create_deployment(tool_name=tool_name, deployment=deployment)
         logger.info(f"Created deployment {deployment} for tool {tool_name}")
     except Exception as e:
         logger.error(
@@ -88,7 +88,7 @@ def create_tool_deployment(
         )
         raise HTTPException(status_code=500, detail=str(e))
 
-    tool_config = get_tool_config(toolname=tool_name, storage=storage)
+    tool_config = await get_tool_config(toolname=tool_name, storage=storage)
 
     background_tasks.add_task(
         do_deploy,
@@ -100,11 +100,11 @@ def create_tool_deployment(
     return deployment
 
 
-def create_deploy_token(toolname: str, storage: Storage) -> DeployToken:
+async def create_deploy_token(toolname: str, storage: Storage) -> DeployToken:
     logger.info(f"Creating deploy token for tool: {toolname}")
     try:
         new_token = DeployToken()
-        storage.set_deploy_token(toolname, new_token)
+        await storage.set_deploy_token(toolname, new_token)
         logger.info(f"Deploy token created for tool: {toolname}")
         return new_token
     except Exception as e:
@@ -112,10 +112,10 @@ def create_deploy_token(toolname: str, storage: Storage) -> DeployToken:
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-def get_deploy_token(toolname: str, storage: Storage) -> DeployToken:
+async def get_deploy_token(toolname: str, storage: Storage) -> DeployToken:
     logger.info(f"Retrieving deploy token for tool: {toolname}")
     try:
-        token = storage.get_deploy_token(toolname)
+        token = await storage.get_deploy_token(toolname)
         logger.info(f"Deploy token retrieved for tool: {toolname}")
         return token
     except NotFoundInStorage as e:
@@ -126,10 +126,10 @@ def get_deploy_token(toolname: str, storage: Storage) -> DeployToken:
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-def delete_deploy_token(toolname: str, storage: Storage) -> DeployToken:
+async def delete_deploy_token(toolname: str, storage: Storage) -> DeployToken:
     logger.info(f"Deleting deploy token for tool: {toolname}")
     try:
-        token = storage.delete_deploy_token(toolname)
+        token = await storage.delete_deploy_token(toolname)
         logger.info(f"Deploy token deleted for tool: {toolname}")
         return token
     except NotFoundInStorage as e:

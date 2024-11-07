@@ -1,7 +1,7 @@
 from logging import getLogger
 from typing import cast
 
-from toolforge_weld.api_client import ToolforgeClient
+from toolforge_weld.async_api_client import ToolforgeAsyncClient
 
 from .client import get_toolforge_client
 from .gen.toolforge_models import JobsJobResponse, JobsNewJob
@@ -11,7 +11,7 @@ from .settings import get_settings
 logger = getLogger(__name__)
 
 
-def do_deploy(
+async def do_deploy(
     tool_name: str,
     tool_config: ToolConfig,
     deployment: Deployment,
@@ -20,7 +20,7 @@ def do_deploy(
     for component_name, component_info in tool_config.components.items():
         # TODO: add support to load all the components jobs and then sync the current status
         if component_info.component_type == "continuous":
-            deploy_continuous_jobs(
+            await deploy_continuous_jobs(
                 tool_name=tool_name,
                 run_info=component_info.run,
                 component_name=component_name,
@@ -29,12 +29,12 @@ def do_deploy(
             )
 
 
-def deploy_continuous_jobs(
+async def deploy_continuous_jobs(
     tool_name: str,
     component_name: str,
     run_info: RunInfo,
     image_name: str,
-    toolforge_client: ToolforgeClient,
+    toolforge_client: ToolforgeAsyncClient,
 ) -> None:
     # TODO: support multiple run infos/jobs
 
@@ -50,7 +50,7 @@ def deploy_continuous_jobs(
     logger.debug(f"Sending job info {new_job}")
     create_response = cast(
         JobsJobResponse,
-        toolforge_client.post(
+        await toolforge_client.post(
             f"/jobs/v1/tool/{tool_name}/jobs/",
             json=new_job.model_dump(mode="json", exclude_none=True),
             verify=settings.verify_toolforge_api_cert,

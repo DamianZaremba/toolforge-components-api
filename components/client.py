@@ -2,7 +2,7 @@ import logging
 from functools import lru_cache
 from pathlib import Path
 
-from toolforge_weld.api_client import ToolforgeClient
+from toolforge_weld.async_api_client import ToolforgeAsyncClient
 from toolforge_weld.kubernetes_config import Kubeconfig
 
 from .settings import get_settings
@@ -29,12 +29,12 @@ def load_kubeconfig(namespace: str, server: str) -> Kubeconfig:
     return kubeconfig
 
 
-def get_toolforge_client() -> ToolforgeClient:
+def get_toolforge_client() -> ToolforgeAsyncClient:
     settings = get_settings()
     kubeconfig = load_kubeconfig(
         namespace=settings.namespace, server=str(settings.toolforge_api_url)
     )
-    return ToolforgeClient(
+    return ToolforgeAsyncClient(
         server=str(settings.toolforge_api_url),
         kubeconfig=kubeconfig,
         user_agent="Toolforge components-api",

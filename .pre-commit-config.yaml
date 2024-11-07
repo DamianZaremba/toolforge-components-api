@@ -23,7 +23,7 @@ repos:
             "types-toml",
             "fastapi",
             "types-PyYAML",
-            "toolforge-weld",
+            "git+https://gitlab.wikimedia.org/repos/cloud/toolforge/toolforge-weld.git@add_async_client",
             "types-requests",
           ]
 

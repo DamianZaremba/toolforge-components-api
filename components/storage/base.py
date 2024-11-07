@@ -8,33 +8,33 @@ logger = logging.getLogger(__name__)
 
 class Storage(ABC):
     @abstractmethod
-    def get_tool_config(self, tool_name: str) -> ToolConfig:
+    async def get_tool_config(self, tool_name: str) -> ToolConfig:
         pass
 
     @abstractmethod
-    def set_tool_config(self, tool_name: str, config: ToolConfig) -> None:
+    async def set_tool_config(self, tool_name: str, config: ToolConfig) -> None:
         pass
 
     @abstractmethod
-    def delete_tool_config(self, tool_name: str) -> ToolConfig:
+    async def delete_tool_config(self, tool_name: str) -> ToolConfig:
         pass
 
     @abstractmethod
-    def get_deployment(self, tool_name: str, deployment_name: str) -> Deployment:
+    async def get_deployment(self, tool_name: str, deployment_name: str) -> Deployment:
         pass
 
     @abstractmethod
-    def create_deployment(self, tool_name: str, deployment: Deployment) -> None:
+    async def create_deployment(self, tool_name: str, deployment: Deployment) -> None:
         pass
 
     @abstractmethod
-    def get_deploy_token(self, tool_name: str) -> DeployToken:
+    async def get_deploy_token(self, tool_name: str) -> DeployToken:
         pass
 
     @abstractmethod
-    def set_deploy_token(self, tool_name: str, token: DeployToken) -> None:
+    async def set_deploy_token(self, tool_name: str, token: DeployToken) -> None:
         pass
 
     @abstractmethod
-    def delete_deploy_token(self, tool_name: str) -> DeployToken:
+    async def delete_deploy_token(self, tool_name: str) -> DeployToken:
         pass

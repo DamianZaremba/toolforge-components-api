@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from toolforge_weld.api_client import ToolforgeClient
+from toolforge_weld.async_api_client import ToolforgeAsyncClient
 from toolforge_weld.kubernetes_config import Kubeconfig
 
 import components.deploy_task
@@ -42,7 +42,7 @@ def fake_toolforge_client(monkeypatch) -> MagicMock:
     )
 
     monkeypatch.setattr(Kubeconfig, "load", lambda *args, **kwargs: fake_kube_config)
-    fake_client = MagicMock(spec=ToolforgeClient)
+    fake_client = MagicMock(spec=ToolforgeAsyncClient)
 
     monkeypatch.setattr(
         components.deploy_task, "get_toolforge_client", lambda: fake_client

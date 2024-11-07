@@ -28,7 +28,7 @@ def ensure_authenticated(api_key_header: str | None = Security(api_key_header)) 
     return True
 
 
-def ensure_token_or_auth(
+async def ensure_token_or_auth(
     toolname: str,
     api_key_header: str | None = Security(api_key_header),
     token: str | None = Security(token_parameter),
@@ -44,7 +44,7 @@ def ensure_token_or_auth(
         return True
 
     try:
-        stored_token = storage.get_deploy_token(tool_name=toolname)
+        stored_token = await storage.get_deploy_token(tool_name=toolname)
     except NotFoundInStorage as error:
         raise HTTPException(
             status_code=401,
