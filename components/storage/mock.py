@@ -44,6 +44,19 @@ class MockStorage(Storage):
 
         self._per_tool_deployments[tool_name][deployment.deploy_id] = deployment
 
+    def delete_deployment(self, tool_name: str, deployment_name: str) -> Deployment:
+        logger.info(f"Deleting deployment: {deployment_name} for tool: {tool_name}")
+        if tool_name not in self._per_tool_deployments:
+            raise NotFoundInStorage(
+                f"Deployment {deployment_name} not found for tool: {tool_name}"
+            )
+        try:
+            return self._per_tool_deployments[tool_name].pop(deployment_name)
+        except KeyError:
+            raise NotFoundInStorage(
+                f"Deployment {deployment_name} not found for tool: {tool_name}"
+            )
+
     def get_deploy_token(self, tool_name: str) -> DeployToken:
         logger.info(f"Retrieving deploy token for tool: {tool_name}")
         token = self._deploy_tokens.get(tool_name)

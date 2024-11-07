@@ -147,3 +147,16 @@ def delete_tool_deploy_token(
             info=[f"Deploy token for {toolname} deleted successfully."]
         ),
     )
+
+
+@header_auth_router.delete("/{toolname}/deployment/{deployment_id}")
+def delete_tool_deployment(
+    toolname: str, deployment_id: str, storage: Storage = Depends(get_storage)
+) -> ToolDeploymentResponse:
+    deployment = handlers.delete_tool_deployment(toolname, deployment_id, storage)
+    return ToolDeploymentResponse(
+        data=deployment,
+        messages=ResponseMessages(
+            info=[f"Deployment {deployment_id} deleted successfully."]
+        ),
+    )

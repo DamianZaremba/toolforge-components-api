@@ -5,6 +5,7 @@ from components.models.api_models import (
     DeployTokenResponse,
     ToolConfig,
     ToolConfigResponse,
+    ToolDeploymentResponse,
 )
 
 
@@ -63,3 +64,11 @@ def get_deploy_token(
 ) -> DeployTokenResponse:
     response = client.get(f"/v1/tool/{tool_name}/deployment/token")
     return DeployTokenResponse.model_validate(response.json())
+
+
+def create_tool_deployment(
+    client: TestClient, tool_name: str = "test-tool-1"
+) -> ToolDeploymentResponse:
+    response = client.post(f"/v1/tool/{tool_name}/deployment")
+    assert response.status_code == status.HTTP_200_OK
+    return ToolDeploymentResponse.model_validate(response.json())

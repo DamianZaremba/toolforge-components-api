@@ -15,6 +15,7 @@ from components.models.api_models import (
 from tests.helpers import (
     create_deploy_token,
     create_tool_config,
+    create_tool_deployment,
     delete_deploy_token,
     delete_tool_config,
     get_deploy_token,
@@ -197,6 +198,39 @@ class TestCreateDeployment:
             f"/v1/tool/test-tool-1/deployment?token={token}withextrastuff"
         )
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+class TestDeleteDeployment:
+    def test_returns_not_found_when_the_tool_does_not_exist(
+        self, authenticated_client: TestClient
+    ):
+        response = authenticated_client.delete(
+            "/v1/tool/idontexist/deployment/idontexist"
+        )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_returns_not_found_when_the_deployment_does_not_exist(
+        self, authenticated_client: TestClient
+    ):
+        create_tool_config(authenticated_client)
+
+        response = authenticated_client.delete(
+            "/v1/tool/test-tool-1/deployment/idontexist"
+        )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_deletes_the_deployment_when_it_exists(
+        self, authenticated_client: TestClient, fake_toolforge_client: MagicMock
+    ):
+        create_tool_config(authenticated_client)
+        deployment_response = create_tool_deployment(authenticated_client)
+
+        delete_response = authenticated_client.delete(
+            f"/v1/tool/test-tool-1/deployment/{deployment_response.data.deploy_id}"
+        )
+        assert delete_response.status_code == status.HTTP_200_OK
 
 
 class TestDeleteToolConfig:

@@ -100,6 +100,24 @@ def create_tool_deployment(
     return deployment
 
 
+def delete_tool_deployment(
+    tool_name: str, deployment_name: str, storage: Storage
+) -> Deployment:
+    logger.info(f"Deleting deployment {deployment_name} for tool {tool_name}")
+    try:
+        deployment = storage.delete_deployment(tool_name, deployment_name)
+        logger.info(f"Deployment deleted successfully for tool: {tool_name}")
+        return deployment
+    except NotFoundInStorage as e:
+        logger.warning(str(e))
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(
+            f"Error deleting deployment {deployment_name} for tool {tool_name}: {str(e)}"
+        )
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
 def create_deploy_token(toolname: str, storage: Storage) -> DeployToken:
     logger.info(f"Creating deploy token for tool: {toolname}")
     try:

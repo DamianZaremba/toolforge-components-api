@@ -207,6 +207,34 @@ class KubernetesStorage(Storage):
                 f"Got unexpected error ({error}) when trying to create deployment for {tool_name}"
             ) from error
 
+    def _delete_deployment(self, tool_name: str, deployment_name: str) -> None:
+        namespace = _get_k8s_tool_namespace(tool_name=tool_name)
+        try:
+            self.k8s.delete_namespaced_custom_object(
+                group="toolforge.org",
+                version="v1",
+                plural="tooldeployments",
+                namespace=namespace,
+                name=deployment_name,
+            )
+        except kubernetes.client.ApiException as error:
+            logger.exception(
+                f"Attempted to delete deployment for tool:{tool_name} in namespace:{namespace}"
+            )
+            if error.status == status.HTTP_404_NOT_FOUND:
+                raise NotFoundInStorage(
+                    f"Unable to find namespace {namespace} or deployment {deployment_name} for {tool_name}"
+                ) from error
+
+            raise StorageError(
+                f"Got unexpected error when trying to delete deployment for {tool_name}"
+            ) from error
+
+    def delete_deployment(self, tool_name: str, deployment_name: str) -> Deployment:
+        deployment = self.get_deployment(tool_name, deployment_name)
+        self._delete_deployment(tool_name, deployment_name)
+        return deployment
+
     def get_deploy_token(self, tool_name: str) -> DeployToken:
         namespace = _get_k8s_tool_namespace(tool_name=tool_name)
         try:

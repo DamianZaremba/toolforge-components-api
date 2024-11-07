@@ -28,6 +28,10 @@ class Storage(ABC):
         pass
 
     @abstractmethod
+    def delete_deployment(self, tool_name: str, deployment_name: str) -> Deployment:
+        pass
+
+    @abstractmethod
     def get_deploy_token(self, tool_name: str) -> DeployToken:
         pass
 
