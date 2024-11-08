@@ -186,6 +186,28 @@ class KubernetesStorage(Storage):
 
         return Deployment.model_validate(k8s_deployment["spec"])
 
+    def list_deployments(self, tool_name: str) -> list[Deployment]:
+        namespace = _get_k8s_tool_namespace(tool_name=tool_name)
+        try:
+            deployments = self.k8s.list_namespaced_custom_object(
+                group="toolforge.org",
+                version="v1",
+                plural="tooldeployments",
+                namespace=namespace,
+            )
+            return [
+                Deployment.model_validate(dep["spec"]) for dep in deployments["items"]
+            ]
+        except kubernetes.client.ApiException as error:
+            if error.status == status.HTTP_404_NOT_FOUND:
+                raise NotFoundInStorage(
+                    f"Unable to find namespace {namespace} or deployments for tool {tool_name}"
+                ) from error
+
+            raise StorageError(
+                f"Got unexpected error ({error}) when trying to list deployments for {tool_name}"
+            ) from error
+
     def create_deployment(self, tool_name: str, deployment: Deployment) -> None:
         namespace = _get_k8s_tool_namespace(tool_name=tool_name)
         body = _deploy_to_k8s_crd(deployment=deployment, tool_name=tool_name)

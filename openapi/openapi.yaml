@@ -256,6 +256,38 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
   /v1/tool/{toolname}/deployment:
+    get:
+      tags:
+      - tool
+      summary: List Tool Deployments
+      description: List all deployments for a specific tool.
+      operationId: list_tool_deployments
+      security:
+      - APIKeyHeader: []
+      parameters:
+      - name: toolname
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Toolname
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ApiResponse_Deployment_'
+                title: Response List Tool Deployments V1 Tool  Toolname  Deployment
+                  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
     post:
       tags:
       - tool

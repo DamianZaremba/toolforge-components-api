@@ -3,7 +3,7 @@ from typing import Generator
 from unittest.mock import MagicMock
 
 import pytest
-from fastapi import FastAPI
+from fastapi import FastAPI, status
 from fastapi.testclient import TestClient
 from toolforge_weld.api_client import ToolforgeClient
 from toolforge_weld.kubernetes_config import Kubeconfig
@@ -49,3 +49,17 @@ def fake_toolforge_client(monkeypatch) -> MagicMock:
     )
 
     return fake_client
+
+
+@pytest.fixture(autouse=True)
+def cleanup_deployments(app: FastAPI):
+    yield
+    client = TestClient(app)
+    client.headers.update({"x-toolforge-tool": "test-tool-1"})
+    response = client.get("/v1/tool/test-tool-1/deployment")
+    if response.status_code == status.HTTP_200_OK:
+        deployments = response.json()
+        for deployment in deployments:
+            client.delete(
+                f"/v1/tool/test-tool-1/deployment/{deployment['data']['deploy_id']}"
+            )

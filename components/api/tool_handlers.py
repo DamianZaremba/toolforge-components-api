@@ -72,6 +72,21 @@ def get_tool_deployment(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
+def list_tool_deployments(tool_name: str, storage: Storage) -> list[Deployment]:
+    logger.info(f"Listing deployments for tool: {tool_name}")
+    try:
+        deployments = storage.list_deployments(tool_name)
+        if not deployments:
+            raise NotFoundInStorage(f"No deployments found for tool: {tool_name}")
+        return deployments
+    except NotFoundInStorage as e:
+        logger.warning(str(e))
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error listing deployments for tool {tool_name}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
 def create_tool_deployment(
     tool_name: str,
     deployment: Deployment,

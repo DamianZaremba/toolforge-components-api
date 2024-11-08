@@ -89,6 +89,19 @@ def get_tool_deployment(
     return ToolDeploymentResponse(data=deployment, messages=ResponseMessages())
 
 
+@header_auth_router.get("/{toolname}/deployment")
+def list_tool_deployments(
+    toolname: str,
+    storage: Storage = Depends(get_storage),
+) -> list[ToolDeploymentResponse]:
+    """List all deployments for a specific tool."""
+    deployments = handlers.list_tool_deployments(tool_name=toolname, storage=storage)
+    return [
+        ToolDeploymentResponse(data=deployment, messages=ResponseMessages())
+        for deployment in deployments
+    ]
+
+
 @token_auth_router.post("/{toolname}/deployment")
 def create_tool_deployment(
     toolname: str,

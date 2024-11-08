@@ -24,6 +24,10 @@ class Storage(ABC):
         pass
 
     @abstractmethod
+    def list_deployments(self, tool_name: str) -> list[Deployment]:
+        pass
+
+    @abstractmethod
     def create_deployment(self, tool_name: str, deployment: Deployment) -> None:
         pass
 

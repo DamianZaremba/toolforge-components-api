@@ -35,8 +35,14 @@ class MockStorage(Storage):
             return self._per_tool_deployments[tool_name][deployment_name]
         except KeyError as error:
             raise NotFoundInStorage(
-                f"No deployments found for tool: {tool_name}"
+                f"Deployment {deployment_name} not found for tool: {tool_name}"
             ) from error
+
+    def list_deployments(self, tool_name: str) -> list[Deployment]:
+        if tool_name in self._per_tool_deployments:
+            return list(self._per_tool_deployments[tool_name].values())
+        else:
+            raise NotFoundInStorage(f"No deployments found for tool: {tool_name}")
 
     def create_deployment(self, tool_name: str, deployment: Deployment) -> None:
         if tool_name not in self._per_tool_deployments:

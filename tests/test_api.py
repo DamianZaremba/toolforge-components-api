@@ -355,3 +355,50 @@ class TestDeleteDeployToken:
 
         get_response = authenticated_client.get("/v1/tool/test-tool-1/deployment/token")
         assert get_response.status_code == status.HTTP_404_NOT_FOUND
+
+
+class TestListDeployments:
+    def test_returns_not_found_when_the_tool_does_not_exist(
+        self, authenticated_client: TestClient
+    ):
+        response = authenticated_client.get("/v1/tool/idontexist/deployment")
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_returns_not_found_when_tool_exists_but_has_no_deployments(
+        self, authenticated_client: TestClient
+    ):
+        create_tool_config(authenticated_client)
+
+        response = authenticated_client.get("/v1/tool/test-tool-1/deployment")
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_returns_single_deployment_when_one_exists(
+        self, authenticated_client: TestClient, fake_toolforge_client: MagicMock
+    ):
+        create_tool_config(authenticated_client)
+        deployment_response = create_tool_deployment(authenticated_client)
+
+        response = authenticated_client.get("/v1/tool/test-tool-1/deployment")
+        assert response.status_code == status.HTTP_200_OK
+
+        deployments = response.json()
+        assert len(deployments) == 1
+        assert deployments[0]["data"] == deployment_response.data.model_dump()
+
+    def test_returns_multiple_deployments_when_they_exist(
+        self, authenticated_client: TestClient, fake_toolforge_client: MagicMock
+    ):
+        create_tool_config(authenticated_client)
+        first_deployment = create_tool_deployment(authenticated_client)
+        second_deployment = create_tool_deployment(authenticated_client)
+
+        response = authenticated_client.get("/v1/tool/test-tool-1/deployment")
+        assert response.status_code == status.HTTP_200_OK
+
+        deployments = response.json()
+        assert len(deployments) == 2
+        deployment_ids = {dep["data"]["deploy_id"] for dep in deployments}
+        assert deployment_ids == {
+            first_deployment.data.deploy_id,
+            second_deployment.data.deploy_id,
+        }
