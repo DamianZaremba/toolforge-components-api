@@ -208,6 +208,24 @@ class KubernetesStorage(Storage):
                 f"Got unexpected error ({error}) when trying to list deployments for {tool_name}"
             ) from error
 
+    def _cleanup_old_deployments(self, tool_name: str) -> None:
+        settings = get_settings()
+        logger.debug("Cleaning up old deployments for tool %s", tool_name)
+        tool_deployments = self.list_deployments(tool_name)
+        sorted_deployments = sorted(
+            tool_deployments,
+            key=lambda deployment: deployment.creation_time,
+            reverse=True,
+        )
+        to_delete = sorted_deployments[settings.max_deployments_retained :]
+        logger.debug("Deleting old deployments: %r", to_delete)
+        for deployment in to_delete:
+            self.delete_deployment(
+                tool_name=tool_name, deployment_name=deployment.deploy_id
+            )
+
+        logger.debug("Cleaned up old deployments for tool %s", tool_name)
+
     def create_deployment(self, tool_name: str, deployment: Deployment) -> None:
         namespace = _get_k8s_tool_namespace(tool_name=tool_name)
         body = _deploy_to_k8s_crd(deployment=deployment, tool_name=tool_name)
@@ -228,6 +246,8 @@ class KubernetesStorage(Storage):
             raise StorageError(
                 f"Got unexpected error ({error}) when trying to create deployment for {tool_name}"
             ) from error
+
+        self._cleanup_old_deployments(tool_name=tool_name)
 
     def _delete_deployment(self, tool_name: str, deployment_name: str) -> None:
         namespace = _get_k8s_tool_namespace(tool_name=tool_name)

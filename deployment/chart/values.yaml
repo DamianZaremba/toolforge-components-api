@@ -39,3 +39,4 @@ config:
   verify_toolforge_api_cert: true
   # for lima-kilo
   #verify_toolforge_api_cert: false
+  max_deployments_retained: 25

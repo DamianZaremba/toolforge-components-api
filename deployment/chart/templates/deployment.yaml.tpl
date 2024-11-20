@@ -32,6 +32,8 @@ spec:
               value: "{{ .Values.config.toolforge_api_url }}"
             - name: "VERIFY_TOOLFORGE_API_CERT"
               value: "{{ .Values.config.verify_toolforge_api_cert }}"
+            - name: "MAX_DEPLOYMENTS_RETAINED"
+              value: "{{ .Values.config.max_deployments_retained }}"
           resources: {{- toYaml .Values.resources | nindent 12 }}
           securityContext:
             readOnlyRootFilesystem: true
