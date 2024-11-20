@@ -133,7 +133,7 @@ class TestCreateDeployment:
         # we kinda ignore the messages
         assert expected_deployment.data == gotten_deployment.data
 
-        fake_toolforge_client.post.assert_called_once_with(
+        fake_toolforge_client.patch.assert_called_once_with(
             "/jobs/v1/tool/test-tool-1/jobs/",
             json={
                 "cmd": "some command",
@@ -172,7 +172,7 @@ class TestCreateDeployment:
         # we kinda ignore the messages
         assert expected_deployment.data == gotten_deployment.data
 
-        fake_toolforge_client.post.assert_called_once_with(
+        fake_toolforge_client.patch.assert_called_once_with(
             "/jobs/v1/tool/test-tool-1/jobs/",
             json={
                 "cmd": "some command",

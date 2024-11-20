@@ -50,7 +50,8 @@ def deploy_continuous_jobs(
     logger.debug(f"Sending job info {new_job}")
     create_response = cast(
         JobsJobResponse,
-        toolforge_client.post(
+        # Using patch here does an upsert
+        toolforge_client.patch(
             f"/jobs/v1/tool/{tool_name}/jobs/",
             json=new_job.model_dump(mode="json", exclude_none=True),
             verify=settings.verify_toolforge_api_cert,
