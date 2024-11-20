@@ -14,6 +14,7 @@ toml = "^0.10.2"
 kubernetes = "^31.0.0"
 pyyaml = "^6.0.2"
 toolforge-weld = "^1.6.4"
+pytest-cov = "^6.0.0"
 
 
 [tool.poetry.group.dev.dependencies]
