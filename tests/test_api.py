@@ -382,8 +382,13 @@ class TestListDeployments:
         assert response.status_code == status.HTTP_200_OK
 
         deployments = response.json()
-        assert len(deployments) == 1
-        assert deployments[0]["data"] == deployment_response.data.model_dump()
+        assert "data" in deployments
+        assert "deployments" in deployments["data"]
+        assert len(deployments["data"]["deployments"]) == 1
+        assert (
+            deployments["data"]["deployments"][0]
+            == deployment_response.data.model_dump()
+        )
 
     def test_returns_multiple_deployments_when_they_exist(
         self, authenticated_client: TestClient, fake_toolforge_client: MagicMock
@@ -396,8 +401,12 @@ class TestListDeployments:
         assert response.status_code == status.HTTP_200_OK
 
         deployments = response.json()
-        assert len(deployments) == 2
-        deployment_ids = {dep["data"]["deploy_id"] for dep in deployments}
+        assert "data" in deployments
+        assert "deployments" in deployments["data"]
+        assert len(deployments["data"]["deployments"]) == 2
+        deployment_ids = {
+            dep["deploy_id"] for dep in deployments["data"]["deployments"]
+        }
         assert deployment_ids == {
             first_deployment.data.deploy_id,
             second_deployment.data.deploy_id,

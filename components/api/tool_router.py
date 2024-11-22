@@ -3,10 +3,12 @@ from fastapi import APIRouter, BackgroundTasks, Depends
 from ..models.api_models import (
     Deployment,
     DeploymentBuildInfo,
+    DeploymentList,
     DeployTokenResponse,
     ResponseMessages,
     ToolConfig,
     ToolConfigResponse,
+    ToolDeploymentListResponse,
     ToolDeploymentResponse,
 )
 from ..storage import Storage, get_storage
@@ -93,13 +95,12 @@ def get_tool_deployment(
 def list_tool_deployments(
     toolname: str,
     storage: Storage = Depends(get_storage),
-) -> list[ToolDeploymentResponse]:
+) -> ToolDeploymentListResponse:
     """List all deployments for a specific tool."""
     deployments = handlers.list_tool_deployments(tool_name=toolname, storage=storage)
-    return [
-        ToolDeploymentResponse(data=deployment, messages=ResponseMessages())
-        for deployment in deployments
-    ]
+    return ToolDeploymentListResponse(
+        data=DeploymentList(deployments=deployments), messages=ResponseMessages()
+    )
 
 
 @token_auth_router.post("/{toolname}/deployment")

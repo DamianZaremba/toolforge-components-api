@@ -67,6 +67,10 @@ class DeployToken(BaseModel):
     )
 
 
+class DeploymentList(BaseModel):
+    deployments: list[Deployment]
+
+
 class HealthState(BaseModel):
     status: Literal["OK", "ERROR"]
 
@@ -86,3 +90,4 @@ ToolConfigResponse = ApiResponse[ToolConfig]
 HealthzResponse = ApiResponse[HealthState]
 ToolDeploymentResponse = ApiResponse[Deployment]
 DeployTokenResponse = ApiResponse[DeployToken]
+ToolDeploymentListResponse = ApiResponse[DeploymentList]

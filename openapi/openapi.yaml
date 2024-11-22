@@ -277,11 +277,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ApiResponse_Deployment_'
-                title: Response List Tool Deployments V1 Tool  Toolname  Deployment
-                  Get
+                $ref: '#/components/schemas/ApiResponse_DeploymentList_'
         '422':
           description: Validation Error
           content:
@@ -333,6 +329,20 @@ components:
       required:
       - data
       title: ApiResponse[DeployToken]
+    ApiResponse_DeploymentList_:
+      properties:
+        data:
+          $ref: '#/components/schemas/DeploymentList'
+        messages:
+          $ref: '#/components/schemas/ResponseMessages'
+          default:
+            info: []
+            warning: []
+            error: []
+      type: object
+      required:
+      - data
+      title: ApiResponse[DeploymentList]
     ApiResponse_Deployment_:
       properties:
         data:
@@ -442,6 +452,17 @@ components:
       required:
       - build_id
       title: DeploymentBuildInfo
+    DeploymentList:
+      properties:
+        deployments:
+          items:
+            $ref: '#/components/schemas/Deployment'
+          type: array
+          title: Deployments
+      type: object
+      required:
+      - deployments
+      title: DeploymentList
     HTTPValidationError:
       properties:
         detail:

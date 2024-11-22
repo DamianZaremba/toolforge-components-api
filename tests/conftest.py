@@ -59,7 +59,5 @@ def cleanup_deployments(app: FastAPI):
     response = client.get("/v1/tool/test-tool-1/deployment")
     if response.status_code == status.HTTP_200_OK:
         deployments = response.json()
-        for deployment in deployments:
-            client.delete(
-                f"/v1/tool/test-tool-1/deployment/{deployment['data']['deploy_id']}"
-            )
+        for deployment in deployments["data"]["deployments"]:
+            client.delete(f"/v1/tool/test-tool-1/deployment/{deployment['deploy_id']}")
