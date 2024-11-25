@@ -145,6 +145,16 @@ def create_deploy_token(toolname: str, storage: Storage) -> DeployToken:
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
+def update_deploy_token(toolname: str, storage: Storage) -> DeployToken:
+    logger.info(f"Checking if deploy token exists for tool: {toolname}")
+    try:
+        storage.get_deploy_token(toolname)
+        return create_deploy_token(toolname, storage)
+    except NotFoundInStorage as e:
+        logger.warning(str(e))
+        raise HTTPException(status_code=404, detail=str(e))
+
+
 def get_deploy_token(toolname: str, storage: Storage) -> DeployToken:
     logger.info(f"Retrieving deploy token for tool: {toolname}")
     try:

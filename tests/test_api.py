@@ -312,6 +312,41 @@ class TestCreateDeployToken:
         delete_deploy_token(authenticated_client)
 
 
+class TestUpdateDeployToken:
+    def test_fails_without_auth_header(self, test_client: TestClient):
+        raw_response = test_client.put("/v1/tool/test-tool-1/deployment/token")
+        assert raw_response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_fails_when_no_token_exists(self, authenticated_client: TestClient):
+        raw_response = authenticated_client.put("/v1/tool/test-tool-1/deployment/token")
+        assert raw_response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_updates_existing_token(self, authenticated_client: TestClient):
+        create_response = create_deploy_token(authenticated_client)
+        original_token = DeployTokenResponse.model_validate(create_response).data.token
+
+        update_response = authenticated_client.put(
+            "/v1/tool/test-tool-1/deployment/token"
+        )
+        assert update_response.status_code == status.HTTP_200_OK
+
+        update_data = DeployTokenResponse.model_validate(update_response.json())
+        new_token = update_data.data.token
+
+        assert isinstance(new_token, UUID)
+        assert new_token != original_token
+        assert (
+            "Deploy token for test-tool-1 updated successfully."
+            in update_data.messages.info
+        )
+
+        get_response = get_deploy_token(authenticated_client)
+        get_data = DeployTokenResponse.model_validate(get_response)
+        assert get_data.data.token == new_token
+
+        delete_deploy_token(authenticated_client)
+
+
 class TestDeleteDeployToken:
     def test_fails_without_auth_header(self, test_client: TestClient):
         raw_response = test_client.delete("/v1/tool/test-tool-1/deployment/token")

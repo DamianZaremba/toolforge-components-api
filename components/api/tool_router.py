@@ -149,6 +149,20 @@ def create_tool_deploy_token(
     )
 
 
+@header_auth_router.put("/{toolname}/deployment/token")
+def update_tool_deploy_token(
+    toolname: str,
+    storage: Storage = Depends(get_storage),
+) -> DeployTokenResponse:
+    token = handlers.update_deploy_token(toolname, storage)
+    return DeployTokenResponse(
+        data=token,
+        messages=ResponseMessages(
+            info=[f"Deploy token for {toolname} updated successfully."]
+        ),
+    )
+
+
 @header_auth_router.delete("/{toolname}/deployment/token")
 def delete_tool_deploy_token(
     toolname: str,
