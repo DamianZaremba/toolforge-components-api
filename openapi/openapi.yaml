@@ -425,8 +425,6 @@ components:
       properties:
         component_type:
           type: string
-          enum:
-          - continuous
           const: continuous
           title: Component Type
         build:
