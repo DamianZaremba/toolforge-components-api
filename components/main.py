@@ -11,6 +11,7 @@ from .api.exceptions import (
     http_exception_handler,
     validation_exception_handler,
 )
+from .metrics import get_metrics_app
 from .settings import Settings, get_settings
 
 LOGGER = logging.getLogger(__name__)
@@ -50,6 +51,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     LOGGER.debug("Got settings: %r", settings)
 
     app = FastAPI(title=title, version=version)
+
+    # Initialize metrics
+    metrics_app = get_metrics_app()
+    metrics_app(app)
 
     # Top-level API router
     api_router = APIRouter(prefix="/v1")

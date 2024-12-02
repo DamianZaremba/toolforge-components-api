@@ -3,6 +3,17 @@ info:
   title: Toolforge Components API
   version: 0.1.0
 paths:
+  /metrics:
+    get:
+      summary: Metrics
+      description: Endpoint that serves Prometheus metrics.
+      operationId: metrics
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
   /v1/healthz:
     get:
       summary: Healthz

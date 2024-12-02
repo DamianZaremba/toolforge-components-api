@@ -25,6 +25,8 @@ repos:
             "types-PyYAML",
             "toolforge-weld",
             "types-requests",
+            "prometheus-client",
+            "prometheus-fastapi-instrumentator",
           ]
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
