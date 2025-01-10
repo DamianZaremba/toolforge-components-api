@@ -133,13 +133,35 @@ def delete_tool_deployment(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
+def _create_new_token(toolname: str, storage: Storage) -> DeployToken:
+    new_token = DeployToken()
+    storage.set_deploy_token(toolname, new_token)
+    logger.info(f"Deploy token created for tool: {toolname}")
+    return new_token
+
+
+def _raise_if_deploy_token_exists(toolname: str, storage: Storage) -> None:
+    try:
+        storage.get_deploy_token(toolname)
+        raise HTTPException(
+            status_code=409,  # Conflict
+            detail=(
+                f"Deploy token already exists. Use the 'refresh' subcommand or PUT /tool/{toolname}/deployment/token "
+                "to refresh it."
+            ),
+        )
+    except NotFoundInStorage:
+        pass
+
+
 def create_deploy_token(toolname: str, storage: Storage) -> DeployToken:
     logger.info(f"Creating deploy token for tool: {toolname}")
     try:
-        new_token = DeployToken()
-        storage.set_deploy_token(toolname, new_token)
-        logger.info(f"Deploy token created for tool: {toolname}")
-        return new_token
+        _raise_if_deploy_token_exists(toolname, storage)
+        return _create_new_token(toolname, storage)
+    except HTTPException:
+        raise
+    # TODO: use a global exception handler for generic exceptions instead
     except Exception as e:
         logger.error(f"Error creating deploy token for tool {toolname}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -149,7 +171,7 @@ def update_deploy_token(toolname: str, storage: Storage) -> DeployToken:
     logger.info(f"Checking if deploy token exists for tool: {toolname}")
     try:
         storage.get_deploy_token(toolname)
-        return create_deploy_token(toolname, storage)
+        return _create_new_token(toolname, storage)
     except NotFoundInStorage as e:
         logger.warning(str(e))
         raise HTTPException(status_code=404, detail=str(e))

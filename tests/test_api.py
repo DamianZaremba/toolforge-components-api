@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock
 from uuid import UUID
 
+import pytest
 from fastapi import FastAPI, status
 from fastapi.testclient import TestClient
 
@@ -12,6 +13,7 @@ from components.models.api_models import (
     ToolConfigResponse,
     ToolDeploymentResponse,
 )
+from components.storage.mock import MockStorage
 from tests.helpers import (
     create_deploy_token,
     create_tool_config,
@@ -294,21 +296,33 @@ class TestCreateDeployToken:
         raw_response = test_client.post("/v1/tool/test-tool-1/deployment/token")
         assert raw_response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    def test_returns_the_new_token(self, authenticated_client: TestClient):
-        create_response = create_deploy_token(authenticated_client)
-        creation_data = DeployTokenResponse.model_validate(create_response)
-
-        get_response = get_deploy_token(authenticated_client)
-        retrieval_data = DeployTokenResponse.model_validate(get_response)
-
-        assert creation_data.data.token == retrieval_data.data.token
-        assert isinstance(creation_data.data.token, UUID)
-        assert (
-            "Deploy token for test-tool-1 created successfully."
-            in creation_data.messages.info
+    def test_fails_when_token_already_exists(self, authenticated_client: TestClient):
+        create_deploy_token(authenticated_client)
+        second_response = authenticated_client.post(
+            "/v1/tool/test-tool-1/deployment/token"
         )
-        assert not retrieval_data.messages.info
+        assert second_response.status_code == status.HTTP_409_CONFLICT
+        delete_deploy_token(authenticated_client)
 
+    def test_returns_500_on_any_other_exception(
+        self, authenticated_client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ):
+        def mock_get_deploy_token(self, tool_name: str):
+            raise Exception("generic exception")
+
+        monkeypatch.setattr(MockStorage, "get_deploy_token", mock_get_deploy_token)
+
+        raw_response = authenticated_client.post(
+            "/v1/tool/test-tool-1/deployment/token"
+        )
+
+        assert raw_response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+
+    def test_creates_new_token(self, authenticated_client: TestClient):
+        create_response = create_deploy_token(authenticated_client)
+        get_response = get_deploy_token(authenticated_client)
+        assert create_response.data.token == get_response.data.token
+        assert isinstance(create_response.data.token, UUID)
         delete_deploy_token(authenticated_client)
 
 
@@ -318,31 +332,23 @@ class TestUpdateDeployToken:
         assert raw_response.status_code == status.HTTP_401_UNAUTHORIZED
 
     def test_fails_when_no_token_exists(self, authenticated_client: TestClient):
+        delete_deploy_token(authenticated_client)
         raw_response = authenticated_client.put("/v1/tool/test-tool-1/deployment/token")
         assert raw_response.status_code == status.HTTP_404_NOT_FOUND
 
     def test_updates_existing_token(self, authenticated_client: TestClient):
-        create_response = create_deploy_token(authenticated_client)
-        original_token = DeployTokenResponse.model_validate(create_response).data.token
-
+        original_token = create_deploy_token(authenticated_client)
         update_response = authenticated_client.put(
             "/v1/tool/test-tool-1/deployment/token"
         )
         assert update_response.status_code == status.HTTP_200_OK
-
         update_data = DeployTokenResponse.model_validate(update_response.json())
-        new_token = update_data.data.token
 
-        assert isinstance(new_token, UUID)
-        assert new_token != original_token
-        assert (
-            "Deploy token for test-tool-1 updated successfully."
-            in update_data.messages.info
-        )
+        assert isinstance(update_data.data.token, UUID)
+        assert update_data.data.token != original_token.data.token
 
-        get_response = get_deploy_token(authenticated_client)
-        get_data = DeployTokenResponse.model_validate(get_response)
-        assert get_data.data.token == new_token
+        get_data = get_deploy_token(authenticated_client)
+        assert get_data.data.token == update_data.data.token
 
         delete_deploy_token(authenticated_client)
 

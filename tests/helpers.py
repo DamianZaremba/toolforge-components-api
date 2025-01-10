@@ -46,6 +46,8 @@ def delete_tool_config(
 def create_deploy_token(
     client: TestClient, tool_name: str = "test-tool-1"
 ) -> DeployTokenResponse:
+    delete_deploy_token(client, tool_name)
+
     response = client.post(f"/v1/tool/{tool_name}/deployment/token")
     assert response.status_code == status.HTTP_200_OK
     return DeployTokenResponse.model_validate(response.json())
@@ -55,8 +57,10 @@ def delete_deploy_token(
     client: TestClient, tool_name: str = "test-tool-1"
 ) -> DeployTokenResponse:
     response = client.delete(f"/v1/tool/{tool_name}/deployment/token")
-    assert response.status_code == status.HTTP_200_OK
-    return DeployTokenResponse.model_validate(response.json())
+    assert response.status_code in (status.HTTP_200_OK, status.HTTP_404_NOT_FOUND)
+    if response.status_code == status.HTTP_200_OK:
+        return DeployTokenResponse.model_validate(response.json())
+    return None
 
 
 def get_deploy_token(
