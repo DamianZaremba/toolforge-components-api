@@ -1,3 +1,5 @@
+from typing import Any
+
 from fastapi import status
 from fastapi.testclient import TestClient
 
@@ -9,7 +11,9 @@ from components.models.api_models import (
 )
 
 
-def get_fake_tool_config(**overrides) -> ToolConfig:
+def get_fake_tool_config(
+    build: dict[str, Any] | None = None, **overrides
+) -> ToolConfig:
     params = {
         "config_version": "v1",
         "components": {
@@ -21,6 +25,8 @@ def get_fake_tool_config(**overrides) -> ToolConfig:
         },
     }
     params.update(overrides)
+    if build is not None:
+        params["components"]["component1"]["build"] = build
     return ToolConfig.model_validate(params)
 
 

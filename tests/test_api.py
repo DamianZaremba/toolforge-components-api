@@ -116,7 +116,7 @@ class TestCreateDeployment:
 
         assert raw_response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_creates_and_returns_the_new_deployment_using_header_auth(
+    def test_creates_and_returns_the_new_deployment_of_prebuilt_job_using_header_auth(
         self, authenticated_client: TestClient, fake_toolforge_client: MagicMock
     ):
         create_tool_config(authenticated_client)
@@ -146,7 +146,7 @@ class TestCreateDeployment:
             verify=True,
         )
 
-    def test_creates_and_returns_the_new_deployment_using_token(
+    async def test_creates_and_returns_the_new_deployment_using_token(
         self,
         authenticated_client: TestClient,
         fake_toolforge_client: MagicMock,
@@ -181,6 +181,42 @@ class TestCreateDeployment:
                 "continuous": True,
                 "name": "component1",
                 "imagename": "silly_image",
+            },
+            verify=True,
+        )
+
+    def test_creates_and_returns_the_new_deployment_of_source_build_job(
+        self, authenticated_client: TestClient, fake_toolforge_client: MagicMock
+    ):
+        my_tool_config = get_fake_tool_config(
+            build={"repository": "some_repo", "ref": "some_ref"}
+        )
+        response = authenticated_client.post(
+            "/v1/tool/test-tool-1/config", content=my_tool_config.model_dump_json()
+        )
+        response.raise_for_status()
+
+        response = authenticated_client.post("/v1/tool/test-tool-1/deployment")
+        response.raise_for_status()
+
+        expected_deployment = ToolDeploymentResponse.model_validate(response.json())
+
+        response = authenticated_client.get(
+            f"/v1/tool/test-tool-1/deployment/{expected_deployment.data.deploy_id}"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        gotten_deployment = ToolDeploymentResponse.model_validate(response.json())
+        # we kinda ignore the messages
+        assert expected_deployment.data == gotten_deployment.data
+
+        fake_toolforge_client.patch.assert_called_once_with(
+            "/jobs/v1/tool/test-tool-1/jobs/",
+            json={
+                "cmd": "some command",
+                "continuous": True,
+                "name": "component1",
+                "imagename": "tool-test-tool-1/tool-test-tool-1:latest",
             },
             verify=True,
         )
