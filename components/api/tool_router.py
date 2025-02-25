@@ -115,7 +115,7 @@ def create_tool_deployment(
     builds = {
         component_name: DeploymentBuildInfo(build_id="TODO")
         for component_name, component_info in tool_config.components.items()
-        if component_info.build and component_info.build.use_prebuilt
+        if component_info.build
     }
     new_deployment = Deployment.get_new_deployment(
         tool_name=toolname,

@@ -19,7 +19,9 @@ def do_deploy(
     toolforge_client = get_toolforge_client()
     for component_name, component_info in tool_config.components.items():
         # TODO: add support to load all the components jobs and then sync the current status
-        if component_info.component_type == "continuous":
+        if component_info.component_type == "continuous" and hasattr(
+            component_info.build, "use_prebuilt"
+        ):
             deploy_continuous_jobs(
                 tool_name=tool_name,
                 run_info=component_info.run,

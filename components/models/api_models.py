@@ -1,10 +1,10 @@
 import datetime
 import random
 import string
-from typing import Generic, Literal, Type, TypeAlias, TypeVar
+from typing import Annotated, Any, Generic, Literal, Type, TypeAlias, TypeVar, Union
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Discriminator, Field, Tag
 
 # TODO: add the others when we add support for them
 ComponentType: TypeAlias = Literal["continuous"]
@@ -17,13 +17,38 @@ class BuildInfo(BaseModel):
     use_prebuilt: str
 
 
+def build_info_discriminator(value: Any) -> str | None:
+    if isinstance(value, dict):
+        if value.get("use_prebuilt"):
+            return "prebuilt_build_info_tag"
+        elif value.get("repository"):
+            return "source_build_info_tag"
+
+    return None
+
+
+class PrebuiltBuildInfo(BaseModel):
+    use_prebuilt: str
+
+
+class SourceBuildInfo(BaseModel):
+    repository: str
+    ref: str
+
+
 class RunInfo(BaseModel):
     command: str
 
 
 class ComponentInfo(BaseModel):
     component_type: ComponentType
-    build: BuildInfo
+    build: Annotated[
+        Union[
+            Annotated[SourceBuildInfo, Tag("source_build_info_tag")],
+            Annotated[PrebuiltBuildInfo, Tag("prebuilt_build_info_tag")],
+        ],
+        Discriminator(discriminator=build_info_discriminator),
+    ]
     run: RunInfo
 
 

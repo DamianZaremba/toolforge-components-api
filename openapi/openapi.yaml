@@ -423,15 +423,6 @@ components:
       required:
       - data
       title: ApiResponse[ToolConfig]
-    BuildInfo:
-      properties:
-        use_prebuilt:
-          type: string
-          title: Use Prebuilt
-      type: object
-      required:
-      - use_prebuilt
-      title: BuildInfo
     ComponentInfo:
       properties:
         component_type:
@@ -439,7 +430,10 @@ components:
           const: continuous
           title: Component Type
         build:
-          $ref: '#/components/schemas/BuildInfo'
+          oneOf:
+          - $ref: '#/components/schemas/SourceBuildInfo'
+          - $ref: '#/components/schemas/PrebuiltBuildInfo'
+          title: Build
         run:
           $ref: '#/components/schemas/RunInfo'
       type: object
@@ -520,6 +514,15 @@ components:
       required:
       - status
       title: HealthState
+    PrebuiltBuildInfo:
+      properties:
+        use_prebuilt:
+          type: string
+          title: Use Prebuilt
+      type: object
+      required:
+      - use_prebuilt
+      title: PrebuiltBuildInfo
     ResponseMessages:
       properties:
         info:
@@ -551,6 +554,19 @@ components:
       required:
       - command
       title: RunInfo
+    SourceBuildInfo:
+      properties:
+        repository:
+          type: string
+          title: Repository
+        ref:
+          type: string
+          title: Ref
+      type: object
+      required:
+      - repository
+      - ref
+      title: SourceBuildInfo
     ToolConfig-Input:
       properties:
         config_version:
