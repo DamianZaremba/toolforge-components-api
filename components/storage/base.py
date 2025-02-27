@@ -32,6 +32,10 @@ class Storage(ABC):
         pass
 
     @abstractmethod
+    def update_deployment(self, tool_name: str, deployment: Deployment) -> None:
+        pass
+
+    @abstractmethod
     def delete_deployment(self, tool_name: str, deployment_name: str) -> Deployment:
         pass
 

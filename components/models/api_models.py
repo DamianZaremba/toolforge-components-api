@@ -1,6 +1,7 @@
 import datetime
 import random
 import string
+from enum import Enum
 from typing import Annotated, Any, Generic, Literal, Type, TypeAlias, TypeVar, Union
 from uuid import UUID, uuid4
 
@@ -61,10 +62,19 @@ class DeploymentBuildInfo(BaseModel):
     build_id: str
 
 
+class DeploymentState(str, Enum):
+    pending = "pending"
+    running = "running"
+    failed = "failed"
+    successful = "successful"
+
+
 class Deployment(BaseModel):
     deploy_id: str
     creation_time: str
     builds: dict[str, DeploymentBuildInfo]
+    status: DeploymentState = DeploymentState.pending
+    long_status: str = ""
 
     @classmethod
     def get_new_deployment(

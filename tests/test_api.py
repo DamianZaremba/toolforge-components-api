@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock
+from unittest.mock import ANY, MagicMock
 from uuid import UUID
 
 import pytest
@@ -6,6 +6,8 @@ from fastapi import FastAPI, status
 from fastapi.testclient import TestClient
 
 from components.models.api_models import (
+    Deployment,
+    DeploymentState,
     DeployTokenResponse,
     HealthState,
     HealthzResponse,
@@ -125,6 +127,8 @@ class TestCreateDeployment:
         assert response.status_code == status.HTTP_200_OK
 
         expected_deployment = ToolDeploymentResponse.model_validate(response.json())
+        expected_deployment.data.status = DeploymentState.successful
+        expected_deployment.data.long_status = ANY
 
         response = authenticated_client.get(
             f"/v1/tool/test-tool-1/deployment/{expected_deployment.data.deploy_id}"
@@ -164,6 +168,8 @@ class TestCreateDeployment:
         assert response.status_code == status.HTTP_200_OK
 
         expected_deployment = ToolDeploymentResponse.model_validate(response.json())
+        expected_deployment.data.status = DeploymentState.successful
+        expected_deployment.data.long_status = ANY
 
         response = authenticated_client.get(
             f"/v1/tool/test-tool-1/deployment/{expected_deployment.data.deploy_id}"
@@ -200,6 +206,8 @@ class TestCreateDeployment:
         response.raise_for_status()
 
         expected_deployment = ToolDeploymentResponse.model_validate(response.json())
+        expected_deployment.data.status = DeploymentState.successful
+        expected_deployment.data.long_status = ANY
 
         response = authenticated_client.get(
             f"/v1/tool/test-tool-1/deployment/{expected_deployment.data.deploy_id}"
@@ -454,17 +462,20 @@ class TestListDeployments:
     ):
         create_tool_config(authenticated_client)
         deployment_response = create_tool_deployment(authenticated_client)
+        expected_deployment = deployment_response.data
+        expected_deployment.status = DeploymentState.successful
+        expected_deployment.long_status = ANY
 
         response = authenticated_client.get("/v1/tool/test-tool-1/deployment")
         assert response.status_code == status.HTTP_200_OK
 
-        deployments = response.json()
-        assert "data" in deployments
-        assert "deployments" in deployments["data"]
-        assert len(deployments["data"]["deployments"]) == 1
+        gotten_deployments = response.json()
+        assert "data" in gotten_deployments
+        assert "deployments" in gotten_deployments["data"]
+        assert len(gotten_deployments["data"]["deployments"]) == 1
         assert (
-            deployments["data"]["deployments"][0]
-            == deployment_response.data.model_dump()
+            Deployment.model_validate(gotten_deployments["data"]["deployments"][0])
+            == expected_deployment
         )
 
     def test_returns_multiple_deployments_when_they_exist(

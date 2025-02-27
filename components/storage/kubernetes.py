@@ -249,6 +249,34 @@ class KubernetesStorage(Storage):
 
         self._cleanup_old_deployments(tool_name=tool_name)
 
+    def update_deployment(self, tool_name: str, deployment: Deployment) -> None:
+        namespace = _get_k8s_tool_namespace(tool_name=tool_name)
+        self.get_deployment(tool_name=tool_name, deployment_name=deployment.deploy_id)
+        new_body = _deploy_to_k8s_crd(deployment=deployment, tool_name=tool_name)
+        try:
+            self.k8s.patch_namespaced_custom_object(
+                name=deployment.deploy_id,
+                group="toolforge.org",
+                version="v1",
+                plural="tooldeployments",
+                namespace=namespace,
+                body=new_body,
+            )
+        except kubernetes.client.ApiException as error:
+            if error.status == status.HTTP_404_NOT_FOUND:
+                logger.error(
+                    f"This should not happen, the deployment/namespace disappeared between checking and updating? (deployment: {deployment})"
+                )
+                raise NotFoundInStorage(
+                    f"Unable to find namespace {namespace} or deployment {deployment.deploy_id} for tool {tool_name}"
+                ) from error
+
+            raise StorageError(
+                f"Got unexpected error ({error}) when trying to update deployment for {tool_name}"
+            ) from error
+
+        self._cleanup_old_deployments(tool_name=tool_name)
+
     def _delete_deployment(self, tool_name: str, deployment_name: str) -> None:
         namespace = _get_k8s_tool_namespace(tool_name=tool_name)
         try:

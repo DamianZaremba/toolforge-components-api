@@ -50,6 +50,19 @@ class MockStorage(Storage):
 
         self._per_tool_deployments[tool_name][deployment.deploy_id] = deployment
 
+    def update_deployment(self, tool_name: str, deployment: Deployment) -> None:
+        if tool_name not in self._per_tool_deployments:
+            raise NotFoundInStorage(
+                f"The tool {tool_name} has no deployments, can't update {deployment}"
+            )
+
+        if deployment.deploy_id not in self._per_tool_deployments[tool_name]:
+            raise NotFoundInStorage(
+                f"The tool {tool_name} has no deployment with id {deployment.deploy_id}, it has {self._per_tool_deployments[tool_name]}"
+            )
+
+        self._per_tool_deployments[tool_name][deployment.deploy_id] = deployment
+
     def delete_deployment(self, tool_name: str, deployment_name: str) -> Deployment:
         logger.info(f"Deleting deployment: {deployment_name} for tool: {tool_name}")
         if tool_name not in self._per_tool_deployments:

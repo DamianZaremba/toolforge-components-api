@@ -467,6 +467,13 @@ components:
             $ref: '#/components/schemas/DeploymentBuildInfo'
           type: object
           title: Builds
+        status:
+          $ref: '#/components/schemas/DeploymentState'
+          default: pending
+        long_status:
+          type: string
+          title: Long Status
+          default: ''
       type: object
       required:
       - deploy_id
@@ -493,6 +500,14 @@ components:
       required:
       - deployments
       title: DeploymentList
+    DeploymentState:
+      type: string
+      enum:
+      - pending
+      - running
+      - failed
+      - successful
+      title: DeploymentState
     HTTPValidationError:
       properties:
         detail:

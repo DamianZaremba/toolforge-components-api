@@ -1,13 +1,20 @@
+import traceback
+from datetime import datetime
+from functools import wraps
 from logging import getLogger
-from typing import cast
+from typing import Protocol, cast
 
+from fastapi import HTTPException
 from toolforge_weld.api_client import ToolforgeClient
+
+from components.storage.base import Storage
 
 from .client import get_toolforge_client
 from .gen.toolforge_models import JobsJobResponse, JobsNewJob
 from .models.api_models import (
     ComponentInfo,
     Deployment,
+    DeploymentState,
     PrebuiltBuildInfo,
     RunInfo,
     SourceBuildInfo,
@@ -32,12 +39,76 @@ def _get_component_image_name(tool_name: str, component_info: ComponentInfo) -> 
     raise Exception(f"unsupported build information: {component_info.build}")
 
 
+class DoDeployFuncType(Protocol):
+    def __call__(
+        self,
+        *,
+        tool_name: str,
+        tool_config: ToolConfig,
+        deployment: Deployment,
+        storage: Storage,
+    ) -> None: ...
+
+
+def set_deployment_as_failed_on_error(func: DoDeployFuncType) -> DoDeployFuncType:
+    """Wraps the function in a try-except and sets the deployment sattus to error if any exception is raised.
+
+    Very specific for do_deploy, but if needed could be generalized for others.
+    """
+
+    @wraps(func)
+    def _inner(
+        tool_name: str,
+        tool_config: ToolConfig,
+        deployment: Deployment,
+        storage: Storage,
+    ) -> None:
+        try:
+            func(
+                tool_name=tool_name,
+                tool_config=tool_config,
+                deployment=deployment,
+                storage=storage,
+            )
+        except Exception as error:
+            deployment.status = DeploymentState.failed
+            deployment.long_status = f"Got exception: {error}\n{traceback.format_exc()}"
+            _update_deployment(
+                storage=storage, tool_name=tool_name, deployment=deployment
+            )
+            logger.exception(f"Deployment {deployment} failed: {error}")
+
+    return _inner
+
+
+def _update_deployment(
+    storage: Storage, tool_name: str, deployment: Deployment
+) -> None:
+    """Thin wrapper on storage to add the http exception for the task."""
+    try:
+        storage.update_deployment(tool_name=tool_name, deployment=deployment)
+        logger.info(f"Updated deployment {deployment} for tool {tool_name}")
+    except Exception as error:
+        logger.error(
+            f"Error updating deployment {deployment} for tool {tool_name}: {error}"
+        )
+        raise HTTPException(status_code=500, detail=str(error)) from error
+
+
+@set_deployment_as_failed_on_error
 def do_deploy(
+    *,
     tool_name: str,
     tool_config: ToolConfig,
     deployment: Deployment,
+    storage: Storage,
 ) -> None:
     logger.info(f"Starting deployment for tool {tool_name}")
+
+    deployment.status = DeploymentState.running
+    deployment.long_status = f"Started at {datetime.now()}"
+    _update_deployment(storage=storage, tool_name=tool_name, deployment=deployment)
+
     toolforge_client = get_toolforge_client()
     for component_name, component_info in tool_config.components.items():
         # TODO: add support to load all the components jobs and then sync the current status
@@ -59,6 +130,10 @@ def do_deploy(
             ),
             toolforge_client=toolforge_client,
         )
+
+        deployment.status = DeploymentState.successful
+        deployment.long_status = f"Finished at {datetime.now()}"
+        _update_deployment(storage=storage, tool_name=tool_name, deployment=deployment)
 
 
 def deploy_continuous_jobs(
@@ -90,6 +165,7 @@ def deploy_continuous_jobs(
         ),
     )
     logger.debug(f"Deployed continuous job {component_name}: {create_response}")
+    # TODO: check if the job is actually running ok
 
 
 def run_info_to_job(
@@ -113,4 +189,5 @@ def run_info_to_job(
         replicas=None,
         retry=None,
         schedule=None,
+        timeout=None,
     )

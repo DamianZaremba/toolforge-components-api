@@ -110,6 +110,7 @@ def create_tool_deployment(
         deployment=deployment,
         tool_config=tool_config,
         tool_name=tool_name,
+        storage=storage,
     )
 
     return deployment
