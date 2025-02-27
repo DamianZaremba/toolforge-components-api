@@ -17,6 +17,7 @@ toolforge-weld = "^1.6.4"
 pytest-cov = "^6.0.0"
 prometheus-client = "^0.21.0"
 prometheus-fastapi-instrumentator = "^7.0.0"
+mypy-extensions = "^1.0.0"
 
 
 [tool.poetry.group.dev.dependencies]
