@@ -3,6 +3,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends
 from ..models.api_models import (
     Deployment,
     DeploymentBuildInfo,
+    DeploymentBuildState,
     DeploymentList,
     DeployTokenResponse,
     ResponseMessages,
@@ -111,11 +112,12 @@ def create_tool_deployment(
 ) -> ToolDeploymentResponse:
     """Create a new tool deployment."""
     tool_config = handlers.get_tool_config(toolname=toolname, storage=storage)
-    # TODO: actually get the list of builds we want to trigger
     builds = {
-        component_name: DeploymentBuildInfo(build_id="TODO")
-        for component_name, component_info in tool_config.components.items()
-        if component_info.build
+        component_name: DeploymentBuildInfo(
+            build_id=DeploymentBuildInfo.NO_ID_YET,
+            build_status=DeploymentBuildState.pending,
+        )
+        for component_name in tool_config.components.keys()
     }
     new_deployment = Deployment.get_new_deployment(
         tool_name=toolname,

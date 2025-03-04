@@ -483,12 +483,29 @@ components:
     DeploymentBuildInfo:
       properties:
         build_id:
-          type: string
+          anyOf:
+          - type: string
+          - type: string
+            enum:
+            - no-id-yet
+            - no-id-needed
           title: Build Id
+        build_status:
+          $ref: '#/components/schemas/DeploymentBuildState'
       type: object
       required:
       - build_id
+      - build_status
       title: DeploymentBuildInfo
+    DeploymentBuildState:
+      type: string
+      enum:
+      - pending
+      - running
+      - failed
+      - successful
+      - unknown
+      title: DeploymentBuildState
     DeploymentList:
       properties:
         deployments:

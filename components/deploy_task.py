@@ -1,6 +1,8 @@
+import time
 import traceback
+from copy import deepcopy
 from datetime import datetime
-from functools import wraps
+from functools import partial, wraps
 from logging import getLogger
 from typing import Protocol, cast
 
@@ -14,6 +16,8 @@ from .gen.toolforge_models import JobsJobResponse, JobsNewJob
 from .models.api_models import (
     ComponentInfo,
     Deployment,
+    DeploymentBuildInfo,
+    DeploymentBuildState,
     DeploymentState,
     PrebuiltBuildInfo,
     RunInfo,
@@ -23,6 +27,18 @@ from .models.api_models import (
 from .settings import get_settings
 
 logger = getLogger(__name__)
+
+
+class DeployException(Exception):
+    pass
+
+
+class BuildFailed(DeployException):
+    pass
+
+
+class RunFailed(DeployException):
+    pass
 
 
 def _get_component_image_name(tool_name: str, component_info: ComponentInfo) -> str:
@@ -50,8 +66,12 @@ class DoDeployFuncType(Protocol):
     ) -> None: ...
 
 
+class UpdateBuildInfoFuncType(Protocol):
+    def __call__(self, *, build_info: dict[str, DeploymentBuildInfo]) -> None: ...
+
+
 def set_deployment_as_failed_on_error(func: DoDeployFuncType) -> DoDeployFuncType:
-    """Wraps the function in a try-except and sets the deployment sattus to error if any exception is raised.
+    """Wraps the function in a try-except and sets the deployment status to error if any exception is raised.
 
     Very specific for do_deploy, but if needed could be generalized for others.
     """
@@ -64,7 +84,7 @@ def set_deployment_as_failed_on_error(func: DoDeployFuncType) -> DoDeployFuncTyp
         storage: Storage,
     ) -> None:
         try:
-            func(
+            return func(
                 tool_name=tool_name,
                 tool_config=tool_config,
                 deployment=deployment,
@@ -95,6 +115,167 @@ def _update_deployment(
         raise HTTPException(status_code=500, detail=str(error)) from error
 
 
+def _update_deployment_build_info(
+    deployment: Deployment,
+    build_info: dict[str, DeploymentBuildInfo],
+    storage: Storage,
+    tool_name: str,
+) -> None:
+    deployment.builds = build_info
+    _update_deployment(deployment=deployment, storage=storage, tool_name=tool_name)
+
+
+def _start_build(build: SourceBuildInfo, tool_name: str) -> DeploymentBuildInfo:
+    toolforge_client = get_toolforge_client()
+    build_data = {
+        "ref": build.ref,
+        "source_url": build.repository,
+    }
+    response = toolforge_client.post(
+        f"/builds/v1/tool/{tool_name}/builds",
+        json=build_data,
+        verify=get_settings().verify_toolforge_api_cert,
+    )
+
+    return DeploymentBuildInfo(
+        build_id=response["new_build"]["name"],
+        build_status=DeploymentBuildState.pending,
+    )
+
+
+def _get_build_status(
+    build: DeploymentBuildInfo, tool_name: str
+) -> DeploymentBuildState:
+    toolforge_client = get_toolforge_client()
+    try:
+        response = toolforge_client.get(
+            f"/builds/v1/tool/{tool_name}/builds/{build.build_id}",
+            verify=get_settings().verify_toolforge_api_cert,
+        )
+    except Exception:
+        logger.exception(
+            f"Got error trying to fetch build status for tool {tool_name}, "
+            f"build_id {build.build_id}: \n{traceback.format_exc()}"
+        )
+        return DeploymentBuildState.unknown
+
+    if response["build"]["status"] == "BUILD_RUNNING":
+        return DeploymentBuildState.running
+    elif response["build"]["status"] == "BUILD_SUCCESS":
+        return DeploymentBuildState.successful
+    elif response["build"]["status"] in (
+        "BUILD_FAILURE",
+        "BUILD_CANCELLED",
+        "BUILD_CANCELLED",
+    ):
+        return DeploymentBuildState.failed
+
+    return DeploymentBuildState.unknown
+
+
+def _wait_for_builds(
+    builds: dict[str, DeploymentBuildInfo],
+    update_build_info_func: UpdateBuildInfoFuncType,
+    tool_name: str,
+) -> None:
+    pending_builds = {
+        component: build
+        for component, build in deepcopy(builds).items()
+        if build.build_id
+        not in (DeploymentBuildInfo.NO_ID_NEEDED, DeploymentBuildInfo.NO_ID_YET)
+    }
+    logger.debug(f"Waiting for {len(pending_builds)} builds to finish... from {builds}")
+    # TODO: add some timeout
+    while pending_builds:
+        to_delete = []
+        for component_name, build in pending_builds.items():
+            builds[component_name] = DeploymentBuildInfo(
+                build_id=build.build_id,
+                build_status=_get_build_status(build=build, tool_name=tool_name),
+            )
+            update_build_info_func(build_info=builds)
+            if builds[component_name].build_status in (
+                DeploymentBuildState.successful,
+                DeploymentBuildState.failed,
+            ):
+                to_delete.append(component_name)
+
+        for component_name in to_delete:
+            del pending_builds[component_name]
+            logger.debug(
+                f"Build for {component_name} finished, removing from list, {len(pending_builds)} builds left."
+            )
+        # Builds currently take in the order of minutes to complete, 2 seconds seems like often enough not to
+        # overwhelm the api and still get a quick response once the build is finished.
+        time.sleep(2)
+
+    failed_builds = [
+        f"{component}(id:{build.build_id})"
+        for component, build in builds.items()
+        if build.build_status == DeploymentBuildState.failed
+    ]
+    if failed_builds:
+        raise BuildFailed(
+            f"Some builds failed, you can check the build logs for more info: {' '.join(failed_builds)}"
+        )
+
+
+def _start_builds(
+    components: dict[str, ComponentInfo],
+    update_build_info_func: UpdateBuildInfoFuncType,
+    tool_name: str,
+) -> dict[str, DeploymentBuildInfo]:
+    any_failed = False
+    failed_builds = []
+    all_builds: dict[str, DeploymentBuildInfo] = {}
+    for component_name, component in components.items():
+        if isinstance(component.build, SourceBuildInfo):
+            try:
+                new_build_info = _start_build(
+                    build=component.build, tool_name=tool_name
+                )
+            except Exception as error:
+                any_failed = True
+                new_build_info = DeploymentBuildInfo(
+                    build_id=DeploymentBuildInfo.NO_ID_YET,
+                    build_status=DeploymentBuildState.failed,
+                )
+                failed_builds.append(f"{component_name}(error:{error})")
+        else:
+            new_build_info = DeploymentBuildInfo(
+                build_id=DeploymentBuildInfo.NO_ID_NEEDED,
+                build_status=DeploymentBuildState.successful,
+            )
+
+        all_builds[component_name] = new_build_info
+
+    update_build_info_func(build_info=all_builds)
+    if any_failed:
+        raise BuildFailed(f"Some builds failed to start: {' '.join(failed_builds)}")
+
+    return all_builds
+
+
+def _do_build(
+    components: dict[str, ComponentInfo],
+    update_build_info_func: UpdateBuildInfoFuncType,
+    tool_name: str,
+) -> None:
+    logger.debug(f"Starting builds for tool {tool_name}")
+    all_builds = _start_builds(
+        components=components,
+        update_build_info_func=update_build_info_func,
+        tool_name=tool_name,
+    )
+    logger.debug(f"Waiting for builds to complete for tool {tool_name}")
+    _wait_for_builds(
+        builds=all_builds,
+        update_build_info_func=update_build_info_func,
+        tool_name=tool_name,
+    )
+    logger.debug(f"Builds done for tool {tool_name}")
+
+
 @set_deployment_as_failed_on_error
 def do_deploy(
     *,
@@ -109,6 +290,18 @@ def do_deploy(
     deployment.long_status = f"Started at {datetime.now()}"
     _update_deployment(storage=storage, tool_name=tool_name, deployment=deployment)
 
+    _update_build_info_func = partial(
+        _update_deployment_build_info,
+        storage=storage,
+        tool_name=tool_name,
+        deployment=deployment,
+    )
+    _do_build(
+        components=tool_config.components,
+        update_build_info_func=_update_build_info_func,
+        tool_name=tool_name,
+    )
+
     toolforge_client = get_toolforge_client()
     for component_name, component_info in tool_config.components.items():
         # TODO: add support to load all the components jobs and then sync the current status
@@ -121,22 +314,27 @@ def do_deploy(
         logger.info(
             f"{tool_name}: deploying component {component_name}: {component_info}"
         )
-        deploy_continuous_jobs(
-            tool_name=tool_name,
-            run_info=component_info.run,
-            component_name=component_name,
-            image_name=_get_component_image_name(
-                tool_name=tool_name, component_info=component_info
-            ),
-            toolforge_client=toolforge_client,
-        )
+        try:
+            run_continuous_jobs(
+                tool_name=tool_name,
+                run_info=component_info.run,
+                component_name=component_name,
+                image_name=_get_component_image_name(
+                    tool_name=tool_name, component_info=component_info
+                ),
+                toolforge_client=toolforge_client,
+            )
+        except Exception as error:
+            raise RunFailed(f"Failed to run some components: {error}") from error
 
         deployment.status = DeploymentState.successful
         deployment.long_status = f"Finished at {datetime.now()}"
         _update_deployment(storage=storage, tool_name=tool_name, deployment=deployment)
 
+        # TODO: check if the components are actually running ok
 
-def deploy_continuous_jobs(
+
+def run_continuous_jobs(
     tool_name: str,
     component_name: str,
     run_info: RunInfo,

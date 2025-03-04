@@ -2,7 +2,17 @@ import datetime
 import random
 import string
 from enum import Enum
-from typing import Annotated, Any, Generic, Literal, Type, TypeAlias, TypeVar, Union
+from typing import (
+    Annotated,
+    Any,
+    ClassVar,
+    Generic,
+    Literal,
+    Type,
+    TypeAlias,
+    TypeVar,
+    Union,
+)
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Discriminator, Field, Tag
@@ -58,8 +68,19 @@ class ToolConfig(BaseModel):
     components: dict[str, ComponentInfo] = Field(..., min_length=1)
 
 
+class DeploymentBuildState(str, Enum):
+    pending = "pending"
+    running = "running"
+    failed = "failed"
+    successful = "successful"
+    unknown = "unknown"
+
+
 class DeploymentBuildInfo(BaseModel):
-    build_id: str
+    NO_ID_YET: ClassVar[str] = "no-id-yet"
+    NO_ID_NEEDED: ClassVar[str] = "no-id-needed"
+    build_id: str | Literal["no-id-yet", "no-id-needed"]
+    build_status: DeploymentBuildState
 
 
 class DeploymentState(str, Enum):

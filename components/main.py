@@ -48,6 +48,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         level = logging.INFO
 
     logging.basicConfig(level=level)
+    # this is needed mostly for the tests, as you can't change the loglevel with basicConfig once it has
+    # been changed once
+    logging.root.setLevel(level=level)
     LOGGER.debug("Got settings: %r", settings)
 
     app = FastAPI(title=title, version=version)
