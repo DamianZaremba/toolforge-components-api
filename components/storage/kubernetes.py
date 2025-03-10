@@ -91,6 +91,11 @@ class KubernetesStorage(Storage):
                 f"Got unexpected error when trying to load config for {tool_name}"
             ) from error
 
+        if not isinstance(k8s_tool_config, dict):
+            raise StorageError(
+                f"Got unexpected error when trying to load deploy token for {tool_name}, expected a dict but got {k8s_tool_config}"
+            )
+
         return ToolConfig.model_validate(k8s_tool_config["spec"])
 
     def set_tool_config(self, tool_name: str, config: ToolConfig) -> None:
@@ -183,6 +188,11 @@ class KubernetesStorage(Storage):
             raise StorageError(
                 f"Got unexpected error when trying to load deployment for {tool_name}"
             ) from error
+
+        if not isinstance(k8s_deployment, dict):
+            raise StorageError(
+                f"Got unexpected error when trying to load deploy token for {tool_name}, expected a dict but got {k8s_deployment}"
+            )
 
         return Deployment.model_validate(k8s_deployment["spec"])
 
@@ -324,6 +334,11 @@ class KubernetesStorage(Storage):
             raise StorageError(
                 f"Got unexpected error when trying to load deploy token for {tool_name}"
             ) from error
+
+        if not isinstance(k8s_token, dict):
+            raise StorageError(
+                f"Got unexpected error when trying to load deploy token for {tool_name}, expected a dict but got {k8s_token}"
+            )
 
         return DeployToken.model_validate(k8s_token["spec"])
 
