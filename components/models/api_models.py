@@ -20,8 +20,6 @@ from pydantic import BaseModel, Discriminator, Field, Tag
 # TODO: add the others when we add support for them
 ComponentType: TypeAlias = Literal["continuous"]
 T = TypeVar("T")
-# this comes from k8s name limitations, handy for us, but any is as god
-DEPLOYMENT_NAME_MAX_LENGTH = 53
 
 
 class BuildInfo(BaseModel):
@@ -102,13 +100,12 @@ class Deployment(BaseModel):
         cls: "Type[Deployment]", tool_name: str, builds: dict[str, DeploymentBuildInfo]
     ) -> "Deployment":
         cur_timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y%m%d-%H%M%S")
+        new_id = f"{cur_timestamp}-"
         # We rely on random having enough entropy and having little requests per second requests to not collide.
         random_suffix = "".join(
-            random.choices(
-                string.ascii_lowercase + string.digits, k=DEPLOYMENT_NAME_MAX_LENGTH
-            )
+            random.choices(string.ascii_lowercase + string.digits, k=10)
         )
-        new_id = f"{tool_name}-{cur_timestamp}-{random_suffix}"
+        new_id += random_suffix
         return Deployment(
             creation_time=cur_timestamp,
             deploy_id=new_id,
