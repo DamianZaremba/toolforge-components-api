@@ -178,6 +178,7 @@ def _wait_for_builds(
     update_build_info_func: UpdateBuildInfoFuncType,
     tool_name: str,
 ) -> None:
+    settings = get_settings()
     pending_builds = {
         component: build
         for component, build in deepcopy(builds).items()
@@ -185,8 +186,12 @@ def _wait_for_builds(
         not in (DeploymentBuildInfo.NO_ID_NEEDED, DeploymentBuildInfo.NO_ID_YET)
     }
     logger.debug(f"Waiting for {len(pending_builds)} builds to finish... from {builds}")
-    # TODO: add some timeout
-    while pending_builds:
+
+    start_time = datetime.now()
+    while (
+        pending_builds
+        and (datetime.now() - start_time).seconds < settings.build_timeout_seconds
+    ):
         to_delete = []
         for component_name, build in pending_builds.items():
             builds[component_name] = DeploymentBuildInfo(
@@ -208,6 +213,11 @@ def _wait_for_builds(
         # Builds currently take in the order of minutes to complete, 2 seconds seems like often enough not to
         # overwhelm the api and still get a quick response once the build is finished.
         time.sleep(2)
+
+    if pending_builds:
+        raise BuildFailed(
+            f"Some builds took too long to finish: {' '.join(pending_builds.keys())}"
+        )
 
     failed_builds = [
         f"{component}(id:{build.build_id})"

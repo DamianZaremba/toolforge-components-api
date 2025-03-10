@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     namespace: str = "components-api"
     token_lifetime: datetime.timedelta = datetime.timedelta(days=365)
     max_deployments_retained: int = 25
+    build_timeout_seconds: int = 60 * 30
 
 
 @lru_cache()

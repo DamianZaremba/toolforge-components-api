@@ -40,3 +40,6 @@ config:
   # for lima-kilo
   #verify_toolforge_api_cert: false
   max_deployments_retained: 25
+  # The number of seconds to wait for a build to complete before timing out
+  # 60 * 30 = 30 minutes
+  build_timeout_seconds: 1800

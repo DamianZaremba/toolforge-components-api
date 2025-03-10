@@ -34,6 +34,8 @@ spec:
               value: "{{ .Values.config.verify_toolforge_api_cert }}"
             - name: "MAX_DEPLOYMENTS_RETAINED"
               value: "{{ .Values.config.max_deployments_retained }}"
+            - name: "BUILD_TIMEOUT_SECONDS"
+              value: "{{ .Values.config.build_timeout_seconds }}"
           resources: {{- toYaml .Values.resources | nindent 12 }}
           securityContext:
             readOnlyRootFilesystem: true
