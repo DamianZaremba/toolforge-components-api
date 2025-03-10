@@ -7,6 +7,7 @@ from logging import getLogger
 from typing import Protocol, cast
 
 from fastapi import HTTPException
+from requests import HTTPError
 from toolforge_weld.api_client import ToolforgeClient
 
 from components.storage.base import Storage
@@ -147,15 +148,31 @@ def _get_build_status(
     build: DeploymentBuildInfo, tool_name: str
 ) -> DeploymentBuildState:
     toolforge_client = get_toolforge_client()
+    response = None
+    unknown_error_message = ""
     try:
         response = toolforge_client.get(
             f"/builds/v1/tool/{tool_name}/builds/{build.build_id}",
             verify=get_settings().verify_toolforge_api_cert,
         )
+    except HTTPError as error:
+        if error.response.status_code == 404:
+            logger.exception(
+                f"Got 404 trying to fetch build status for tool {tool_name}, "
+                f"build_id {build.build_id}, maybe someone deleted the build?: "
+                "\n{traceback.format_exc()}"
+            )
+            return DeploymentBuildState.failed
+
+        unknown_error_message = traceback.format_exc()
+
     except Exception:
+        unknown_error_message = traceback.format_exc()
+
+    if unknown_error_message or not response:
         logger.exception(
             f"Got error trying to fetch build status for tool {tool_name}, "
-            f"build_id {build.build_id}: \n{traceback.format_exc()}"
+            f"build_id {build.build_id}: \n{unknown_error_message}"
         )
         return DeploymentBuildState.unknown
 
