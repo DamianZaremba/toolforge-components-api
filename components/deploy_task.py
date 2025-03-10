@@ -194,11 +194,15 @@ def _wait_for_builds(
     ):
         to_delete = []
         for component_name, build in pending_builds.items():
+            prev_build_status = builds[component_name].build_status
             builds[component_name] = DeploymentBuildInfo(
                 build_id=build.build_id,
                 build_status=_get_build_status(build=build, tool_name=tool_name),
             )
-            update_build_info_func(build_info=builds)
+            # This saves some storage saving if the build status didn't change
+            if prev_build_status != builds[component_name].build_status:
+                update_build_info_func(build_info=builds)
+
             if builds[component_name].build_status in (
                 DeploymentBuildState.successful,
                 DeploymentBuildState.failed,
