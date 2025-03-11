@@ -523,6 +523,7 @@ components:
       - pending
       - running
       - failed
+      - timed_out
       - successful
       title: DeploymentState
     HTTPValidationError:

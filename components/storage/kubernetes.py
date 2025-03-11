@@ -1,3 +1,4 @@
+import datetime
 import logging
 from typing import Any
 
@@ -11,7 +12,7 @@ from ..gen.toolforge_models import (
     EnvvarsEnvvarName,
     EnvvarsGetResponse,
 )
-from ..models.api_models import Deployment, DeployToken, ToolConfig
+from ..models.api_models import Deployment, DeploymentState, DeployToken, ToolConfig
 from ..settings import get_settings
 from .base import Storage
 from .exceptions import NotFoundInStorage, StorageError
@@ -170,6 +171,13 @@ class KubernetesStorage(Storage):
             ) from error
 
     def get_deployment(self, tool_name: str, deployment_name: str) -> Deployment:
+        """Thin indirection to allow for reusage of the list deployment logic by _timeout_old_deployments"""
+        self._timeout_old_deployments(tool_name=tool_name)
+        return self._get_deployment(
+            tool_name=tool_name, deployment_name=deployment_name
+        )
+
+    def _get_deployment(self, tool_name: str, deployment_name: str) -> Deployment:
         namespace = _get_k8s_tool_namespace(tool_name=tool_name)
         try:
             k8s_deployment = self.k8s.get_namespaced_custom_object(
@@ -197,6 +205,11 @@ class KubernetesStorage(Storage):
         return Deployment.model_validate(k8s_deployment["spec"])
 
     def list_deployments(self, tool_name: str) -> list[Deployment]:
+        """Thin indirection to allow for reusage of the list deployment logic by _timeout_old_deployments"""
+        self._timeout_old_deployments(tool_name=tool_name)
+        return self._list_deployments(tool_name=tool_name)
+
+    def _list_deployments(self, tool_name: str) -> list[Deployment]:
         namespace = _get_k8s_tool_namespace(tool_name=tool_name)
         try:
             deployments = self.k8s.list_namespaced_custom_object(
@@ -218,10 +231,39 @@ class KubernetesStorage(Storage):
                 f"Got unexpected error ({error}) when trying to list deployments for {tool_name}"
             ) from error
 
+    def _timeout_old_deployments(self, tool_name: str) -> None:
+        settings = get_settings()
+        logger.debug("Timing out old deployments for tool %s", tool_name)
+        tool_deployments = self._list_deployments(tool_name)
+        sorted_deployments = sorted(
+            tool_deployments,
+            key=lambda deployment: deployment.creation_time,
+            reverse=True,
+        )
+
+        def elapsed(datestamp: str) -> datetime.timedelta:
+            return datetime.datetime.now() - datetime.datetime.strptime(
+                datestamp, "%Y%m%d-%H%M%S"
+            )
+
+        to_time_out = [
+            deployment
+            for deployment in sorted_deployments
+            if elapsed(deployment.creation_time) > settings.deployment_timeout
+            and deployment.status in (DeploymentState.pending, DeploymentState.running)
+        ]
+
+        logger.debug("Timing out stuck deployments: %r", to_time_out)
+        for deployment in to_time_out:
+            deployment.status = DeploymentState.timed_out
+            self._update_deployment(tool_name=tool_name, deployment=deployment)
+
+        logger.debug("Timed out stuck deployments for tool %s", tool_name)
+
     def _cleanup_old_deployments(self, tool_name: str) -> None:
         settings = get_settings()
         logger.debug("Cleaning up old deployments for tool %s", tool_name)
-        tool_deployments = self.list_deployments(tool_name)
+        tool_deployments = self._list_deployments(tool_name)
         sorted_deployments = sorted(
             tool_deployments,
             key=lambda deployment: deployment.creation_time,
@@ -230,7 +272,7 @@ class KubernetesStorage(Storage):
         to_delete = sorted_deployments[settings.max_deployments_retained :]
         logger.debug("Deleting old deployments: %r", to_delete)
         for deployment in to_delete:
-            self.delete_deployment(
+            self._delete_deployment(
                 tool_name=tool_name, deployment_name=deployment.deploy_id
             )
 
@@ -258,10 +300,12 @@ class KubernetesStorage(Storage):
             ) from error
 
         self._cleanup_old_deployments(tool_name=tool_name)
+        self._timeout_old_deployments(tool_name=tool_name)
 
-    def update_deployment(self, tool_name: str, deployment: Deployment) -> None:
+    def _update_deployment(self, tool_name: str, deployment: Deployment) -> None:
+        """Reusable function to updaet a deployment"""
         namespace = _get_k8s_tool_namespace(tool_name=tool_name)
-        self.get_deployment(tool_name=tool_name, deployment_name=deployment.deploy_id)
+        self._get_deployment(tool_name=tool_name, deployment_name=deployment.deploy_id)
         new_body = _deploy_to_k8s_crd(deployment=deployment, tool_name=tool_name)
         try:
             self.k8s.patch_namespaced_custom_object(
@@ -285,9 +329,13 @@ class KubernetesStorage(Storage):
                 f"Got unexpected error ({error}) when trying to update deployment for {tool_name}"
             ) from error
 
+    def update_deployment(self, tool_name: str, deployment: Deployment) -> None:
+        self._update_deployment(tool_name=tool_name, deployment=deployment)
+        self._timeout_old_deployments(tool_name=tool_name)
         self._cleanup_old_deployments(tool_name=tool_name)
 
-    def _delete_deployment(self, tool_name: str, deployment_name: str) -> None:
+    def _delete_deployment(self, tool_name: str, deployment_name: str) -> Deployment:
+        deployment = self._get_deployment(tool_name, deployment_name)
         namespace = _get_k8s_tool_namespace(tool_name=tool_name)
         try:
             self.k8s.delete_namespaced_custom_object(
@@ -310,10 +358,11 @@ class KubernetesStorage(Storage):
                 f"Got unexpected error when trying to delete deployment for {tool_name}"
             ) from error
 
-    def delete_deployment(self, tool_name: str, deployment_name: str) -> Deployment:
-        deployment = self.get_deployment(tool_name, deployment_name)
-        self._delete_deployment(tool_name, deployment_name)
         return deployment
+
+    def delete_deployment(self, tool_name: str, deployment_name: str) -> Deployment:
+        self._timeout_old_deployments(tool_name=tool_name)
+        return self._delete_deployment(tool_name, deployment_name)
 
     def get_deploy_token(self, tool_name: str) -> DeployToken:
         namespace = _get_k8s_tool_namespace(tool_name=tool_name)

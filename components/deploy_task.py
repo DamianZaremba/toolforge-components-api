@@ -13,7 +13,7 @@ from toolforge_weld.api_client import ToolforgeClient
 from components.storage.base import Storage
 
 from .client import get_toolforge_client
-from .gen.toolforge_models import JobsJobResponse, JobsNewJob
+from .gen.toolforge_models import BuildsBuildStatus, JobsJobResponse, JobsNewJob
 from .models.api_models import (
     ComponentInfo,
     Deployment,
@@ -176,14 +176,15 @@ def _get_build_status(
         )
         return DeploymentBuildState.unknown
 
-    if response["build"]["status"] == "BUILD_RUNNING":
+    response_status = BuildsBuildStatus(response["build"]["status"])
+    if response_status == BuildsBuildStatus.BUILD_RUNNING:
         return DeploymentBuildState.running
-    elif response["build"]["status"] == "BUILD_SUCCESS":
+    elif response_status == BuildsBuildStatus.BUILD_SUCCESS:
         return DeploymentBuildState.successful
-    elif response["build"]["status"] in (
-        "BUILD_FAILURE",
-        "BUILD_CANCELLED",
-        "BUILD_CANCELLED",
+    elif response_status in (
+        BuildsBuildStatus.BUILD_FAILURE,
+        BuildsBuildStatus.BUILD_CANCELLED,
+        BuildsBuildStatus.BUILD_TIMEOUT,
     ):
         return DeploymentBuildState.failed
 
@@ -207,7 +208,8 @@ def _wait_for_builds(
     start_time = datetime.now()
     while (
         pending_builds
-        and (datetime.now() - start_time).seconds < settings.build_timeout_seconds
+        and (datetime.now() - start_time).total_seconds()
+        < settings.build_timeout_seconds
     ):
         to_delete = []
         for component_name, build in pending_builds.items():
@@ -373,7 +375,6 @@ def run_continuous_jobs(
     toolforge_client: ToolforgeClient,
 ) -> None:
     # TODO: support multiple run infos/jobs
-
     settings = get_settings()
 
     # TODO: delete all the other jobs that we don't manage

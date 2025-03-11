@@ -32,6 +32,10 @@ def build_info_discriminator(value: Any) -> str | None:
             return "prebuilt_build_info_tag"
         elif value.get("repository"):
             return "source_build_info_tag"
+    elif isinstance(value, SourceBuildInfo):
+        return "source_build_info_tag"
+    elif isinstance(value, PrebuiltBuildInfo):
+        return "prebuilt_build_info_tag"
 
     return None
 
@@ -85,6 +89,7 @@ class DeploymentState(str, Enum):
     pending = "pending"
     running = "running"
     failed = "failed"
+    timed_out = "timed_out"
     successful = "successful"
 
 

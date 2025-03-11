@@ -5,6 +5,7 @@ import pytest
 from fastapi import BackgroundTasks, FastAPI, status
 from fastapi.testclient import TestClient
 
+from components.gen.toolforge_models import BuildsBuildStatus
 from components.models.api_models import (
     Deployment,
     DeploymentBuildInfo,
@@ -213,7 +214,9 @@ class TestCreateDeployment:
         fake_toolforge_client.post.return_value = {
             "new_build": {"name": "new-build-id"}
         }
-        fake_toolforge_client.get.return_value = {"build": {"status": "BUILD_SUCCESS"}}
+        fake_toolforge_client.get.return_value = {
+            "build": {"status": BuildsBuildStatus.BUILD_SUCCESS.value}
+        }
         my_tool_config = get_fake_tool_config(
             build={"repository": "some_repo", "ref": "some_ref"}
         )

@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     # we might be able to increase this when we allow deploying specific components
     # until then, any deployment will potentially conflict with any other
     max_parallel_deployments: int = 1
+    deployment_timeout: datetime.timedelta = datetime.timedelta(hours=1)
 
 
 @lru_cache()
