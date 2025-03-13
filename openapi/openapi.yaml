@@ -488,7 +488,7 @@ components:
           - type: string
             enum:
             - no-id-yet
-            - no-id-needed
+            - no-build-needed
           title: Build Id
         build_status:
           $ref: '#/components/schemas/DeploymentBuildState'

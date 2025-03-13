@@ -200,7 +200,7 @@ def _wait_for_builds(
         component: build
         for component, build in deepcopy(builds).items()
         if build.build_id
-        not in (DeploymentBuildInfo.NO_ID_NEEDED, DeploymentBuildInfo.NO_ID_YET)
+        not in (DeploymentBuildInfo.NO_BUILD_NEEDED, DeploymentBuildInfo.NO_ID_YET)
     }
     logger.debug(f"Waiting for {len(pending_builds)} builds to finish... from {builds}")
 
@@ -274,7 +274,7 @@ def _start_builds(
                 failed_builds.append(f"{component_name}(error:{error})")
         else:
             new_build_info = DeploymentBuildInfo(
-                build_id=DeploymentBuildInfo.NO_ID_NEEDED,
+                build_id=DeploymentBuildInfo.NO_BUILD_NEEDED,
                 build_status=DeploymentBuildState.successful,
             )
 

@@ -78,8 +78,8 @@ class DeploymentBuildState(str, Enum):
 
 class DeploymentBuildInfo(BaseModel):
     NO_ID_YET: ClassVar[str] = "no-id-yet"
-    NO_ID_NEEDED: ClassVar[str] = "no-id-needed"
-    build_id: str | Literal["no-id-yet", "no-id-needed"]
+    NO_BUILD_NEEDED: ClassVar[str] = "no-build-needed"
+    build_id: str | Literal["no-id-yet", "no-build-needed"]
     build_status: DeploymentBuildState
 
 

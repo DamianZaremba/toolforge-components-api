@@ -136,7 +136,7 @@ class TestCreateDeployment:
         ].build_status = DeploymentBuildState.successful
         expected_deployment.data.builds[
             "component1"
-        ].build_id = DeploymentBuildInfo.NO_ID_NEEDED
+        ].build_id = DeploymentBuildInfo.NO_BUILD_NEEDED
 
         response = authenticated_client.get(
             f"/v1/tool/test-tool-1/deployment/{expected_deployment.data.deploy_id}"
@@ -184,7 +184,7 @@ class TestCreateDeployment:
         ].build_status = DeploymentBuildState.successful
         expected_deployment.data.builds[
             "component1"
-        ].build_id = DeploymentBuildInfo.NO_ID_NEEDED
+        ].build_id = DeploymentBuildInfo.NO_BUILD_NEEDED
 
         response = authenticated_client.get(
             f"/v1/tool/test-tool-1/deployment/{expected_deployment.data.deploy_id}"
@@ -493,7 +493,7 @@ class TestListDeployments:
         ].build_status = DeploymentBuildState.successful
         expected_deployment.builds[
             "component1"
-        ].build_id = DeploymentBuildInfo.NO_ID_NEEDED
+        ].build_id = DeploymentBuildInfo.NO_BUILD_NEEDED
 
         response = authenticated_client.get("/v1/tool/test-tool-1/deployment")
         assert response.status_code == status.HTTP_200_OK
@@ -553,7 +553,7 @@ class TestBuildComponents:
         ].build_status = DeploymentBuildState.successful
         expected_deployment.data.builds[
             "component1"
-        ].build_id = DeploymentBuildInfo.NO_ID_NEEDED
+        ].build_id = DeploymentBuildInfo.NO_BUILD_NEEDED
 
         response = authenticated_client.get(
             f"/v1/tool/test-tool-1/deployment/{expected_deployment.data.deploy_id}"
