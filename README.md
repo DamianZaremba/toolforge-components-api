@@ -46,7 +46,7 @@ API documentation or the OpenAPI specification.
 To regenerate the toolforge models you can just run:
 
 ```
-dcaro@lima-kilo$ poetry run datamodel-codegen --url https://api.toolforge.org/openapi.json --output components/gen/toolforge_models.py
+dcaro@lima-kilo$ poetry run datamodel-codegen --url https://api.svc.toolforge.org/openapi.json --output components/gen/toolforge_models.py
 ```
 
 ### Using the kubernetes storage connecting directly to lima-kilo
