@@ -3,6 +3,8 @@ from components.models.api_models import (
     Deployment,
     DeploymentBuildInfo,
     DeploymentBuildState,
+    DeploymentRunInfo,
+    DeploymentRunState,
     DeploymentState,
     RunInfo,
     SourceBuildInfo,
@@ -14,6 +16,7 @@ def get_deployment_from_tool_config(
     *,
     tool_config: ToolConfig,
     with_build_state: DeploymentBuildState | None = None,
+    with_run_state: DeploymentRunState | None = None,
     with_deployment_state: DeploymentState | None = None,
     **overrides,
 ) -> Deployment:
@@ -26,6 +29,16 @@ def get_deployment_from_tool_config(
                     if with_build_state is not None
                     else DeploymentBuildState.pending
                 ),
+            )
+            for component_name in tool_config.components.keys()
+        },
+        runs={
+            component_name: DeploymentRunInfo(
+                run_status=(
+                    with_run_state
+                    if with_run_state is not None
+                    else DeploymentRunState.pending
+                )
             )
             for component_name in tool_config.components.keys()
         },

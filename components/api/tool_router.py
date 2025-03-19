@@ -5,6 +5,8 @@ from ..models.api_models import (
     DeploymentBuildInfo,
     DeploymentBuildState,
     DeploymentList,
+    DeploymentRunInfo,
+    DeploymentRunState,
     DeployTokenResponse,
     ResponseMessages,
     ToolConfig,
@@ -119,9 +121,13 @@ def create_tool_deployment(
         )
         for component_name in tool_config.components.keys()
     }
+    runs = {
+        component_name: DeploymentRunInfo(run_status=DeploymentRunState.pending)
+        for component_name in tool_config.components.keys()
+    }
     new_deployment = Deployment.get_new_deployment(
-        tool_name=toolname,
         builds=builds,
+        runs=runs,
     )
     handlers.create_tool_deployment(
         tool_name=toolname,

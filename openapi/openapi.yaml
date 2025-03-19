@@ -467,6 +467,11 @@ components:
             $ref: '#/components/schemas/DeploymentBuildInfo'
           type: object
           title: Builds
+        runs:
+          additionalProperties:
+            $ref: '#/components/schemas/DeploymentRunInfo'
+          type: object
+          title: Runs
         status:
           $ref: '#/components/schemas/DeploymentState'
           default: pending
@@ -479,6 +484,7 @@ components:
       - deploy_id
       - creation_time
       - builds
+      - runs
       title: Deployment
     DeploymentBuildInfo:
       properties:
@@ -517,6 +523,28 @@ components:
       required:
       - deployments
       title: DeploymentList
+    DeploymentRunInfo:
+      properties:
+        run_status:
+          $ref: '#/components/schemas/DeploymentRunState'
+      type: object
+      required:
+      - run_status
+      title: DeploymentRunInfo
+    DeploymentRunState:
+      type: string
+      enum:
+      - pending
+      - failed
+      - successful
+      - skipped
+      - unknown
+      title: DeploymentRunState
+      description: 'This are the states a run can be in
+
+
+        A run being an execution of a component (ex. running a continuous job, or
+        creating a new scheduled job).'
     DeploymentState:
       type: string
       enum:

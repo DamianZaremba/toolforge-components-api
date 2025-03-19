@@ -10,6 +10,7 @@ from components.models.api_models import (
     Deployment,
     DeploymentBuildInfo,
     DeploymentBuildState,
+    DeploymentRunState,
     DeploymentState,
     DeployTokenResponse,
     HealthState,
@@ -139,6 +140,9 @@ class TestCreateDeployment:
         expected_deployment.data.builds[
             "component1"
         ].build_id = DeploymentBuildInfo.NO_BUILD_NEEDED
+        expected_deployment.data.runs[
+            "component1"
+        ].run_status = DeploymentRunState.successful
 
         response = authenticated_client.get(
             f"/v1/tool/test-tool-1/deployment/{expected_deployment.data.deploy_id}"
@@ -187,6 +191,9 @@ class TestCreateDeployment:
         expected_deployment.data.builds[
             "component1"
         ].build_id = DeploymentBuildInfo.NO_BUILD_NEEDED
+        expected_deployment.data.runs[
+            "component1"
+        ].run_status = DeploymentRunState.successful
 
         response = authenticated_client.get(
             f"/v1/tool/test-tool-1/deployment/{expected_deployment.data.deploy_id}"
@@ -235,6 +242,9 @@ class TestCreateDeployment:
             "component1"
         ].build_status = DeploymentBuildState.successful
         expected_deployment.data.builds["component1"].build_id = "new-build-id"
+        expected_deployment.data.runs[
+            "component1"
+        ].run_status = DeploymentRunState.successful
 
         response = authenticated_client.get(
             f"/v1/tool/test-tool-1/deployment/{expected_deployment.data.deploy_id}"
@@ -528,6 +538,9 @@ class TestListDeployments:
         expected_deployment.builds[
             "component1"
         ].build_id = DeploymentBuildInfo.NO_BUILD_NEEDED
+        expected_deployment.runs[
+            "component1"
+        ].run_status = DeploymentRunState.successful
 
         response = authenticated_client.get("/v1/tool/test-tool-1/deployment")
         assert response.status_code == status.HTTP_200_OK
@@ -588,6 +601,9 @@ class TestBuildComponents:
         expected_deployment.data.builds[
             "component1"
         ].build_id = DeploymentBuildInfo.NO_BUILD_NEEDED
+        expected_deployment.data.runs[
+            "component1"
+        ].run_status = DeploymentRunState.successful
 
         response = authenticated_client.get(
             f"/v1/tool/test-tool-1/deployment/{expected_deployment.data.deploy_id}"
@@ -634,6 +650,9 @@ class TestBuildComponents:
             "component1"
         ].build_status = DeploymentBuildState.successful
         expected_deployment.data.builds["component1"].build_id = "new-build-id"
+        expected_deployment.data.runs[
+            "component1"
+        ].run_status = DeploymentRunState.successful
 
         response = authenticated_client.get(
             f"/v1/tool/test-tool-1/deployment/{expected_deployment.data.deploy_id}"

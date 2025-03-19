@@ -85,6 +85,24 @@ class DeploymentBuildInfo(BaseModel):
     build_status: DeploymentBuildState
 
 
+class DeploymentRunState(str, Enum):
+    """
+    This are the states a run can be in
+
+    A run being an execution of a component (ex. running a continuous job, or creating a new scheduled job).
+    """
+
+    pending = "pending"
+    failed = "failed"
+    successful = "successful"
+    skipped = "skipped"
+    unknown = "unknown"
+
+
+class DeploymentRunInfo(BaseModel):
+    run_status: DeploymentRunState
+
+
 class DeploymentState(str, Enum):
     pending = "pending"
     running = "running"
@@ -97,12 +115,15 @@ class Deployment(BaseModel):
     deploy_id: str
     creation_time: str
     builds: dict[str, DeploymentBuildInfo]
+    runs: dict[str, DeploymentRunInfo]
     status: DeploymentState = DeploymentState.pending
     long_status: str = ""
 
     @classmethod
     def get_new_deployment(
-        cls: "Type[Deployment]", tool_name: str, builds: dict[str, DeploymentBuildInfo]
+        cls: "Type[Deployment]",
+        builds: dict[str, DeploymentBuildInfo],
+        runs: dict[str, DeploymentRunInfo],
     ) -> "Deployment":
         cur_timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y%m%d-%H%M%S")
         new_id = f"{cur_timestamp}-"
@@ -115,6 +136,7 @@ class Deployment(BaseModel):
             creation_time=cur_timestamp,
             deploy_id=new_id,
             builds=builds,
+            runs=runs,
         )
 
 

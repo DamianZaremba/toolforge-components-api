@@ -19,6 +19,8 @@ from .models.api_models import (
     Deployment,
     DeploymentBuildInfo,
     DeploymentBuildState,
+    DeploymentRunInfo,
+    DeploymentRunState,
     DeploymentState,
     PrebuiltBuildInfo,
     RunInfo,
@@ -309,38 +311,27 @@ def _do_build(
     logger.debug(f"Builds done for tool {tool_name}")
 
 
-@set_deployment_as_failed_on_error
-def do_deploy(
-    *,
+def _do_run(
+    components: dict[str, ComponentInfo],
     tool_name: str,
-    tool_config: ToolConfig,
     deployment: Deployment,
     storage: Storage,
 ) -> None:
-    logger.info(f"Starting deployment for tool {tool_name}")
-
-    deployment.status = DeploymentState.running
-    deployment.long_status = f"Started at {datetime.now()}"
-    _update_deployment(storage=storage, tool_name=tool_name, deployment=deployment)
-
-    _update_build_info_func = partial(
-        _update_deployment_build_info,
-        storage=storage,
-        tool_name=tool_name,
-        deployment=deployment,
-    )
-    _do_build(
-        components=tool_config.components,
-        update_build_info_func=_update_build_info_func,
-        tool_name=tool_name,
-    )
-
     toolforge_client = get_toolforge_client()
-    for component_name, component_info in tool_config.components.items():
+    for component_name, component_info in components.items():
+        run_info = DeploymentRunInfo(run_status=DeploymentRunState.pending)
+        deployment.runs[component_name] = run_info
+        _update_deployment(storage=storage, tool_name=tool_name, deployment=deployment)
+
         # TODO: add support to load all the components jobs and then sync the current status
         if component_info.component_type != "continuous":
             logger.info(
                 f"{tool_name}: skipping component {component_name} (non continuous is not supported yet)"
+            )
+            run_info = DeploymentRunInfo(run_status=DeploymentRunState.skipped)
+            deployment.runs[component_name] = run_info
+            _update_deployment(
+                storage=storage, tool_name=tool_name, deployment=deployment
             )
             continue
 
@@ -358,13 +349,21 @@ def do_deploy(
                 toolforge_client=toolforge_client,
             )
         except Exception as error:
-            raise RunFailed(f"Failed to run some components: {error}") from error
+            run_info = DeploymentRunInfo(run_status=DeploymentRunState.failed)
+            deployment.runs[component_name] = run_info
+            _update_deployment(
+                storage=storage, tool_name=tool_name, deployment=deployment
+            )
+            raise RunFailed(
+                f"Failed run for component {component_name}: {error}"
+            ) from error
 
         deployment.status = DeploymentState.successful
         deployment.long_status = f"Finished at {datetime.now()}"
-        _update_deployment(storage=storage, tool_name=tool_name, deployment=deployment)
-
         # TODO: check if the components are actually running ok
+        run_info = DeploymentRunInfo(run_status=DeploymentRunState.successful)
+        deployment.runs[component_name] = run_info
+        _update_deployment(storage=storage, tool_name=tool_name, deployment=deployment)
 
 
 def run_continuous_jobs(
@@ -420,4 +419,37 @@ def run_info_to_job(
         retry=None,
         schedule=None,
         timeout=None,
+    )
+
+
+@set_deployment_as_failed_on_error
+def do_deploy(
+    *,
+    tool_name: str,
+    tool_config: ToolConfig,
+    deployment: Deployment,
+    storage: Storage,
+) -> None:
+    logger.info(f"Starting deployment for tool {tool_name}")
+
+    deployment.status = DeploymentState.running
+    deployment.long_status = f"Started at {datetime.now()}"
+    _update_deployment(storage=storage, tool_name=tool_name, deployment=deployment)
+
+    _update_build_info_func = partial(
+        _update_deployment_build_info,
+        storage=storage,
+        tool_name=tool_name,
+        deployment=deployment,
+    )
+    _do_build(
+        components=tool_config.components,
+        update_build_info_func=_update_build_info_func,
+        tool_name=tool_name,
+    )
+    _do_run(
+        components=tool_config.components,
+        tool_name=tool_name,
+        deployment=deployment,
+        storage=storage,
     )
