@@ -1,13 +1,15 @@
 import logging
 
-from fastapi import BackgroundTasks, HTTPException
+from fastapi import BackgroundTasks, HTTPException, status
 
 from ..deploy_task import do_deploy
 from ..models.api_models import (
     Deployment,
+    DeploymentState,
     DeployToken,
     ToolConfig,
 )
+from ..settings import get_settings
 from ..storage import Storage
 from ..storage.exceptions import NotFoundInStorage
 
@@ -87,6 +89,37 @@ def list_tool_deployments(tool_name: str, storage: Storage) -> list[Deployment]:
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
+def _check_parallel_deployment_limit(storage: Storage, tool_name: str) -> None:
+    settings = get_settings()
+    logger.debug(f"Checking active deployment limit for {tool_name}.")
+    try:
+        all_deployments = storage.list_deployments(tool_name=tool_name)
+        active_deployments = [
+            deployment
+            for deployment in all_deployments
+            if deployment.status in (DeploymentState.running, DeploymentState.pending)
+        ]
+        if len(active_deployments) >= settings.max_parallel_deployments:
+            logger.debug(
+                f"Tool {tool_name} has reach it's active deployment limit {settings.max_parallel_deployments}, "
+                "preventing a new deployment"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                # TODO: once we can cancel deployments, add a note here to cancel some also
+                detail=(
+                    f"There's already {len(active_deployments)} running, the limit is "
+                    f"{settings.max_parallel_deployments}. Wait for it to finish for now."
+                ),
+            )
+    except NotFoundInStorage:
+        pass
+
+    logger.debug(
+        f"Tool {tool_name} has not reached the limit of active deployments yet, continuing..."
+    )
+
+
 def create_tool_deployment(
     tool_name: str,
     deployment: Deployment,
@@ -94,6 +127,8 @@ def create_tool_deployment(
     background_tasks: BackgroundTasks,
 ) -> Deployment:
     logger.info(f"Creating deployment for tool: {tool_name}")
+    _check_parallel_deployment_limit(storage=storage, tool_name=tool_name)
+
     try:
         storage.create_deployment(tool_name=tool_name, deployment=deployment)
         logger.info(f"Created deployment {deployment} for tool {tool_name}")

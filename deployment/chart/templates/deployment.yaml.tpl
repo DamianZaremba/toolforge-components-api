@@ -36,6 +36,8 @@ spec:
               value: "{{ .Values.config.max_deployments_retained }}"
             - name: "BUILD_TIMEOUT_SECONDS"
               value: "{{ .Values.config.build_timeout_seconds }}"
+            - name: "MAX_PARALLEL_DEPLOYMENTS"
+              value: "{{ .Values.config.max_parallel_deployments }}"
           resources: {{- toYaml .Values.resources | nindent 12 }}
           securityContext:
             readOnlyRootFilesystem: true

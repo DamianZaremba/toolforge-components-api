@@ -43,3 +43,6 @@ config:
   # The number of seconds to wait for a build to complete before timing out
   # 60 * 30 = 30 minutes
   build_timeout_seconds: 1800
+  # Number of parallel deployments allowed at once
+  # Currently we don't support parallel deployments
+  max_parallel_deployments: 1

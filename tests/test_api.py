@@ -2,7 +2,7 @@ from unittest.mock import ANY, MagicMock
 from uuid import UUID
 
 import pytest
-from fastapi import FastAPI, status
+from fastapi import BackgroundTasks, FastAPI, status
 from fastapi.testclient import TestClient
 
 from components.models.api_models import (
@@ -17,6 +17,7 @@ from components.models.api_models import (
     ToolConfigResponse,
     ToolDeploymentResponse,
 )
+from components.settings import get_settings
 from components.storage.mock import MockStorage
 from tests.helpers import (
     create_deploy_token,
@@ -267,6 +268,36 @@ class TestCreateDeployment:
             f"/v1/tool/test-tool-1/deployment?token={token}withextrastuff"
         )
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_returns_conflict_when_trying_to_run_many_deployments_in_parallel(
+        self,
+        authenticated_client: TestClient,
+        fake_toolforge_client: MagicMock,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        settings = get_settings()
+        fake_toolforge_client.post.return_value = {
+            "new_build": {"name": "new-build-id"}
+        }
+        fake_toolforge_client.get.return_value = {"build": {"status": "BUILD_RUNNING"}}
+        my_tool_config = get_fake_tool_config(
+            build={"repository": "some_repo", "ref": "some_ref"}
+        )
+        response = authenticated_client.post(
+            "/v1/tool/test-tool-1/config", content=my_tool_config.model_dump_json()
+        )
+        # as the deployment will never be ending, and during tests there's no real background tasks, we mock it so it
+        # returns keeping the deployment pending
+        monkeypatch.setattr(BackgroundTasks, "add_task", MagicMock())
+        response.raise_for_status()
+        for _ in range(settings.max_parallel_deployments):
+            response = authenticated_client.post("/v1/tool/test-tool-1/deployment")
+            response.raise_for_status()
+
+        # one more should break
+        response = authenticated_client.post("/v1/tool/test-tool-1/deployment")
+
+        assert response.status_code == status.HTTP_409_CONFLICT
 
 
 class TestDeleteDeployment:

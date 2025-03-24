@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     token_lifetime: datetime.timedelta = datetime.timedelta(days=365)
     max_deployments_retained: int = 25
     build_timeout_seconds: int = 60 * 30
+    # we might be able to increase this when we allow deploying specific components
+    # until then, any deployment will potentially conflict with any other
+    max_parallel_deployments: int = 1
 
 
 @lru_cache()
