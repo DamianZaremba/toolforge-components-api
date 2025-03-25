@@ -1,7 +1,7 @@
 import datetime
 from logging import getLogger
 
-from fastapi import Depends, HTTPException, Security
+from fastapi import Depends, HTTPException, Security, status
 from fastapi.security import APIKeyHeader, APIKeyQuery
 
 from components.settings import Settings
@@ -23,7 +23,8 @@ def ensure_authenticated(api_key_header: str | None = Security(api_key_header)) 
     """
     if not api_key_header:
         raise HTTPException(
-            status_code=401, detail=f"The '{TOOL_HEADER}' header is required"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"The '{TOOL_HEADER}' header is required",
         )
     return True
 
@@ -36,7 +37,7 @@ def ensure_token_or_auth(
 ) -> bool:
     if not api_key_header and not token:
         raise HTTPException(
-            status_code=401,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"The '{TOOL_HEADER}' header or a token are required",
         )
 
@@ -47,7 +48,7 @@ def ensure_token_or_auth(
         stored_token = storage.get_deploy_token(tool_name=toolname)
     except NotFoundInStorage as error:
         raise HTTPException(
-            status_code=401,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"The tool '{toolname}' has no deploy token yet, you have to create one before using it",
         ) from error
 
@@ -56,7 +57,7 @@ def ensure_token_or_auth(
             f"Got bad token '{token!r}' for tool '{toolname}', stored token is '{stored_token.token!r}'"
         )
         raise HTTPException(
-            status_code=401,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"The token passed '{token}' does not match the tool's token",
         )
 
@@ -65,7 +66,7 @@ def ensure_token_or_auth(
     expiry_date = stored_token.creation_date + settings.token_lifetime
     if expiry_date < now:
         raise HTTPException(
-            status_code=401,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"The token passed '{token}' has expired, please create a new one",
         )
 

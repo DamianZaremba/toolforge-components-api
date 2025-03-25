@@ -6,7 +6,7 @@ from functools import partial, wraps
 from logging import getLogger
 from typing import Protocol, cast
 
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 from requests import HTTPError
 from toolforge_weld.api_client import ToolforgeClient
 
@@ -176,7 +176,7 @@ def _get_build_status(
             verify=get_settings().verify_toolforge_api_cert,
         )
     except HTTPError as error:
-        if error.response.status_code == 404:
+        if error.response.status_code == status.HTTP_404_NOT_FOUND:
             logger.exception(
                 f"Got 404 trying to fetch build status for tool {tool_name}, "
                 f"build_id {build.build_id}, maybe someone deleted the build?: "
