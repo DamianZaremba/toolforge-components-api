@@ -323,7 +323,7 @@ class TestDoDeploy:
                 "cmd": "my-command",
                 "continuous": True,
                 "name": "my-component",
-                "imagename": "tool-my-tool/tool-my-tool:latest",
+                "imagename": "tool-my-tool/my-component:latest",
             },
             verify=True,
         )
@@ -420,7 +420,7 @@ class TestDoDeploy:
                 "cmd": "my-command",
                 "continuous": True,
                 "name": "failed-component",
-                "imagename": "tool-my-tool/tool-my-tool:latest",
+                "imagename": "tool-my-tool/failed-component:latest",
             },
             verify=True,
         )

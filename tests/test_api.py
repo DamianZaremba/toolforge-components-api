@@ -159,7 +159,7 @@ class TestCreateDeployment:
                 "cmd": "some command",
                 "continuous": True,
                 "name": "component1",
-                "imagename": "silly_image",
+                "imagename": "tool-test-tool-1/silly_image:latest",
             },
             verify=True,
         )
@@ -210,7 +210,7 @@ class TestCreateDeployment:
                 "cmd": "some command",
                 "continuous": True,
                 "name": "component1",
-                "imagename": "silly_image",
+                "imagename": "tool-test-tool-1/silly_image:latest",
             },
             verify=True,
         )
@@ -261,7 +261,7 @@ class TestCreateDeployment:
                 "cmd": "some command",
                 "continuous": True,
                 "name": "component1",
-                "imagename": "tool-test-tool-1/tool-test-tool-1:latest",
+                "imagename": "tool-test-tool-1/component1:latest",
             },
             verify=True,
         )
@@ -620,7 +620,7 @@ class TestBuildComponents:
                 "cmd": "some command",
                 "continuous": True,
                 "name": "component1",
-                "imagename": "silly_prebuilt_image",
+                "imagename": "tool-test-tool-1/silly_prebuilt_image:latest",
             },
             verify=True,
         )
@@ -669,7 +669,7 @@ class TestBuildComponents:
                 "cmd": "some command",
                 "continuous": True,
                 "name": "component1",
-                "imagename": "tool-test-tool-1/tool-test-tool-1:latest",
+                "imagename": "tool-test-tool-1/component1:latest",
             },
             verify=True,
         )

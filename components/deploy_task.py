@@ -13,7 +13,12 @@ from toolforge_weld.api_client import ToolforgeClient
 from components.storage.base import Storage
 
 from .client import get_toolforge_client
-from .gen.toolforge_models import BuildsBuildStatus, JobsJobResponse, JobsNewJob
+from .gen.toolforge_models import (
+    BuildsBuildParameters,
+    BuildsBuildStatus,
+    JobsJobResponse,
+    JobsNewJob,
+)
 from .models.api_models import (
     ComponentInfo,
     Deployment,
@@ -44,7 +49,9 @@ class RunFailed(DeployException):
     pass
 
 
-def _get_component_image_name(tool_name: str, component_info: ComponentInfo) -> str:
+def _get_component_image_name(
+    component_info: ComponentInfo, component_name: str
+) -> str:
     match component_info.build:
         case PrebuiltBuildInfo():
             logger.debug(f"Got prebuilt build type: {component_info}")
@@ -52,7 +59,8 @@ def _get_component_image_name(tool_name: str, component_info: ComponentInfo) -> 
         case SourceBuildInfo():
             logger.debug(f"Got source build type: {component_info}")
             # TODO: use the actual build logs/info to get the image name once we trigger builds
-            return f"tool-{tool_name}/tool-{tool_name}:latest"
+            # The tag and the prefix are currently added by builds-api during build
+            return f"{component_name}"
 
     logger.error(f"Unsupported build information: {component_info.build}")
     raise Exception(f"unsupported build information: {component_info.build}")
@@ -128,15 +136,25 @@ def _update_deployment_build_info(
     _update_deployment(deployment=deployment, storage=storage, tool_name=tool_name)
 
 
-def _start_build(build: SourceBuildInfo, tool_name: str) -> DeploymentBuildInfo:
+def _start_build(
+    build: SourceBuildInfo,
+    tool_name: str,
+    component_name: str,
+    component_info: ComponentInfo,
+) -> DeploymentBuildInfo:
     toolforge_client = get_toolforge_client()
-    build_data = {
-        "ref": build.ref,
-        "source_url": build.repository,
-    }
+    build_data = BuildsBuildParameters(
+        ref=build.ref,
+        source_url=build.repository,
+        image_name=_get_component_image_name(
+            component_info=component_info,
+            component_name=component_name,
+        ),
+        envvars={},
+    )
     response = toolforge_client.post(
         f"/builds/v1/tool/{tool_name}/builds",
-        json=build_data,
+        json=build_data.model_dump(),
         verify=get_settings().verify_toolforge_api_cert,
     )
 
@@ -267,7 +285,10 @@ def _start_builds(
         if isinstance(component.build, SourceBuildInfo):
             try:
                 new_build_info = _start_build(
-                    build=component.build, tool_name=tool_name
+                    build=component.build,
+                    tool_name=tool_name,
+                    component_name=component_name,
+                    component_info=component,
                 )
             except Exception as error:
                 any_failed = True
@@ -343,9 +364,13 @@ def _do_run(
                 tool_name=tool_name,
                 run_info=component_info.run,
                 component_name=component_name,
-                image_name=_get_component_image_name(
-                    tool_name=tool_name, component_info=component_info
-                ),
+                # TODO: manage the tag in a nicer way overall
+                image_name=f"tool-{tool_name}/"
+                + _get_component_image_name(
+                    component_info=component_info,
+                    component_name=component_name,
+                )
+                + ":latest",
                 toolforge_client=toolforge_client,
             )
         except Exception as error:
