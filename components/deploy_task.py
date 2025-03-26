@@ -4,7 +4,7 @@ from copy import deepcopy
 from datetime import datetime
 from functools import partial, wraps
 from logging import getLogger
-from typing import Protocol, cast
+from typing import Protocol
 
 from fastapi import HTTPException, status
 from requests import HTTPError
@@ -359,8 +359,10 @@ def _do_run(
         logger.info(
             f"{tool_name}: deploying component {component_name}: {component_info}"
         )
+        has_error = True
+        message = "Unknown error"
         try:
-            run_continuous_jobs(
+            message = run_continuous_jobs(
                 tool_name=tool_name,
                 run_info=component_info.run,
                 component_name=component_name,
@@ -373,20 +375,40 @@ def _do_run(
                 + ":latest",
                 toolforge_client=toolforge_client,
             )
+            has_error = False
+
+        except HTTPError as error:
+            message = f"{error} ({error.response.status_code}): "
+            try:
+                message += ", ".join(error.response.json().get("error", ["no details"]))
+            except Exception as parse_error:
+                logger.error(
+                    f"Failed parsing error response from jobs api {parse_error}, response:\n{error.response}"
+                )
+                message += f"failed to parse error {parse_error}"
+                pass
+            has_error = True
+
         except Exception as error:
-            run_info = DeploymentRunInfo(run_status=DeploymentRunState.failed)
+            message = str(error)
+            has_error = True
+
+        if has_error:
+            run_info = DeploymentRunInfo(
+                run_status=DeploymentRunState.failed, run_long_status=message
+            )
             deployment.runs[component_name] = run_info
             _update_deployment(
                 storage=storage, tool_name=tool_name, deployment=deployment
             )
-            raise RunFailed(
-                f"Failed run for component {component_name}: {error}"
-            ) from error
+            raise RunFailed(f"Failed run for component {component_name}: {message}")
 
         deployment.status = DeploymentState.successful
         deployment.long_status = f"Finished at {datetime.now()}"
         # TODO: check if the components are actually running ok
-        run_info = DeploymentRunInfo(run_status=DeploymentRunState.successful)
+        run_info = DeploymentRunInfo(
+            run_status=DeploymentRunState.successful, run_long_status=message
+        )
         deployment.runs[component_name] = run_info
         _update_deployment(storage=storage, tool_name=tool_name, deployment=deployment)
 
@@ -397,7 +419,7 @@ def run_continuous_jobs(
     run_info: RunInfo,
     image_name: str,
     toolforge_client: ToolforgeClient,
-) -> None:
+) -> str:
     # TODO: support multiple run infos/jobs
     settings = get_settings()
 
@@ -409,17 +431,28 @@ def run_continuous_jobs(
         component_name=component_name, run_info=run_info, image_name=image_name
     )
     logger.debug(f"Sending job info {new_job}")
-    create_response = cast(
-        JobsJobResponse,
-        # Using patch here does an upsert
+    # Using patch here does an upsert
+    create_response = JobsJobResponse.model_validate(
         toolforge_client.patch(
             f"/jobs/v1/tool/{tool_name}/jobs/",
             json=new_job.model_dump(mode="json", exclude_none=True),
             verify=settings.verify_toolforge_api_cert,
-        ),
+        )
     )
     logger.debug(f"Deployed continuous job {component_name}: {create_response}")
     # TODO: check if the job is actually running ok
+    if create_response.job:
+        return f"created continuous job {create_response.job.name}"
+
+    elif not create_response.messages:
+        return f"unable to get job info, response from jobs api {create_response}"
+
+    else:
+        message = ""
+        for level, messages in create_response.messages:
+            if messages:
+                message += f"[{level}] ({', '.join(messages)})"
+        return message
 
 
 def run_info_to_job(

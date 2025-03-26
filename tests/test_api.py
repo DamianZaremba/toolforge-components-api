@@ -5,7 +5,7 @@ import pytest
 from fastapi import BackgroundTasks, FastAPI, status
 from fastapi.testclient import TestClient
 
-from components.gen.toolforge_models import BuildsBuildStatus
+from components.gen.toolforge_models import BuildsBuildStatus, JobsJobResponse
 from components.models.api_models import (
     Deployment,
     DeploymentBuildInfo,
@@ -30,6 +30,7 @@ from tests.helpers import (
     get_deploy_token,
     get_fake_tool_config,
 )
+from tests.testlibs import get_defined_job
 
 
 def test_healthz_endpoint_returns_ok_status(test_client: TestClient):
@@ -127,6 +128,9 @@ class TestCreateDeployment:
         self, authenticated_client: TestClient, fake_toolforge_client: MagicMock
     ):
         create_tool_config(authenticated_client)
+        fake_toolforge_client.patch.return_value = JobsJobResponse(
+            job=get_defined_job(), messages=None
+        ).model_dump()
 
         response = authenticated_client.post("/v1/tool/test-tool-1/deployment")
         assert response.status_code == status.HTTP_200_OK
@@ -143,6 +147,7 @@ class TestCreateDeployment:
         expected_deployment.data.runs[
             "component1"
         ].run_status = DeploymentRunState.successful
+        expected_deployment.data.runs["component1"].run_long_status = ANY
 
         response = authenticated_client.get(
             f"/v1/tool/test-tool-1/deployment/{expected_deployment.data.deploy_id}"
@@ -175,6 +180,9 @@ class TestCreateDeployment:
         token_response = create_deploy_token(authenticated_client)
         token = str(token_response.data.token)
 
+        fake_toolforge_client.patch.return_value = JobsJobResponse(
+            job=get_defined_job(), messages=None
+        ).model_dump()
         unauthed_client = TestClient(app)
 
         response = unauthed_client.post(
@@ -194,6 +202,7 @@ class TestCreateDeployment:
         expected_deployment.data.runs[
             "component1"
         ].run_status = DeploymentRunState.successful
+        expected_deployment.data.runs["component1"].run_long_status = ANY
 
         response = authenticated_client.get(
             f"/v1/tool/test-tool-1/deployment/{expected_deployment.data.deploy_id}"
@@ -224,6 +233,9 @@ class TestCreateDeployment:
         fake_toolforge_client.get.return_value = {
             "build": {"status": BuildsBuildStatus.BUILD_SUCCESS.value}
         }
+        fake_toolforge_client.patch.return_value = JobsJobResponse(
+            job=get_defined_job(), messages=None
+        ).model_dump()
         my_tool_config = get_fake_tool_config(
             build={"repository": "some_repo", "ref": "some_ref"}
         )
@@ -245,6 +257,7 @@ class TestCreateDeployment:
         expected_deployment.data.runs[
             "component1"
         ].run_status = DeploymentRunState.successful
+        expected_deployment.data.runs["component1"].run_long_status = ANY
 
         response = authenticated_client.get(
             f"/v1/tool/test-tool-1/deployment/{expected_deployment.data.deploy_id}"
@@ -528,6 +541,9 @@ class TestListDeployments:
         self, authenticated_client: TestClient, fake_toolforge_client: MagicMock
     ):
         create_tool_config(authenticated_client)
+        fake_toolforge_client.patch.return_value = JobsJobResponse(
+            job=get_defined_job(), messages=None
+        ).model_dump()
         deployment_response = create_tool_deployment(authenticated_client)
         expected_deployment = deployment_response.data
         expected_deployment.status = DeploymentState.successful
@@ -541,6 +557,7 @@ class TestListDeployments:
         expected_deployment.runs[
             "component1"
         ].run_status = DeploymentRunState.successful
+        expected_deployment.runs["component1"].run_long_status = ANY
 
         response = authenticated_client.get("/v1/tool/test-tool-1/deployment")
         assert response.status_code == status.HTTP_200_OK
@@ -589,6 +606,9 @@ class TestBuildComponents:
         )
         response.raise_for_status()
 
+        fake_toolforge_client.patch.return_value = JobsJobResponse(
+            job=get_defined_job(), messages=None
+        ).model_dump()
         response = authenticated_client.post("/v1/tool/test-tool-1/deployment")
         response.raise_for_status()
 
@@ -604,6 +624,7 @@ class TestBuildComponents:
         expected_deployment.data.runs[
             "component1"
         ].run_status = DeploymentRunState.successful
+        expected_deployment.data.runs["component1"].run_long_status = ANY
 
         response = authenticated_client.get(
             f"/v1/tool/test-tool-1/deployment/{expected_deployment.data.deploy_id}"
@@ -640,6 +661,9 @@ class TestBuildComponents:
         )
         response.raise_for_status()
 
+        fake_toolforge_client.patch.return_value = JobsJobResponse(
+            job=get_defined_job(), messages=None
+        ).model_dump()
         response = authenticated_client.post("/v1/tool/test-tool-1/deployment")
         response.raise_for_status()
 
@@ -653,6 +677,7 @@ class TestBuildComponents:
         expected_deployment.data.runs[
             "component1"
         ].run_status = DeploymentRunState.successful
+        expected_deployment.data.runs["component1"].run_long_status = ANY
 
         response = authenticated_client.get(
             f"/v1/tool/test-tool-1/deployment/{expected_deployment.data.deploy_id}"

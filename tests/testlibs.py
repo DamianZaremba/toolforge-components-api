@@ -1,3 +1,4 @@
+from components.gen.toolforge_models import JobsDefinedJob
 from components.models.api_models import (
     ComponentInfo,
     Deployment,
@@ -73,3 +74,29 @@ def get_tool_config(**overrides) -> ToolConfig:
     )
     params.update(overrides)
     return ToolConfig(**params)  # type: ignore
+
+
+def get_defined_job() -> JobsDefinedJob:
+    return JobsDefinedJob(
+        cmd="my cmd",
+        continuous=True,
+        cpu=None,
+        emails=None,
+        filelog=None,
+        filelog_stderr=None,
+        filelog_stdout=None,
+        health_check=None,
+        memory=None,
+        image="my-image",
+        image_state="",
+        mount=None,
+        name="my-job-name",
+        port=None,
+        replicas=None,
+        retry=None,
+        schedule=None,
+        schedule_actual=None,
+        status_long="",
+        status_short="",
+        timeout=None,
+    )

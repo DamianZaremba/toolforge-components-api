@@ -101,6 +101,7 @@ class DeploymentRunState(str, Enum):
 
 class DeploymentRunInfo(BaseModel):
     run_status: DeploymentRunState
+    run_long_status: str = ""
 
 
 class DeploymentState(str, Enum):
