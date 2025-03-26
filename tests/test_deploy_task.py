@@ -128,7 +128,8 @@ class TestDoDeploy:
                 },
                 runs={
                     "my-component": DeploymentRunInfo(
-                        run_status=DeploymentRunState.pending,
+                        run_status=DeploymentRunState.skipped,
+                        run_long_status="Skipped due to previous failure",
                     )
                 },
                 status=DeploymentState.failed,
@@ -190,7 +191,8 @@ class TestDoDeploy:
                 },
                 runs={
                     "my-component": DeploymentRunInfo(
-                        run_status=DeploymentRunState.pending,
+                        run_status=DeploymentRunState.skipped,
+                        run_long_status="Skipped due to previous failure",
                     )
                 },
                 status=DeploymentState.failed,
@@ -249,7 +251,8 @@ class TestDoDeploy:
                 },
                 runs={
                     "my-component": DeploymentRunInfo(
-                        run_status=DeploymentRunState.pending,
+                        run_status=DeploymentRunState.skipped,
+                        run_long_status="Skipped due to previous failure",
                     )
                 },
                 status=DeploymentState.failed,
@@ -404,8 +407,8 @@ class TestDoDeploy:
                         run_long_status="Ayayayay!",
                     ),
                     "successful-component": DeploymentRunInfo(
-                        run_status=DeploymentRunState.pending,
-                        run_long_status="",
+                        run_status=DeploymentRunState.skipped,
+                        run_long_status="Skipped due to previous failure",
                     ),
                 },
                 status=DeploymentState.failed,

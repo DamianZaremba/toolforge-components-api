@@ -104,6 +104,12 @@ def set_deployment_as_failed_on_error(func: DoDeployFuncType) -> DoDeployFuncTyp
         except Exception as error:
             deployment.status = DeploymentState.failed
             deployment.long_status = f"Got exception: {error}\n{traceback.format_exc()}"
+
+            for run in deployment.runs.values():
+                if run.run_status == DeploymentRunState.pending:
+                    run.run_status = DeploymentRunState.skipped
+                    run.run_long_status = "Skipped due to previous failure"
+
             _update_deployment(
                 storage=storage, tool_name=tool_name, deployment=deployment
             )
