@@ -7,7 +7,7 @@ metadata:
 # TODO: add some real rules as needed
 rules:
   - apiGroups:
-      - toolforge.org
+      - components-api.toolforge.org
     resources:
       - toolconfigs
       - tooldeployments

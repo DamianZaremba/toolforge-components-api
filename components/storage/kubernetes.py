@@ -25,7 +25,7 @@ DEPLOY_TOKEN_ENVVAR = "TOOL_DEPLOY_TOKEN"
 def _tool_config_to_k8s_crd(tool_name: str, tool_config: ToolConfig) -> dict[str, Any]:
     k8s_dict = {
         "kind": "ToolConfig",
-        "apiVersion": "toolforge.org/v1",
+        "apiVersion": "components-api.toolforge.org/v1",
         "metadata": {"name": _get_k8s_tool_config_name(tool_name)},
         "spec": tool_config.model_dump(mode="json"),
     }
@@ -35,7 +35,7 @@ def _tool_config_to_k8s_crd(tool_name: str, tool_config: ToolConfig) -> dict[str
 def _deploy_to_k8s_crd(tool_name: str, deployment: Deployment) -> dict[str, Any]:
     k8s_dict = {
         "kind": "ToolDeployment",
-        "apiVersion": "toolforge.org/v1",
+        "apiVersion": "components-api.toolforge.org/v1",
         "metadata": {"name": deployment.deploy_id},
         "spec": deployment.model_dump(mode="json"),
     }
@@ -45,7 +45,7 @@ def _deploy_to_k8s_crd(tool_name: str, deployment: Deployment) -> dict[str, Any]
 def _deploy_token_to_k8s_crd(tool_name: str, token: DeployToken) -> dict[str, Any]:
     k8s_dict = {
         "kind": "DeployToken",
-        "apiVersion": "toolforge.org/v1",
+        "apiVersion": "components-api.toolforge.org/v1",
         "metadata": {"name": tool_name},
         "spec": token.model_dump(mode="json"),
     }
@@ -73,7 +73,7 @@ class KubernetesStorage(Storage):
         config_name = _get_k8s_tool_config_name(tool_name)
         try:
             k8s_tool_config = self.k8s.get_namespaced_custom_object(
-                group="toolforge.org",
+                group="components-api.toolforge.org",
                 version="v1",
                 name=config_name,
                 plural="toolconfigs",
@@ -122,7 +122,7 @@ class KubernetesStorage(Storage):
         body = _tool_config_to_k8s_crd(tool_config=config, tool_name=tool_name)
         try:
             self.k8s.create_namespaced_custom_object(
-                group="toolforge.org",
+                group="components-api.toolforge.org",
                 version="v1",
                 plural="toolconfigs",
                 namespace=namespace,
@@ -151,7 +151,7 @@ class KubernetesStorage(Storage):
         try:
             # delete and recreate to avoid having to figure out what to patch
             self.k8s.delete_namespaced_custom_object(
-                group="toolforge.org",
+                group="components-api.toolforge.org",
                 version="v1",
                 plural="toolconfigs",
                 namespace=namespace,
@@ -181,7 +181,7 @@ class KubernetesStorage(Storage):
         namespace = _get_k8s_tool_namespace(tool_name=tool_name)
         try:
             k8s_deployment = self.k8s.get_namespaced_custom_object(
-                group="toolforge.org",
+                group="components-api.toolforge.org",
                 version="v1",
                 name=deployment_name,
                 plural="tooldeployments",
@@ -213,7 +213,7 @@ class KubernetesStorage(Storage):
         namespace = _get_k8s_tool_namespace(tool_name=tool_name)
         try:
             deployments = self.k8s.list_namespaced_custom_object(
-                group="toolforge.org",
+                group="components-api.toolforge.org",
                 version="v1",
                 plural="tooldeployments",
                 namespace=namespace,
@@ -283,7 +283,7 @@ class KubernetesStorage(Storage):
         body = _deploy_to_k8s_crd(deployment=deployment, tool_name=tool_name)
         try:
             self.k8s.create_namespaced_custom_object(
-                group="toolforge.org",
+                group="components-api.toolforge.org",
                 version="v1",
                 plural="tooldeployments",
                 namespace=namespace,
@@ -310,7 +310,7 @@ class KubernetesStorage(Storage):
         try:
             self.k8s.patch_namespaced_custom_object(
                 name=deployment.deploy_id,
-                group="toolforge.org",
+                group="components-api.toolforge.org",
                 version="v1",
                 plural="tooldeployments",
                 namespace=namespace,
@@ -339,7 +339,7 @@ class KubernetesStorage(Storage):
         namespace = _get_k8s_tool_namespace(tool_name=tool_name)
         try:
             self.k8s.delete_namespaced_custom_object(
-                group="toolforge.org",
+                group="components-api.toolforge.org",
                 version="v1",
                 plural="tooldeployments",
                 namespace=namespace,
@@ -368,7 +368,7 @@ class KubernetesStorage(Storage):
         namespace = _get_k8s_tool_namespace(tool_name=tool_name)
         try:
             k8s_token = self.k8s.get_namespaced_custom_object(
-                group="toolforge.org",
+                group="components-api.toolforge.org",
                 version="v1",
                 name=tool_name,
                 plural="deploytokens",
@@ -420,7 +420,7 @@ class KubernetesStorage(Storage):
         body = _deploy_token_to_k8s_crd(token=token, tool_name=tool_name)
         try:
             self.k8s.create_namespaced_custom_object(
-                group="toolforge.org",
+                group="components-api.toolforge.org",
                 version="v1",
                 plural="deploytokens",
                 namespace=namespace,
@@ -484,7 +484,7 @@ class KubernetesStorage(Storage):
         try:
             # delete and recreate to avoid having to figure out what to patch
             self.k8s.delete_namespaced_custom_object(
-                group="toolforge.org",
+                group="components-api.toolforge.org",
                 version="v1",
                 plural="deploytokens",
                 namespace=namespace,
