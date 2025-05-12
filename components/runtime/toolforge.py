@@ -107,6 +107,15 @@ def _check_for_matching_build(
     if not matching_build:
         return None
 
+    if not matching_build.parameters and build_info.use_latest_versions:
+        return None
+    elif matching_build.parameters:
+        if (
+            matching_build.parameters.use_latest_versions
+            != build_info.use_latest_versions
+        ):
+            return None
+
     build_info_ref = _resolve_ref(build_info)
     if matching_build.resolved_ref == build_info_ref:
         logger.debug(f"Gotten matching build: {matching_build.model_dump()}")
@@ -313,8 +322,7 @@ class ToolforgeRuntime(Runtime):
                 component_name=component_name,
             ),
             envvars={},
-            # TODO: pull from the config
-            use_latest_versions=False,
+            use_latest_versions=component_info.build.use_latest_versions,
         )
         response = toolforge_client.post(
             f"/builds/v1/tool/{tool_name}/builds",

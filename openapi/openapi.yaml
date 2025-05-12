@@ -1086,6 +1086,13 @@ components:
           - main
           - v1.2.3
           - 35b594f5d452c288c4a15fe667a7dfb94a7e5489
+        use_latest_versions:
+          type: boolean
+          title: Use Latest Versions
+          description: If set, it will use the latest buildpacks and run images for
+            this build. Helpful to always get the latest versions or test them before
+            they become standard.
+          default: false
       type: object
       required:
       - repository
