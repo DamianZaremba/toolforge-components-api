@@ -88,6 +88,7 @@ def get_defined_job() -> JobsDefinedJob:
         health_check=None,
         memory=None,
         image="my-image",
+        imagename="my-imagename",
         image_state="",
         mount=None,
         name="my-job-name",

@@ -157,6 +157,8 @@ def _start_build(
             component_name=component_name,
         ),
         envvars={},
+        # TODO: pull from the config
+        use_latest_versions=False,
     )
     response = toolforge_client.post(
         f"/builds/v1/tool/{tool_name}/builds",
