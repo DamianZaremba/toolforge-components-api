@@ -15,12 +15,16 @@ def get_fake_tool_config(
     build: dict[str, Any] | None = None, **overrides
 ) -> ToolConfig:
     params = {
-        "config_version": "v1",
+        "config_version": "v1beta1",
         "components": {
             "component1": {
                 "build": {"use_prebuilt": "silly_image"},
                 "component_type": "continuous",
-                "run": {"command": "some command"},
+                "run": {
+                    "command": "some command",
+                    "port": 8080,
+                    "health_check_http": "/health",
+                },
             }
         },
     }

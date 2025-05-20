@@ -22,6 +22,10 @@ ComponentType: TypeAlias = Literal["continuous"]
 T = TypeVar("T")
 
 
+class ConfigVersion(str, Enum):
+    V1_BETA1 = "v1beta1"
+
+
 class BuildInfo(BaseModel):
     use_prebuilt: str
 
@@ -66,7 +70,7 @@ class ComponentInfo(BaseModel):
 
 
 class ToolConfig(BaseModel):
-    config_version: str
+    config_version: Literal[ConfigVersion.V1_BETA1] | None = ConfigVersion.V1_BETA1
     components: dict[str, ComponentInfo] = Field(..., min_length=1)
 
 

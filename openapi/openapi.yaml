@@ -635,8 +635,12 @@ components:
     ToolConfig-Input:
       properties:
         config_version:
-          type: string
+          anyOf:
+          - type: string
+            const: v1beta1
+          - type: 'null'
           title: Config Version
+          default: v1beta1
         components:
           additionalProperties:
             $ref: '#/components/schemas/ComponentInfo'
@@ -645,14 +649,17 @@ components:
           title: Components
       type: object
       required:
-      - config_version
       - components
       title: ToolConfig
     ToolConfig-Output:
       properties:
         config_version:
-          type: string
+          anyOf:
+          - type: string
+            const: v1beta1
+          - type: 'null'
           title: Config Version
+          default: v1beta1
         components:
           additionalProperties:
             $ref: '#/components/schemas/ComponentInfo'
@@ -661,7 +668,6 @@ components:
           title: Components
       type: object
       required:
-      - config_version
       - components
       title: ToolConfig
     ValidationError:

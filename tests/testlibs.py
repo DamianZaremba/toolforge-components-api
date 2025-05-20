@@ -58,7 +58,7 @@ def get_deployment_from_tool_config(
 
 def get_tool_config(**overrides) -> ToolConfig:
     params = dict(
-        config_version="1.0",
+        config_version="v1beta1",
         components={
             "my-component": ComponentInfo(
                 component_type="continuous",
