@@ -7,13 +7,15 @@ from typing import (
     ClassVar,
     Generic,
     Literal,
+    Optional,
+    Self,
     Type,
     TypeAlias,
     TypeVar,
 )
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field, Tag
+from pydantic import BaseModel, Field, Tag, model_validator
 
 # TODO: add the others when we add support for them
 ComponentType: TypeAlias = Literal["continuous"]
@@ -31,8 +33,20 @@ class SourceBuildInfo(BaseModel):
     ref: str
 
 
+# TODO: split into base, one-off, scheduled and continuous when we support one-off and scheduled?
 class RunInfo(BaseModel):
     command: str
+    port: Optional[int] = None
+    health_check_script: Optional[str] = None
+    health_check_http: Optional[str] = None
+
+    @model_validator(mode="after")
+    def validate_health_check(self) -> Self:
+        if self.health_check_script and self.health_check_http:
+            raise ValueError(
+                "Cannot specify both health_check_script and health_check_http"
+            )
+        return self
 
 
 class ComponentInfo(BaseModel):

@@ -5,7 +5,7 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from functools import partial, wraps
 from logging import getLogger
-from typing import Protocol
+from typing import Optional, Protocol, Union
 
 from fastapi import HTTPException, status
 from requests import HTTPError
@@ -19,9 +19,11 @@ from .gen.toolforge_models import (
     BuildsBuildParameters,
     BuildsBuildStatus,
     BuildsListResponse,
+    JobsHttpHealthCheck,
     JobsJobListResponse,
     JobsJobResponse,
     JobsNewJob,
+    JobsScriptHealthCheck,
 )
 from .models.api_models import (
     ComponentInfo,
@@ -631,6 +633,16 @@ def run_info_to_job(
     component_name: str, run_info: RunInfo, image_name: str
 ) -> JobsNewJob:
     # TODO: the generator seems to make every parameter mandatory :/, try to fix that somehow
+
+    health_check: Optional[Union[JobsHttpHealthCheck, JobsScriptHealthCheck]] = None
+    if run_info.health_check_http:
+        health_check = JobsHttpHealthCheck(type="http", path=run_info.health_check_http)
+    elif run_info.health_check_script:
+        health_check = JobsScriptHealthCheck(
+            type="script",
+            script=run_info.health_check_script,
+        )
+
     return JobsNewJob(
         cmd=run_info.command,
         name=component_name,
@@ -641,10 +653,10 @@ def run_info_to_job(
         filelog=None,
         filelog_stderr=None,
         filelog_stdout=None,
-        health_check=None,
+        health_check=health_check,
         memory=None,
         mount=None,
-        port=None,
+        port=run_info.port,
         replicas=None,
         retry=None,
         schedule=None,

@@ -644,6 +644,21 @@ components:
         command:
           type: string
           title: Command
+        port:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Port
+        health_check_script:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Health Check Script
+        health_check_http:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Health Check Http
       type: object
       required:
       - command

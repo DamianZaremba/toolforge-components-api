@@ -35,7 +35,7 @@ token_auth_router = APIRouter(
 )
 
 
-@header_auth_router.get("/{toolname}/config")
+@header_auth_router.get("/{toolname}/config", response_model_exclude_defaults=True)
 def get_tool_config(
     toolname: str,
     storage: Storage = Depends(get_storage),
@@ -45,7 +45,7 @@ def get_tool_config(
     return ToolConfigResponse(data=config, messages=ResponseMessages())
 
 
-@header_auth_router.post("/{toolname}/config")
+@header_auth_router.post("/{toolname}/config", response_model_exclude_defaults=True)
 def update_tool_config(
     toolname: str,
     config: ToolConfig,
@@ -61,7 +61,7 @@ def update_tool_config(
     )
 
 
-@header_auth_router.delete("/{toolname}/config")
+@header_auth_router.delete("/{toolname}/config", response_model_exclude_defaults=True)
 def delete_tool_config(
     toolname: str,
     storage: Storage = Depends(get_storage),

@@ -168,6 +168,11 @@ class TestCreateDeployment:
                 "continuous": True,
                 "name": "component1",
                 "imagename": "tool-test-tool-1/component1:latest",
+                "port": 8080,
+                "health_check": {
+                    "path": "/health",
+                    "type": "http",
+                },
             },
             verify=True,
         )
@@ -226,6 +231,11 @@ class TestCreateDeployment:
                 "continuous": True,
                 "name": "component1",
                 "imagename": "tool-test-tool-1/component1:latest",
+                "port": 8080,
+                "health_check": {
+                    "path": "/health",
+                    "type": "http",
+                },
             },
             verify=True,
         )
@@ -281,6 +291,11 @@ class TestCreateDeployment:
                 "continuous": True,
                 "name": "component1",
                 "imagename": "tool-test-tool-1/component1:latest",
+                "port": 8080,
+                "health_check": {
+                    "path": "/health",
+                    "type": "http",
+                },
             },
             verify=True,
         )
@@ -654,6 +669,11 @@ class TestBuildComponents:
                 "continuous": True,
                 "name": "component1",
                 "imagename": "tool-test-tool-1/component1:latest",
+                "port": 8080,
+                "health_check": {
+                    "path": "/health",
+                    "type": "http",
+                },
             },
             verify=True,
         )
