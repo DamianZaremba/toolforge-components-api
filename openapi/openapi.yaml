@@ -25,6 +25,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse_HealthState_'
+  /v1/openapi.json:
+    get:
+      summary: Openapi
+      operationId: openapi
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_dict_str__Any__'
   /v1/tool/{toolname}/config:
     get:
       tags:
@@ -423,6 +434,22 @@ components:
       required:
       - data
       title: ApiResponse[ToolConfig]
+    ApiResponse_dict_str__Any__:
+      properties:
+        data:
+          additionalProperties: true
+          type: object
+          title: Data
+        messages:
+          $ref: '#/components/schemas/ResponseMessages'
+          default:
+            info: []
+            warning: []
+            error: []
+      type: object
+      required:
+      - data
+      title: ApiResponse[dict[str, Any]]
     ComponentInfo:
       properties:
         component_type:
