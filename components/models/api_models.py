@@ -52,6 +52,7 @@ class DeploymentBuildState(str, Enum):
     failed = "failed"
     successful = "successful"
     unknown = "unknown"
+    skipped = "skipped"
 
 
 class DeploymentBuildInfo(BaseModel):

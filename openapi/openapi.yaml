@@ -513,6 +513,7 @@ components:
       - failed
       - successful
       - unknown
+      - skipped
       title: DeploymentBuildState
     DeploymentList:
       properties:

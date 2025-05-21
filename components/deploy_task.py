@@ -1,7 +1,8 @@
+import subprocess
 import time
 import traceback
 from copy import deepcopy
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import partial, wraps
 from logging import getLogger
 from typing import Protocol
@@ -14,8 +15,10 @@ from components.storage.base import Storage
 
 from .client import get_toolforge_client
 from .gen.toolforge_models import (
+    BuildsBuild,
     BuildsBuildParameters,
     BuildsBuildStatus,
+    BuildsListResponse,
     JobsJobResponse,
     JobsNewJob,
 )
@@ -139,6 +142,87 @@ def _update_deployment_build_info(
     _update_deployment(deployment=deployment, storage=storage, tool_name=tool_name)
 
 
+def _resolve_ref(build_info: SourceBuildInfo) -> str:
+    source_url = build_info.repository
+    ref = build_info.ref
+    if not ref:
+        ref = "HEAD"
+
+    logger.debug(f"Resolving ref '{ref}' for git repository '{source_url}'")
+    result = subprocess.run(
+        ["git", "ls-remote", source_url, ref],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        logger.exception(
+            f"Got error trying to resolve ref '{ref}' for repository '{source_url}'. Error: {result.stderr}"
+        )
+        return ""
+
+    parts = result.stdout.split()
+    if parts:
+        logger.debug(
+            f"Resolved ref '{ref}' for repository '{source_url}' to commit hash '{parts[0]}'"
+        )
+        return parts[0]
+
+    logger.exception(
+        f"Failed to resolve ref '{ref}' for repository '{source_url}'. Got: {result.stdout}"
+    )
+    return ""
+
+
+def _check_for_matching_build(
+    component_name: str, build_info: SourceBuildInfo, tool_name: str
+) -> BuildsBuild | None:
+    matching_build: BuildsBuild | None = None
+    toolforge_client = get_toolforge_client()
+
+    response = toolforge_client.get(
+        f"/builds/v1/tool/{tool_name}/builds",
+        verify=get_settings().verify_toolforge_api_cert,
+    )
+
+    builds = BuildsListResponse.model_validate(response).builds
+    if not builds:
+        return None
+
+    builds = sorted(
+        builds,
+        key=lambda build: (
+            build.start_time
+            if build.start_time
+            else datetime.min.replace(tzinfo=timezone.utc).strftime(
+                "%Y-%m-%dT%H:%M:%SZ"
+            )
+        ),
+        reverse=True,
+    )
+    logger.debug(
+        f"Found {len(builds)} builds for tool {tool_name} to compare for skipping"
+    )
+    for build in builds:
+        image_name = (
+            build.destination_image
+            and build.destination_image.split("/")[-1].split(":")[0]
+        )
+        if image_name == component_name:
+            matching_build = build
+            break
+
+    if not matching_build:
+        return None
+
+    build_info_ref = _resolve_ref(build_info)
+    if matching_build.resolved_ref == build_info_ref:
+        logger.debug(f"Gotten matching build: {matching_build.model_dump()}")
+        return matching_build
+
+    return None
+
+
 def _start_build(
     build: SourceBuildInfo,
     tool_name: str,
@@ -153,6 +237,37 @@ def _start_build(
         # TODO: pull from the config
         use_latest_versions=False,
     )
+
+    matching_build = _check_for_matching_build(
+        component_name=component_name, build_info=build, tool_name=tool_name
+    )
+    if matching_build and matching_build.status == BuildsBuildStatus.BUILD_SUCCESS:
+        logger.debug(
+            f"A successful matching build '{matching_build.build_id}' for component '{component_name}' was found."
+            "Skipping build and marking deployment as skipped ..."
+        )
+        if not matching_build.build_id:
+            raise Exception(f"Unexpected build without id: {matching_build}")
+        return DeploymentBuildInfo(
+            build_id=matching_build.build_id,
+            build_status=DeploymentBuildState.skipped,
+        )
+
+    if matching_build and matching_build.status in (
+        BuildsBuildStatus.BUILD_PENDING,
+        BuildsBuildStatus.BUILD_RUNNING,
+    ):
+        logger.debug(
+            f"A pending matching build '{matching_build.build_id}' for component '{component_name}' was found."
+            "Skipping build and marking deployment as pending ..."
+        )
+        if not matching_build.build_id:
+            raise Exception(f"Unexpected build without id: {matching_build}")
+        return DeploymentBuildInfo(
+            build_id=matching_build.build_id,
+            build_status=DeploymentBuildState.pending,
+        )
+
     response = toolforge_client.post(
         f"/builds/v1/tool/{tool_name}/builds",
         json=build_data.model_dump(),
@@ -176,6 +291,7 @@ def _get_build_status(
             f"/builds/v1/tool/{tool_name}/builds/{build.build_id}",
             verify=get_settings().verify_toolforge_api_cert,
         )
+
     except HTTPError as error:
         if error.response.status_code == status.HTTP_404_NOT_FOUND:
             logger.exception(
@@ -218,11 +334,14 @@ def _wait_for_builds(
     tool_name: str,
 ) -> None:
     settings = get_settings()
-    pending_builds = {
-        component: build
-        for component, build in deepcopy(builds).items()
-        if build.build_id
-        not in (DeploymentBuildInfo.NO_BUILD_NEEDED, DeploymentBuildInfo.NO_ID_YET)
+    pending_builds: dict[str, DeploymentBuildInfo] = {
+        component: deepcopy(build)
+        for component, build in builds.items()
+        if build.build_status
+        in (
+            DeploymentBuildState.pending,
+            DeploymentBuildState.running,
+        )
     }
     logger.debug(f"Waiting for {len(pending_builds)} builds to finish... from {builds}")
 
@@ -370,8 +489,8 @@ def _do_run(
                 + _get_component_image_name(
                     component_info=component_info,
                     component_name=component_name,
-                    tool_name=tool_name,
-                ),
+                )
+                + ":latest",
                 toolforge_client=toolforge_client,
             )
             has_error = False

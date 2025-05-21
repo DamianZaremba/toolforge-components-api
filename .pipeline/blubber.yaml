@@ -11,6 +11,9 @@ variants:
         STORAGE_TYPE: "kubernetes"
     lives:
       in: /components
+    apt:
+      packages:
+        - git
     builders:
       - python:
           version: python3
