@@ -361,7 +361,8 @@ components:
           $ref: '#/components/schemas/ResponseMessages'
           default:
             info: []
-            warning: []
+            warning:
+            - You are using a beta feature of Toolforge.
             error: []
       type: object
       required:
@@ -375,7 +376,8 @@ components:
           $ref: '#/components/schemas/ResponseMessages'
           default:
             info: []
-            warning: []
+            warning:
+            - You are using a beta feature of Toolforge.
             error: []
       type: object
       required:
@@ -389,7 +391,8 @@ components:
           $ref: '#/components/schemas/ResponseMessages'
           default:
             info: []
-            warning: []
+            warning:
+            - You are using a beta feature of Toolforge.
             error: []
       type: object
       required:
@@ -403,7 +406,8 @@ components:
           $ref: '#/components/schemas/ResponseMessages'
           default:
             info: []
-            warning: []
+            warning:
+            - You are using a beta feature of Toolforge.
             error: []
       type: object
       required:
@@ -417,7 +421,8 @@ components:
           $ref: '#/components/schemas/ResponseMessages'
           default:
             info: []
-            warning: []
+            warning:
+            - You are using a beta feature of Toolforge.
             error: []
       type: object
       required:
@@ -601,7 +606,8 @@ components:
             type: string
           type: array
           title: Warning
-          default: []
+          default:
+          - You are using a beta feature of Toolforge.
         error:
           items:
             type: string

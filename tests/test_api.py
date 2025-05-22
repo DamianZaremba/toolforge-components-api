@@ -87,9 +87,10 @@ class TestGetToolConfig:
 
     def test_retrieves_the_set_config(self, authenticated_client: TestClient):
         create_tool_config(authenticated_client)
+        BETA_WARNING_MESSAGE = "You are using a beta feature of Toolforge."
 
         expected_response = ToolConfigResponse(
-            messages=ResponseMessages(),
+            messages=ResponseMessages(warning=[BETA_WARNING_MESSAGE]),
             data=get_fake_tool_config(),
         )
 

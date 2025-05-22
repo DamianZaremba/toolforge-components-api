@@ -102,7 +102,8 @@ def list_tool_deployments(
     """List all deployments for a specific tool."""
     deployments = handlers.list_tool_deployments(tool_name=toolname, storage=storage)
     return ToolDeploymentListResponse(
-        data=DeploymentList(deployments=deployments), messages=ResponseMessages()
+        data=DeploymentList(deployments=deployments),
+        messages=ResponseMessages(),
     )
 
 

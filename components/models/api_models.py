@@ -160,9 +160,12 @@ class HealthState(BaseModel):
     status: Literal["OK", "ERROR"]
 
 
+BETA_WARNING_MESSAGE = "You are using a beta feature of Toolforge."
+
+
 class ResponseMessages(BaseModel):
     info: list[str] = []
-    warning: list[str] = []
+    warning: list[str] = [BETA_WARNING_MESSAGE]
     error: list[str] = []
 
 

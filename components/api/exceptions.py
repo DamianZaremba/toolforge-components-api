@@ -37,7 +37,7 @@ async def http_exception_handler(_request: Request, exc: Exception) -> JSONRespo
         raise Exception("Unable to handle {exc}")
     api_response: ApiResponse[None] = ApiResponse(
         data=None,
-        messages=ResponseMessages(error=[str(exc.detail)], info=[], warning=[]),
+        messages=ResponseMessages(error=[str(exc.detail)]),
     )
     return JSONResponse(
         status_code=exc.status_code,
@@ -54,7 +54,7 @@ async def validation_exception_handler(
     formatted_errors = [_format_validation_error(error) for error in exc.errors()]
     api_response: ApiResponse[None] = ApiResponse(
         data=None,
-        messages=ResponseMessages(error=formatted_errors, info=[], warning=[]),
+        messages=ResponseMessages(error=formatted_errors),
     )
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
