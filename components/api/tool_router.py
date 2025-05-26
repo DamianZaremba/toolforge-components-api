@@ -1,4 +1,4 @@
-from fastapi import APIRouter, BackgroundTasks, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends, Query
 
 from ..models.api_models import (
     Deployment,
@@ -111,6 +111,24 @@ def list_tool_deployments(
 def create_tool_deployment(
     toolname: str,
     background_tasks: BackgroundTasks,
+    force_build: bool = Query(
+        title="Force Build",
+        description=(
+            "By default the component is only rebuilt if there was a change in the source code and there's no build "
+            "for that same commit. To force a re-build regardless of the source code status, use force-build"
+        ),
+        default=False,
+        alias="force-build",
+    ),
+    force_run: bool = Query(
+        title="Force Run",
+        description=(
+            "By default an already running component is not restarted if there are no changes to the run parameters. "
+            "To force a re-run regardless of the run parameters, use force-run"
+        ),
+        default=False,
+        alias="force-run",
+    ),
     storage: Storage = Depends(get_storage),
 ) -> ToolDeploymentResponse:
     """Create a new tool deployment."""
@@ -129,6 +147,8 @@ def create_tool_deployment(
     new_deployment = Deployment.get_new_deployment(
         builds=builds,
         runs=runs,
+        force_build=force_build,
+        force_run=force_run,
     )
     handlers.create_tool_deployment(
         tool_name=toolname,

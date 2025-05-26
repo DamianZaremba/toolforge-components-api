@@ -338,6 +338,32 @@ paths:
         schema:
           type: string
           title: Toolname
+      - name: force-build
+        in: query
+        required: false
+        schema:
+          type: boolean
+          title: Force Build
+          description: By default the component is only rebuilt if there was a change
+            in the source code and there's no build for that same commit. To force
+            a re-build regardless of the source code status, use force-build
+          default: false
+        description: By default the component is only rebuilt if there was a change
+          in the source code and there's no build for that same commit. To force a
+          re-build regardless of the source code status, use force-build
+      - name: force-run
+        in: query
+        required: false
+        schema:
+          type: boolean
+          title: Force Run
+          description: By default an already running component is not restarted if
+            there are no changes to the run parameters. To force a re-run regardless
+            of the run parameters, use force-run
+          default: false
+        description: By default an already running component is not restarted if there
+          are no changes to the run parameters. To force a re-run regardless of the
+          run parameters, use force-run
       responses:
         '200':
           description: Successful Response
@@ -481,6 +507,14 @@ components:
           type: string
           title: Long Status
           default: ''
+        force_build:
+          type: boolean
+          title: Force Build
+          default: false
+        force_run:
+          type: boolean
+          title: Force Run
+          default: false
       type: object
       required:
       - deploy_id

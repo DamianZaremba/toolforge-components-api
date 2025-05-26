@@ -11,6 +11,7 @@ from toolforge_weld.api_client import ToolforgeClient
 from components.deploy_task import do_deploy
 from components.gen.toolforge_models import (
     BuildsBuildStatus,
+    JobsJobListResponse,
     JobsJobResponse,
     JobsResponseMessages,
 )
@@ -122,6 +123,76 @@ class TestDoDeploy:
         expected_deployments[0].long_status = gotten_deployments[0].long_status
         assert gotten_deployments == expected_deployments
         toolforge_client_mock.patch.assert_called_once()
+
+    def test_does_not_skip_build_if_no_change_in_ref_hash_and_existing_build_but_force_build_passed(
+        self,
+        monkeypatch: MonkeyPatch,
+    ):
+        my_storage = MockStorage()
+        my_tool_config = get_tool_config()
+        my_deployment = get_deployment_from_tool_config(
+            tool_config=my_tool_config, force_build=True
+        )
+        my_storage.create_deployment(tool_name="my-tool", deployment=my_deployment)
+
+        toolforge_client_mock = MagicMock(spec=ToolforgeClient)
+        monkeypatch.setattr(
+            "components.deploy_task.get_toolforge_client",
+            lambda: toolforge_client_mock,
+        )
+
+        monkeypatch.setattr(
+            "components.deploy_task._resolve_ref",
+            lambda *args, **kwargs: "same-ref-as-build",
+        )
+
+        toolforge_client_mock.post.return_value = {
+            "new_build": {"name": "new_build_name"}
+        }
+        toolforge_client_mock.get.return_value = {
+            "build": {"status": BuildsBuildStatus.BUILD_SUCCESS}
+        }
+        toolforge_client_mock.patch.return_value = JobsJobResponse(
+            job=get_defined_job(), messages=None
+        ).model_dump()
+
+        expected_deployments = [
+            Deployment(
+                deploy_id="my-deploy-id",
+                creation_time="2021-06-01T00:00:00",
+                builds={
+                    "my-component": DeploymentBuildInfo(
+                        build_id="new_build_name",
+                        build_status=DeploymentBuildState.successful,
+                    )
+                },
+                runs={
+                    "my-component": DeploymentRunInfo(
+                        run_status=DeploymentRunState.successful,
+                        run_long_status="created continuous job my-job-name",
+                    )
+                },
+                status=DeploymentState.successful,
+                long_status="I will not be checked",
+                force_build=True,
+            ),
+        ]
+
+        do_deploy(
+            deployment=my_deployment,
+            storage=my_storage,
+            tool_config=my_tool_config,
+            tool_name="my-tool",
+        )
+
+        gotten_deployments = my_storage.list_deployments(tool_name="my-tool")
+
+        # make sure that we have some deployments
+        assert gotten_deployments
+        expected_deployments[0].long_status = gotten_deployments[0].long_status
+        assert gotten_deployments == expected_deployments
+        toolforge_client_mock.patch.assert_called_once()
+        toolforge_client_mock.post.assert_called_once()
 
     def test_starts_build_and_runs_single_continuous_component(
         self, monkeypatch: MonkeyPatch
@@ -680,4 +751,81 @@ class TestDoDeploy:
                 "imagename": "tool-my-tool/my-component:latest",
             },
             verify=True,
+        )
+
+    def test_reruns_job_even_if_config_did_not_change_if_force_run_passed(
+        self, monkeypatch: MonkeyPatch
+    ):
+        my_storage = MockStorage()
+        my_tool_config = get_tool_config()
+        my_deployment = get_deployment_from_tool_config(
+            tool_config=my_tool_config, force_run=True
+        )
+        my_storage.create_deployment(tool_name="my-tool", deployment=my_deployment)
+
+        toolforge_client_mock = MagicMock(spec=ToolforgeClient)
+        monkeypatch.setattr(
+            "components.deploy_task.get_toolforge_client",
+            lambda: toolforge_client_mock,
+        )
+        toolforge_client_mock.post.return_value = {"new_build": {"name": "my-build"}}
+        toolforge_client_mock.get.side_effect = [
+            {"build": {"status": BuildsBuildStatus.BUILD_SUCCESS}},
+            {"build": {"status": BuildsBuildStatus.BUILD_SUCCESS}},
+            JobsJobListResponse(jobs=[get_defined_job(name="my-component")]),
+        ]
+        toolforge_client_mock.delete.return_value = {
+            "messages": {"info": [], "warning": [], "error": []}
+        }
+        toolforge_client_mock.patch.return_value = JobsJobResponse(
+            job=get_defined_job(name="my-component")
+        )
+
+        expected_deployments = [
+            Deployment(
+                deploy_id="my-deploy-id",
+                creation_time="2021-06-01T00:00:00",
+                builds={
+                    "my-component": DeploymentBuildInfo(
+                        build_id="my-build",
+                        build_status=DeploymentBuildState.successful,
+                    )
+                },
+                runs={
+                    "my-component": DeploymentRunInfo(
+                        run_status=DeploymentRunState.successful,
+                        run_long_status="created continuous job my-component",
+                    )
+                },
+                status=DeploymentState.successful,
+                long_status="I will not be checked",
+                force_run=True,
+            )
+        ]
+
+        do_deploy(
+            deployment=my_deployment,
+            storage=my_storage,
+            tool_config=my_tool_config,
+            tool_name="my-tool",
+        )
+
+        gotten_deployments = my_storage.list_deployments(tool_name="my-tool")
+
+        # make sure that we have some deployments
+        assert gotten_deployments
+        expected_deployments[0].long_status = gotten_deployments[0].long_status
+        assert gotten_deployments == expected_deployments
+        toolforge_client_mock.patch.assert_called_with(
+            "/jobs/v1/tool/my-tool/jobs/",
+            json={
+                "cmd": "my-command",
+                "continuous": True,
+                "name": "my-component",
+                "imagename": "tool-my-tool/my-component:latest",
+            },
+            verify=True,
+        )
+        toolforge_client_mock.delete.assert_called_with(
+            "/jobs/v1/tool/my-tool/jobs/my-component", verify=True
         )

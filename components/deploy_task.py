@@ -19,6 +19,7 @@ from .gen.toolforge_models import (
     BuildsBuildParameters,
     BuildsBuildStatus,
     BuildsListResponse,
+    JobsJobListResponse,
     JobsJobResponse,
     JobsNewJob,
 )
@@ -227,6 +228,7 @@ def _start_build(
     build: SourceBuildInfo,
     tool_name: str,
     component_name: str,
+    force_build: bool,
 ) -> DeploymentBuildInfo:
     toolforge_client = get_toolforge_client()
     build_data = BuildsBuildParameters(
@@ -238,35 +240,36 @@ def _start_build(
         use_latest_versions=False,
     )
 
-    matching_build = _check_for_matching_build(
-        component_name=component_name, build_info=build, tool_name=tool_name
-    )
-    if matching_build and matching_build.status == BuildsBuildStatus.BUILD_SUCCESS:
-        logger.debug(
-            f"A successful matching build '{matching_build.build_id}' for component '{component_name}' was found."
-            "Skipping build and marking deployment as skipped ..."
+    if not force_build:
+        matching_build = _check_for_matching_build(
+            component_name=component_name, build_info=build, tool_name=tool_name
         )
-        if not matching_build.build_id:
-            raise Exception(f"Unexpected build without id: {matching_build}")
-        return DeploymentBuildInfo(
-            build_id=matching_build.build_id,
-            build_status=DeploymentBuildState.skipped,
-        )
+        if matching_build and matching_build.status == BuildsBuildStatus.BUILD_SUCCESS:
+            logger.debug(
+                f"A successful matching build '{matching_build.build_id}' for component '{component_name}' was found."
+                "Skipping build and marking deployment as skipped ..."
+            )
+            if not matching_build.build_id:
+                raise Exception(f"Unexpected build without id: {matching_build}")
+            return DeploymentBuildInfo(
+                build_id=matching_build.build_id,
+                build_status=DeploymentBuildState.skipped,
+            )
 
-    if matching_build and matching_build.status in (
-        BuildsBuildStatus.BUILD_PENDING,
-        BuildsBuildStatus.BUILD_RUNNING,
-    ):
-        logger.debug(
-            f"A pending matching build '{matching_build.build_id}' for component '{component_name}' was found."
-            "Skipping build and marking deployment as pending ..."
-        )
-        if not matching_build.build_id:
-            raise Exception(f"Unexpected build without id: {matching_build}")
-        return DeploymentBuildInfo(
-            build_id=matching_build.build_id,
-            build_status=DeploymentBuildState.pending,
-        )
+        if matching_build and matching_build.status in (
+            BuildsBuildStatus.BUILD_PENDING,
+            BuildsBuildStatus.BUILD_RUNNING,
+        ):
+            logger.debug(
+                f"A pending matching build '{matching_build.build_id}' for component '{component_name}' was found."
+                "Skipping build and marking deployment as pending ..."
+            )
+            if not matching_build.build_id:
+                raise Exception(f"Unexpected build without id: {matching_build}")
+            return DeploymentBuildInfo(
+                build_id=matching_build.build_id,
+                build_status=DeploymentBuildState.pending,
+            )
 
     response = toolforge_client.post(
         f"/builds/v1/tool/{tool_name}/builds",
@@ -397,6 +400,7 @@ def _start_builds(
     components: dict[str, ComponentInfo],
     update_build_info_func: UpdateBuildInfoFuncType,
     tool_name: str,
+    force_build: bool,
 ) -> dict[str, DeploymentBuildInfo]:
     any_failed = False
     failed_builds = []
@@ -408,6 +412,7 @@ def _start_builds(
                     build=component.build,
                     tool_name=tool_name,
                     component_name=component_name,
+                    force_build=force_build,
                 )
             except Exception as error:
                 any_failed = True
@@ -435,12 +440,14 @@ def _do_build(
     components: dict[str, ComponentInfo],
     update_build_info_func: UpdateBuildInfoFuncType,
     tool_name: str,
+    force_build: bool,
 ) -> None:
     logger.debug(f"Starting builds for tool {tool_name}")
     all_builds = _start_builds(
         components=components,
         update_build_info_func=update_build_info_func,
         tool_name=tool_name,
+        force_build=force_build,
     )
     logger.debug(f"Waiting for builds to complete for tool {tool_name}")
     _wait_for_builds(
@@ -481,6 +488,13 @@ def _do_run(
         has_error = True
         message = "Unknown error"
         try:
+            if deployment.force_run:
+                message = delete_continuous_job_if_exists(
+                    tool_name=tool_name,
+                    component_name=component_name,
+                    toolforge_client=toolforge_client,
+                )
+
             message = run_continuous_jobs(
                 tool_name=tool_name,
                 run_info=component_info.run,
@@ -529,6 +543,46 @@ def _do_run(
         )
         deployment.runs[component_name] = run_info
         _update_deployment(storage=storage, tool_name=tool_name, deployment=deployment)
+
+
+def delete_continuous_job_if_exists(
+    tool_name: str,
+    component_name: str,
+    toolforge_client: ToolforgeClient,
+) -> str:
+    message = ""
+    settings = get_settings()
+    logger.debug(f"Getting jobs for tool {tool_name}")
+    jobs = JobsJobListResponse.model_validate(
+        toolforge_client.get(
+            f"/jobs/v1/tool/{tool_name}/jobs",
+            verify=settings.verify_toolforge_api_cert,
+        )
+    ).jobs
+
+    if not jobs or not any([job.name == component_name for job in jobs]):
+        logger.debug(
+            f"Job {component_name} not found for tool {tool_name}. Skipping delete operation..."
+        )
+        return message
+
+    logger.debug(f"Deleting job {component_name} for tool {tool_name}")
+    delete_response = JobsJobResponse.model_validate(
+        toolforge_client.delete(
+            f"/jobs/v1/tool/{tool_name}/jobs/{component_name}",
+            verify=settings.verify_toolforge_api_cert,
+        )
+    )
+    logger.debug(
+        f"Deleted continuous job {component_name} for tool {tool_name}: {delete_response}"
+    )
+    if not delete_response.messages:
+        return message
+
+    for level, messages in delete_response.messages:
+        if messages:
+            message += f"[{level}] ({', '.join(messages)})"
+    return message
 
 
 def run_continuous_jobs(
@@ -622,6 +676,7 @@ def do_deploy(
         components=tool_config.components,
         update_build_info_func=_update_build_info_func,
         tool_name=tool_name,
+        force_build=deployment.force_build,
     )
     _do_run(
         components=tool_config.components,

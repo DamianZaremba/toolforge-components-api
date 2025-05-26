@@ -76,8 +76,8 @@ def get_tool_config(**overrides) -> ToolConfig:
     return ToolConfig(**params)  # type: ignore
 
 
-def get_defined_job() -> JobsDefinedJob:
-    return JobsDefinedJob(
+def get_defined_job(**overrides) -> JobsDefinedJob:
+    params = dict(
         cmd="my cmd",
         continuous=True,
         cpu=None,
@@ -101,3 +101,5 @@ def get_defined_job() -> JobsDefinedJob:
         status_short="",
         timeout=None,
     )
+    params.update(overrides)
+    return JobsDefinedJob(**params)

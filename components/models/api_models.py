@@ -96,12 +96,16 @@ class Deployment(BaseModel):
     runs: dict[str, DeploymentRunInfo]
     status: DeploymentState = DeploymentState.pending
     long_status: str = ""
+    force_build: bool = False
+    force_run: bool = False
 
     @classmethod
     def get_new_deployment(
         cls: "Type[Deployment]",
         builds: dict[str, DeploymentBuildInfo],
         runs: dict[str, DeploymentRunInfo],
+        force_build: bool = False,
+        force_run: bool = False,
     ) -> "Deployment":
         cur_timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y%m%d-%H%M%S")
         new_id = f"{cur_timestamp}-"
@@ -115,6 +119,8 @@ class Deployment(BaseModel):
             deploy_id=new_id,
             builds=builds,
             runs=runs,
+            force_build=force_build,
+            force_run=force_run,
         )
 
 
