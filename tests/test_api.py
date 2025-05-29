@@ -143,13 +143,13 @@ class TestCreateDeployment:
         expected_deployment = ToolDeploymentResponse.model_validate(response.json())
         expected_deployment.data.status = DeploymentState.successful
         expected_deployment.data.long_status = ANY
-        expected_deployment.data.builds[
-            "component1"
-        ].build_status = DeploymentBuildState.successful
+        expected_deployment.data.builds["component1"].build_status = (
+            DeploymentBuildState.successful
+        )
         expected_deployment.data.builds["component1"].build_id = "new-build-id"
-        expected_deployment.data.runs[
-            "component1"
-        ].run_status = DeploymentRunState.successful
+        expected_deployment.data.runs["component1"].run_status = (
+            DeploymentRunState.successful
+        )
         expected_deployment.data.runs["component1"].run_long_status = ANY
 
         response = authenticated_client.get(
@@ -201,13 +201,13 @@ class TestCreateDeployment:
         expected_deployment = ToolDeploymentResponse.model_validate(response.json())
         expected_deployment.data.status = DeploymentState.successful
         expected_deployment.data.long_status = ANY
-        expected_deployment.data.builds[
-            "component1"
-        ].build_status = DeploymentBuildState.successful
+        expected_deployment.data.builds["component1"].build_status = (
+            DeploymentBuildState.successful
+        )
         expected_deployment.data.builds["component1"].build_id = "new-build-id"
-        expected_deployment.data.runs[
-            "component1"
-        ].run_status = DeploymentRunState.successful
+        expected_deployment.data.runs["component1"].run_status = (
+            DeploymentRunState.successful
+        )
         expected_deployment.data.runs["component1"].run_long_status = ANY
 
         response = authenticated_client.get(
@@ -256,13 +256,13 @@ class TestCreateDeployment:
         expected_deployment = ToolDeploymentResponse.model_validate(response.json())
         expected_deployment.data.status = DeploymentState.successful
         expected_deployment.data.long_status = ANY
-        expected_deployment.data.builds[
-            "component1"
-        ].build_status = DeploymentBuildState.successful
+        expected_deployment.data.builds["component1"].build_status = (
+            DeploymentBuildState.successful
+        )
         expected_deployment.data.builds["component1"].build_id = "new-build-id"
-        expected_deployment.data.runs[
-            "component1"
-        ].run_status = DeploymentRunState.successful
+        expected_deployment.data.runs["component1"].run_status = (
+            DeploymentRunState.successful
+        )
         expected_deployment.data.runs["component1"].run_long_status = ANY
 
         response = authenticated_client.get(
@@ -560,13 +560,13 @@ class TestListDeployments:
         expected_deployment = deployment_response.data
         expected_deployment.status = DeploymentState.successful
         expected_deployment.long_status = ANY
-        expected_deployment.builds[
-            "component1"
-        ].build_status = DeploymentBuildState.successful
+        expected_deployment.builds["component1"].build_status = (
+            DeploymentBuildState.successful
+        )
         expected_deployment.builds["component1"].build_id = "new-build-id"
-        expected_deployment.runs[
-            "component1"
-        ].run_status = DeploymentRunState.successful
+        expected_deployment.runs["component1"].run_status = (
+            DeploymentRunState.successful
+        )
         expected_deployment.runs["component1"].run_long_status = ANY
 
         response = authenticated_client.get("/v1/tool/test-tool-1/deployment")
@@ -629,13 +629,13 @@ class TestBuildComponents:
         expected_deployment = ToolDeploymentResponse.model_validate(response.json())
         expected_deployment.data.status = DeploymentState.successful
         expected_deployment.data.long_status = ANY
-        expected_deployment.data.builds[
-            "component1"
-        ].build_status = DeploymentBuildState.successful
+        expected_deployment.data.builds["component1"].build_status = (
+            DeploymentBuildState.successful
+        )
         expected_deployment.data.builds["component1"].build_id = "new-build-id"
-        expected_deployment.data.runs[
-            "component1"
-        ].run_status = DeploymentRunState.successful
+        expected_deployment.data.runs["component1"].run_status = (
+            DeploymentRunState.successful
+        )
         expected_deployment.data.runs["component1"].run_long_status = ANY
 
         response = authenticated_client.get(

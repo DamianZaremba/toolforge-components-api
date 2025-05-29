@@ -143,16 +143,12 @@ def _start_build(
     build: SourceBuildInfo,
     tool_name: str,
     component_name: str,
-    component_info: ComponentInfo,
 ) -> DeploymentBuildInfo:
     toolforge_client = get_toolforge_client()
     build_data = BuildsBuildParameters(
         ref=build.ref,
         source_url=build.repository,
-        image_name=_get_component_image_name(
-            component_info=component_info,
-            component_name=component_name,
-        ),
+        image_name=component_name,
         envvars={},
         # TODO: pull from the config
         use_latest_versions=False,
@@ -293,7 +289,6 @@ def _start_builds(
                     build=component.build,
                     tool_name=tool_name,
                     component_name=component_name,
-                    component_info=component,
                 )
             except Exception as error:
                 any_failed = True
@@ -375,8 +370,8 @@ def _do_run(
                 + _get_component_image_name(
                     component_info=component_info,
                     component_name=component_name,
-                )
-                + ":latest",
+                    tool_name=tool_name,
+                ),
                 toolforge_client=toolforge_client,
             )
             has_error = False
