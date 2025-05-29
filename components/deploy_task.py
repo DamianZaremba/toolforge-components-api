@@ -27,7 +27,6 @@ from .models.api_models import (
     DeploymentRunInfo,
     DeploymentRunState,
     DeploymentState,
-    PrebuiltBuildInfo,
     RunInfo,
     SourceBuildInfo,
     ToolConfig,
@@ -50,17 +49,15 @@ class RunFailed(DeployException):
 
 
 def _get_component_image_name(
-    component_info: ComponentInfo, component_name: str
+    component_info: ComponentInfo,
+    component_name: str,
 ) -> str:
     match component_info.build:
-        case PrebuiltBuildInfo():
-            logger.debug(f"Got prebuilt build type: {component_info}")
-            return component_info.build.use_prebuilt
         case SourceBuildInfo():
             logger.debug(f"Got source build type: {component_info}")
             # TODO: use the actual build logs/info to get the image name once we trigger builds
             # The tag and the prefix are currently added by builds-api during build
-            return f"{component_name}"
+            return component_name
 
     logger.error(f"Unsupported build information: {component_info.build}")
     raise Exception(f"unsupported build information: {component_info.build}")
@@ -374,7 +371,6 @@ def _do_run(
                 tool_name=tool_name,
                 run_info=component_info.run,
                 component_name=component_name,
-                # TODO: manage the tag in a nicer way overall
                 image_name=f"tool-{tool_name}/"
                 + _get_component_image_name(
                     component_info=component_info,

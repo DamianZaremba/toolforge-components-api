@@ -4,18 +4,16 @@ import string
 from enum import Enum
 from typing import (
     Annotated,
-    Any,
     ClassVar,
     Generic,
     Literal,
     Type,
     TypeAlias,
     TypeVar,
-    Union,
 )
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Discriminator, Field, Tag
+from pydantic import BaseModel, Field, Tag
 
 # TODO: add the others when we add support for them
 ComponentType: TypeAlias = Literal["continuous"]
@@ -26,30 +24,10 @@ class ConfigVersion(str, Enum):
     V1_BETA1 = "v1beta1"
 
 
-class BuildInfo(BaseModel):
-    use_prebuilt: str
-
-
-def build_info_discriminator(value: Any) -> str | None:
-    if isinstance(value, dict):
-        if value.get("use_prebuilt"):
-            return "prebuilt_build_info_tag"
-        elif value.get("repository"):
-            return "source_build_info_tag"
-    elif isinstance(value, SourceBuildInfo):
-        return "source_build_info_tag"
-    elif isinstance(value, PrebuiltBuildInfo):
-        return "prebuilt_build_info_tag"
-
-    return None
-
-
-class PrebuiltBuildInfo(BaseModel):
-    use_prebuilt: str
-
-
 class SourceBuildInfo(BaseModel):
     repository: str
+    # TODO: maybe make this optional?
+    # we don't really need a ref as providing just repository should default to default ref no?
     ref: str
 
 
@@ -59,13 +37,7 @@ class RunInfo(BaseModel):
 
 class ComponentInfo(BaseModel):
     component_type: ComponentType
-    build: Annotated[
-        Union[
-            Annotated[SourceBuildInfo, Tag("source_build_info_tag")],
-            Annotated[PrebuiltBuildInfo, Tag("prebuilt_build_info_tag")],
-        ],
-        Discriminator(discriminator=build_info_discriminator),
-    ]
+    build: Annotated[SourceBuildInfo, Tag("source_build_info_tag")]
     run: RunInfo
 
 

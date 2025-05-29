@@ -18,7 +18,10 @@ def get_fake_tool_config(
         "config_version": "v1beta1",
         "components": {
             "component1": {
-                "build": {"use_prebuilt": "silly_image"},
+                "build": {
+                    "repository": "https://gitlab.wikimedia.org/toolforge-repos/sample-static-buildpack-app",
+                    "ref": "main",
+                },
                 "component_type": "continuous",
                 "run": {
                     "command": "some command",

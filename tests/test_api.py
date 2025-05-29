@@ -8,7 +8,6 @@ from fastapi.testclient import TestClient
 from components.gen.toolforge_models import BuildsBuildStatus, JobsJobResponse
 from components.models.api_models import (
     Deployment,
-    DeploymentBuildInfo,
     DeploymentBuildState,
     DeploymentRunState,
     DeploymentState,
@@ -63,7 +62,6 @@ class TestUpdateToolConfig:
         raw_response = authenticated_client.post(
             "/v1/tool/test-tool-1/config", content=""
         )
-
         assert raw_response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     def test_fails_without_auth_header(self, test_client: TestClient):
@@ -125,10 +123,16 @@ class TestCreateDeployment:
 
         assert raw_response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_creates_and_returns_the_new_deployment_of_prebuilt_job_using_header_auth(
+    def test_creates_and_returns_the_new_deployment_of_source_built_component_using_header_auth(
         self, authenticated_client: TestClient, fake_toolforge_client: MagicMock
     ):
         create_tool_config(authenticated_client)
+        fake_toolforge_client.post.return_value = {
+            "new_build": {"name": "new-build-id"}
+        }
+        fake_toolforge_client.get.return_value = {
+            "build": {"status": BuildsBuildStatus.BUILD_SUCCESS.value}
+        }
         fake_toolforge_client.patch.return_value = JobsJobResponse(
             job=get_defined_job(), messages=None
         ).model_dump()
@@ -142,9 +146,7 @@ class TestCreateDeployment:
         expected_deployment.data.builds[
             "component1"
         ].build_status = DeploymentBuildState.successful
-        expected_deployment.data.builds[
-            "component1"
-        ].build_id = DeploymentBuildInfo.NO_BUILD_NEEDED
+        expected_deployment.data.builds["component1"].build_id = "new-build-id"
         expected_deployment.data.runs[
             "component1"
         ].run_status = DeploymentRunState.successful
@@ -165,13 +167,13 @@ class TestCreateDeployment:
                 "cmd": "some command",
                 "continuous": True,
                 "name": "component1",
-                "imagename": "tool-test-tool-1/silly_image:latest",
+                "imagename": "tool-test-tool-1/component1:latest",
             },
             verify=True,
         )
 
     @pytest.mark.asyncio
-    async def test_creates_and_returns_the_new_deployment_using_token(
+    async def test_creates_and_returns_the_new_deployment_of_source_built_component_using_token(
         self,
         authenticated_client: TestClient,
         fake_toolforge_client: MagicMock,
@@ -180,7 +182,12 @@ class TestCreateDeployment:
         create_tool_config(authenticated_client)
         token_response = create_deploy_token(authenticated_client)
         token = str(token_response.data.token)
-
+        fake_toolforge_client.post.return_value = {
+            "new_build": {"name": "new-build-id"}
+        }
+        fake_toolforge_client.get.return_value = {
+            "build": {"status": BuildsBuildStatus.BUILD_SUCCESS.value}
+        }
         fake_toolforge_client.patch.return_value = JobsJobResponse(
             job=get_defined_job(), messages=None
         ).model_dump()
@@ -197,9 +204,7 @@ class TestCreateDeployment:
         expected_deployment.data.builds[
             "component1"
         ].build_status = DeploymentBuildState.successful
-        expected_deployment.data.builds[
-            "component1"
-        ].build_id = DeploymentBuildInfo.NO_BUILD_NEEDED
+        expected_deployment.data.builds["component1"].build_id = "new-build-id"
         expected_deployment.data.runs[
             "component1"
         ].run_status = DeploymentRunState.successful
@@ -220,7 +225,7 @@ class TestCreateDeployment:
                 "cmd": "some command",
                 "continuous": True,
                 "name": "component1",
-                "imagename": "tool-test-tool-1/silly_image:latest",
+                "imagename": "tool-test-tool-1/component1:latest",
             },
             verify=True,
         )
@@ -542,6 +547,12 @@ class TestListDeployments:
         self, authenticated_client: TestClient, fake_toolforge_client: MagicMock
     ):
         create_tool_config(authenticated_client)
+        fake_toolforge_client.post.return_value = {
+            "new_build": {"name": "new-build-id"}
+        }
+        fake_toolforge_client.get.return_value = {
+            "build": {"status": BuildsBuildStatus.BUILD_SUCCESS.value}
+        }
         fake_toolforge_client.patch.return_value = JobsJobResponse(
             job=get_defined_job(), messages=None
         ).model_dump()
@@ -552,9 +563,7 @@ class TestListDeployments:
         expected_deployment.builds[
             "component1"
         ].build_status = DeploymentBuildState.successful
-        expected_deployment.builds[
-            "component1"
-        ].build_id = DeploymentBuildInfo.NO_BUILD_NEEDED
+        expected_deployment.builds["component1"].build_id = "new-build-id"
         expected_deployment.runs[
             "component1"
         ].run_status = DeploymentRunState.successful
@@ -596,57 +605,6 @@ class TestListDeployments:
 
 
 class TestBuildComponents:
-    def test_builds_nothing_when_no_source_build_components(
-        self, authenticated_client: TestClient, fake_toolforge_client: MagicMock
-    ):
-        my_tool_config = get_fake_tool_config(
-            build={"use_prebuilt": "silly_prebuilt_image"},
-        )
-        response = authenticated_client.post(
-            "/v1/tool/test-tool-1/config", content=my_tool_config.model_dump_json()
-        )
-        response.raise_for_status()
-
-        fake_toolforge_client.patch.return_value = JobsJobResponse(
-            job=get_defined_job(), messages=None
-        ).model_dump()
-        response = authenticated_client.post("/v1/tool/test-tool-1/deployment")
-        response.raise_for_status()
-
-        expected_deployment = ToolDeploymentResponse.model_validate(response.json())
-        expected_deployment.data.status = DeploymentState.successful
-        expected_deployment.data.long_status = ANY
-        expected_deployment.data.builds[
-            "component1"
-        ].build_status = DeploymentBuildState.successful
-        expected_deployment.data.builds[
-            "component1"
-        ].build_id = DeploymentBuildInfo.NO_BUILD_NEEDED
-        expected_deployment.data.runs[
-            "component1"
-        ].run_status = DeploymentRunState.successful
-        expected_deployment.data.runs["component1"].run_long_status = ANY
-
-        response = authenticated_client.get(
-            f"/v1/tool/test-tool-1/deployment/{expected_deployment.data.deploy_id}"
-        )
-
-        assert response.status_code == status.HTTP_200_OK
-        gotten_deployment = ToolDeploymentResponse.model_validate(response.json())
-        # we kinda ignore the messages
-        assert expected_deployment.data == gotten_deployment.data
-
-        fake_toolforge_client.patch.assert_called_once_with(
-            "/jobs/v1/tool/test-tool-1/jobs/",
-            json={
-                "cmd": "some command",
-                "continuous": True,
-                "name": "component1",
-                "imagename": "tool-test-tool-1/silly_prebuilt_image:latest",
-            },
-            verify=True,
-        )
-
     def test_builds_one_component_when_its_source_build(
         self, authenticated_client: TestClient, fake_toolforge_client: MagicMock
     ):

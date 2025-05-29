@@ -435,10 +435,7 @@ components:
           const: continuous
           title: Component Type
         build:
-          oneOf:
-          - $ref: '#/components/schemas/SourceBuildInfo'
-          - $ref: '#/components/schemas/PrebuiltBuildInfo'
-          title: Build
+          $ref: '#/components/schemas/SourceBuildInfo'
         run:
           $ref: '#/components/schemas/RunInfo'
       type: object
@@ -584,15 +581,6 @@ components:
       required:
       - status
       title: HealthState
-    PrebuiltBuildInfo:
-      properties:
-        use_prebuilt:
-          type: string
-          title: Use Prebuilt
-      type: object
-      required:
-      - use_prebuilt
-      title: PrebuiltBuildInfo
     ResponseMessages:
       properties:
         info:
