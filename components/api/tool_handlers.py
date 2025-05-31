@@ -1,5 +1,6 @@
 import logging
 
+import yaml
 from fastapi import BackgroundTasks, HTTPException, status
 
 from ..deploy_task import do_deploy
@@ -12,8 +13,14 @@ from ..models.api_models import (
 from ..settings import get_settings
 from ..storage import Storage
 from ..storage.exceptions import NotFoundInStorage
+from .utils import EXAMPLE_CONFIG
 
 logger = logging.getLogger(__name__)
+
+
+def get_example_tool_config() -> str:
+    ToolConfig.model_validate(yaml.safe_load(EXAMPLE_CONFIG))
+    return EXAMPLE_CONFIG
 
 
 def get_tool_config(toolname: str, storage: Storage) -> ToolConfig:

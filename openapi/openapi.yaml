@@ -25,6 +25,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse_HealthState_'
+  /v1/tool/{toolname}/example-config:
+    get:
+      tags:
+      - tool
+      summary: Get Example Tool Config
+      description: Retrieve the configuration for a specific tool.
+      operationId: get_example_tool_config
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_str_'
+      security:
+      - APIKeyHeader: []
   /v1/tool/{toolname}/config:
     get:
       tags:
@@ -428,6 +444,21 @@ components:
       required:
       - data
       title: ApiResponse[ToolConfig]
+    ApiResponse_str_:
+      properties:
+        data:
+          type: string
+          title: Data
+        messages:
+          $ref: '#/components/schemas/ResponseMessages'
+          default:
+            info: []
+            warning: []
+            error: []
+      type: object
+      required:
+      - data
+      title: ApiResponse[str]
     ComponentInfo:
       properties:
         component_type:

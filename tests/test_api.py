@@ -2,9 +2,11 @@ from unittest.mock import ANY, MagicMock
 from uuid import UUID
 
 import pytest
+import yaml
 from fastapi import BackgroundTasks, FastAPI, status
 from fastapi.testclient import TestClient
 
+from components.api.utils import EXAMPLE_CONFIG
 from components.gen.toolforge_models import BuildsBuildStatus, JobsJobResponse
 from components.models.api_models import (
     Deployment,
@@ -15,6 +17,7 @@ from components.models.api_models import (
     HealthState,
     HealthzResponse,
     ResponseMessages,
+    ToolConfig,
     ToolConfigResponse,
     ToolDeploymentResponse,
 )
@@ -72,6 +75,19 @@ class TestUpdateToolConfig:
         )
 
         assert raw_response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+class TestGetExampleToolConfig:
+    def test_returns_expected_example_config(
+        self,
+        authenticated_client: TestClient,
+    ):
+        # verify that EXAMPLE_CONFIG passes ToolConfig validation
+        ToolConfig.model_validate(yaml.safe_load(EXAMPLE_CONFIG))
+        response = authenticated_client.get("/v1/tool/test-tool-1/example-config")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["data"] == EXAMPLE_CONFIG
 
 
 class TestGetToolConfig:

@@ -146,6 +146,7 @@ class ApiResponse(BaseModel, Generic[T]):
     messages: ResponseMessages = ResponseMessages()
 
 
+ExampleToolConfigResponse = ApiResponse[str]
 ToolConfigResponse = ApiResponse[ToolConfig]
 HealthzResponse = ApiResponse[HealthState]
 ToolDeploymentResponse = ApiResponse[Deployment]

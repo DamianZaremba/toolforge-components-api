@@ -8,6 +8,7 @@ from ..models.api_models import (
     DeploymentRunInfo,
     DeploymentRunState,
     DeployTokenResponse,
+    ExampleToolConfigResponse,
     ResponseMessages,
     ToolConfig,
     ToolConfigResponse,
@@ -33,6 +34,13 @@ token_auth_router = APIRouter(
         Depends(ensure_token_or_auth),
     ],
 )
+
+
+@header_auth_router.get("/{toolname}/example-config")
+def get_example_tool_config() -> ExampleToolConfigResponse:
+    """Retrieve the configuration for a specific tool."""
+    example_config = handlers.get_example_tool_config()
+    return ExampleToolConfigResponse(data=example_config, messages=ResponseMessages())
 
 
 @header_auth_router.get("/{toolname}/config")
