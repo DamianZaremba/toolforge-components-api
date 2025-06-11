@@ -38,6 +38,8 @@ spec:
               value: "{{ .Values.config.build_timeout_seconds }}"
             - name: "MAX_PARALLEL_DEPLOYMENTS"
               value: "{{ .Values.config.max_parallel_deployments }}"
+            - name: "PROMETHEUS_MULTIPROC_DIR"
+              value: "/tmp/prometheus"
           resources: {{- toYaml .Values.resources | nindent 12 }}
           securityContext:
             readOnlyRootFilesystem: true
@@ -45,6 +47,8 @@ spec:
             - mountPath: /etc/components-api
               name: api-gateway-server-cert
               readOnly: true
+            - mountPath: /tmp/prometheus
+              name: prometheus-multiproc-dir
         - name: nginx
           image: "{{ .Values.nginx.image.repository }}:{{ .Values.nginx.image.nginxTag }}"
           imagePullPolicy: Always
@@ -93,3 +97,5 @@ spec:
         - name: api-gateway-server-cert
           secret:
             secretName: "{{ .Release.Name }}-certificate"
+        - name: prometheus-multiproc-dir
+          emptyDir: {}

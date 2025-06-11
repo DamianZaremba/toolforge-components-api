@@ -9,6 +9,7 @@ variants:
         ADDRESS: "127.0.0.1"
         LOG_LEVEL: "info"
         STORAGE_TYPE: "kubernetes"
+        PROMETHEUS_MULTIPROC_DIR: "/tmp/prometheus"
     lives:
       in: /components
     apt:
