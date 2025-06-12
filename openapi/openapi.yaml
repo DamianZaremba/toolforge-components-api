@@ -225,6 +225,35 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /v1/tool/{toolname}/deployment/latest:
+    get:
+      tags:
+      - tool
+      summary: Get Latest Deployment
+      description: Print the latest deployment for a specific tool, sorted by creation_time
+      operationId: get_latest_deployment
+      security:
+      - APIKeyHeader: []
+      parameters:
+      - name: toolname
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Toolname
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Deployment_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /v1/tool/{toolname}/deployment/{deployment_id}:
     get:
       tags:

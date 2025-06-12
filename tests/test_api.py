@@ -618,6 +618,29 @@ class TestListDeployments:
             second_deployment.data.deploy_id,
         }
 
+    def test_returns_one_deployment_when_there_are_multiple_deployments(
+        self, authenticated_client: TestClient, fake_toolforge_client: MagicMock
+    ):
+        create_tool_config(authenticated_client)
+        first_deployment = create_tool_deployment(authenticated_client)
+        response = authenticated_client.get("/v1/tool/test-tool-1/deployment/latest")
+        assert response.status_code == status.HTTP_200_OK
+
+        latest_deployment = response.json()
+        assert "data" in latest_deployment
+        assert latest_deployment["data"]["deploy_id"] == first_deployment.data.deploy_id
+
+        second_deployment = create_tool_deployment(authenticated_client)
+
+        response = authenticated_client.get("/v1/tool/test-tool-1/deployment/latest")
+        assert response.status_code == status.HTTP_200_OK
+
+        latest_deployment = response.json()
+        assert "data" in latest_deployment
+        assert (
+            latest_deployment["data"]["deploy_id"] == second_deployment.data.deploy_id
+        )
+
 
 class TestBuildComponents:
     def test_builds_one_component_when_its_source_build(

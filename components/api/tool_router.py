@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi import APIRouter, BackgroundTasks, Depends, Query
 
 from ..models.api_models import (
@@ -79,6 +81,20 @@ def get_tool_deploy_token(
 ) -> DeployTokenResponse:
     token = handlers.get_deploy_token(toolname, storage)
     return DeployTokenResponse(data=token, messages=ResponseMessages())
+
+
+@header_auth_router.get("/{toolname}/deployment/latest")
+def get_latest_deployment(
+    toolname: str, storage: Storage = Depends(get_storage)
+) -> ToolDeploymentResponse:
+    """Print the latest deployment for a specific tool, sorted by creation_time"""
+    deployments = handlers.list_tool_deployments(tool_name=toolname, storage=storage)
+    sorted_deployments = sorted(
+        deployments, key=lambda d: datetime.strptime(d.creation_time, "%Y%m%d-%H%M%S")
+    )
+    return ToolDeploymentResponse(
+        data=sorted_deployments[-1], messages=ResponseMessages()
+    )
 
 
 @header_auth_router.get("/{toolname}/deployment/{deployment_id}")
