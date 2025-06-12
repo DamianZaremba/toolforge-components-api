@@ -426,7 +426,7 @@ def _start_builds(
         else:
             new_build_info = DeploymentBuildInfo(
                 build_id=DeploymentBuildInfo.NO_BUILD_NEEDED,
-                build_status=DeploymentBuildState.successful,
+                build_status=DeploymentBuildState.skipped,
             )
 
         all_builds[component_name] = new_build_info
@@ -489,8 +489,16 @@ def _do_run(
         )
         has_error = True
         message = "Unknown error"
+        needs_rerun = (
+            deployment.force_run
+            or deployment.builds[component_name].build_status
+            == DeploymentBuildState.successful
+        )
         try:
-            if deployment.force_run:
+            if needs_rerun:
+                # TODO: we might want to implement a more 'graceful' way of restarting a continuous job than deleting
+                # and creating, to allow for example not needing te recreate the k8s service underneath forcing
+                # a restart of any other jobs that might be using this one by name internally
                 message = delete_continuous_job_if_exists(
                     tool_name=tool_name,
                     component_name=component_name,
@@ -524,6 +532,7 @@ def _do_run(
             has_error = True
 
         except Exception as error:
+            logger.error(f"Unknown error response from jobs api {error!r}")
             message = str(error)
             has_error = True
 
