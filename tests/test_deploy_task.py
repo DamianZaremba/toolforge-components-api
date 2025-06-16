@@ -26,6 +26,7 @@ from components.models.api_models import (
     RunInfo,
     SourceBuildInfo,
 )
+from components.runtime.utils import get_runtime
 from components.storage.mock import MockStorage
 
 from .testlibs import get_defined_job, get_deployment_from_tool_config, get_tool_config
@@ -43,12 +44,12 @@ class TestDoDeploy:
 
         toolforge_client_mock = MagicMock(spec=ToolforgeClient)
         monkeypatch.setattr(
-            "components.deploy_task.get_toolforge_client",
+            "components.runtime.toolforge.get_toolforge_client",
             lambda: toolforge_client_mock,
         )
 
         monkeypatch.setattr(
-            "components.deploy_task._resolve_ref",
+            "components.runtime.toolforge._resolve_ref",
             lambda *args, **kwargs: "same-ref-as-build",
         )
 
@@ -104,6 +105,7 @@ class TestDoDeploy:
             storage=my_storage,
             tool_config=my_tool_config,
             tool_name="my-tool",
+            runtime=get_runtime(),
         )
 
         gotten_deployments = my_storage.list_deployments(tool_name="my-tool")
@@ -133,12 +135,12 @@ class TestDoDeploy:
 
         toolforge_client_mock = MagicMock(spec=ToolforgeClient)
         monkeypatch.setattr(
-            "components.deploy_task.get_toolforge_client",
+            "components.runtime.toolforge.get_toolforge_client",
             lambda: toolforge_client_mock,
         )
 
         monkeypatch.setattr(
-            "components.deploy_task._resolve_ref",
+            "components.runtime.toolforge._resolve_ref",
             lambda *args, **kwargs: "same-ref-as-build",
         )
 
@@ -196,6 +198,7 @@ class TestDoDeploy:
             storage=my_storage,
             tool_config=my_tool_config,
             tool_name="my-tool",
+            runtime=get_runtime(),
         )
 
         gotten_deployments = my_storage.list_deployments(tool_name="my-tool")
@@ -219,12 +222,12 @@ class TestDoDeploy:
 
         toolforge_client_mock = MagicMock(spec=ToolforgeClient)
         monkeypatch.setattr(
-            "components.deploy_task.get_toolforge_client",
+            "components.runtime.toolforge.get_toolforge_client",
             lambda: toolforge_client_mock,
         )
 
         monkeypatch.setattr(
-            "components.deploy_task._resolve_ref",
+            "components.runtime.toolforge._resolve_ref",
             lambda *args, **kwargs: "same-ref-as-build",
         )
 
@@ -265,6 +268,7 @@ class TestDoDeploy:
             storage=my_storage,
             tool_config=my_tool_config,
             tool_name="my-tool",
+            runtime=get_runtime(),
         )
 
         gotten_deployments = my_storage.list_deployments(tool_name="my-tool")
@@ -287,7 +291,7 @@ class TestDoDeploy:
 
         toolforge_client_mock = MagicMock(spec=ToolforgeClient)
         monkeypatch.setattr(
-            "components.deploy_task.get_toolforge_client",
+            "components.runtime.toolforge.get_toolforge_client",
             lambda: toolforge_client_mock,
         )
         toolforge_client_mock.post.return_value = {"new_build": {"name": "my-build"}}
@@ -324,6 +328,7 @@ class TestDoDeploy:
             storage=my_storage,
             tool_config=my_tool_config,
             tool_name="my-tool",
+            runtime=get_runtime(),
         )
 
         gotten_deployments = my_storage.list_deployments(tool_name="my-tool")
@@ -353,7 +358,7 @@ class TestDoDeploy:
 
         toolforge_client_mock = MagicMock(spec=ToolforgeClient)
         monkeypatch.setattr(
-            "components.deploy_task.get_toolforge_client",
+            "components.runtime.toolforge.get_toolforge_client",
             lambda: toolforge_client_mock,
         )
         toolforge_client_mock.post.return_value = {"new_build": {"name": "my-build"}}
@@ -387,6 +392,7 @@ class TestDoDeploy:
             storage=my_storage,
             tool_config=my_tool_config,
             tool_name="my-tool",
+            runtime=get_runtime(),
         )
 
         gotten_deployments = my_storage.list_deployments(tool_name="my-tool")
@@ -416,7 +422,7 @@ class TestDoDeploy:
 
         toolforge_client_mock = MagicMock(spec=ToolforgeClient)
         monkeypatch.setattr(
-            "components.deploy_task.get_toolforge_client",
+            "components.runtime.toolforge.get_toolforge_client",
             lambda: toolforge_client_mock,
         )
         toolforge_client_mock.post.return_value = {"new_build": {"name": "my-build"}}
@@ -455,6 +461,7 @@ class TestDoDeploy:
                 storage=my_storage,
                 tool_config=my_tool_config,
                 tool_name="my-tool",
+                runtime=get_runtime(),
             )
 
         gotten_deployments = my_storage.list_deployments(tool_name="my-tool")
@@ -476,7 +483,7 @@ class TestDoDeploy:
 
         toolforge_client_mock = MagicMock(spec=ToolforgeClient)
         monkeypatch.setattr(
-            "components.deploy_task.get_toolforge_client",
+            "components.runtime.toolforge.get_toolforge_client",
             lambda: toolforge_client_mock,
         )
         toolforge_client_mock.post.return_value = {"new_build": {"name": "my-build"}}
@@ -515,6 +522,7 @@ class TestDoDeploy:
                 storage=my_storage,
                 tool_config=my_tool_config,
                 tool_name="my-tool",
+                runtime=get_runtime(),
             )
 
         gotten_deployments = my_storage.list_deployments(tool_name="my-tool")
@@ -533,7 +541,7 @@ class TestDoDeploy:
 
         toolforge_client_mock = MagicMock(spec=ToolforgeClient)
         monkeypatch.setattr(
-            "components.deploy_task.get_toolforge_client",
+            "components.runtime.toolforge.get_toolforge_client",
             lambda: toolforge_client_mock,
         )
         toolforge_client_mock.post.return_value = {"new_build": {"name": "my-build"}}
@@ -568,6 +576,7 @@ class TestDoDeploy:
             storage=my_storage,
             tool_config=my_tool_config,
             tool_name="my-tool",
+            runtime=get_runtime(),
         )
 
         gotten_deployments = my_storage.list_deployments(tool_name="my-tool")
@@ -620,7 +629,7 @@ class TestDoDeploy:
 
         toolforge_client_mock = MagicMock(spec=ToolforgeClient)
         monkeypatch.setattr(
-            "components.deploy_task.get_toolforge_client",
+            "components.runtime.toolforge.get_toolforge_client",
             lambda: toolforge_client_mock,
         )
         toolforge_client_mock.post.return_value = {"new_build": {"name": "my-build"}}
@@ -666,6 +675,7 @@ class TestDoDeploy:
             storage=my_storage,
             tool_config=my_tool_config,
             tool_name="my-tool",
+            runtime=get_runtime(),
         )
 
         gotten_deployments = my_storage.list_deployments(tool_name="my-tool")
@@ -696,7 +706,7 @@ class TestDoDeploy:
 
         toolforge_client_mock = MagicMock(spec=ToolforgeClient)
         monkeypatch.setattr(
-            "components.deploy_task.get_toolforge_client",
+            "components.runtime.toolforge.get_toolforge_client",
             lambda: toolforge_client_mock,
         )
         toolforge_client_mock.post.return_value = {"new_build": {"name": "my-build"}}
@@ -747,6 +757,7 @@ class TestDoDeploy:
             storage=my_storage,
             tool_config=my_tool_config,
             tool_name="my-tool",
+            runtime=get_runtime(),
         )
 
         gotten_deployments = my_storage.list_deployments(tool_name="my-tool")
@@ -776,7 +787,7 @@ class TestDoDeploy:
 
         toolforge_client_mock = MagicMock(spec=ToolforgeClient)
         monkeypatch.setattr(
-            "components.deploy_task.get_toolforge_client",
+            "components.runtime.toolforge.get_toolforge_client",
             lambda: toolforge_client_mock,
         )
         toolforge_client_mock.post.return_value = {"new_build": {"name": "my-build"}}
@@ -816,6 +827,7 @@ class TestDoDeploy:
             storage=my_storage,
             tool_config=my_tool_config,
             tool_name="my-tool",
+            runtime=get_runtime(),
         )
 
         gotten_deployments = my_storage.list_deployments(tool_name="my-tool")
@@ -846,12 +858,12 @@ class TestDoDeploy:
         my_storage.create_deployment(tool_name="my-tool", deployment=my_deployment)
 
         monkeypatch.setattr(
-            "components.deploy_task._resolve_ref",
+            "components.runtime.toolforge._resolve_ref",
             lambda *args, **kwargs: "same-ref-as-build",
         )
         toolforge_client_mock = MagicMock(spec=ToolforgeClient)
         monkeypatch.setattr(
-            "components.deploy_task.get_toolforge_client",
+            "components.runtime.toolforge.get_toolforge_client",
             lambda: toolforge_client_mock,
         )
         toolforge_client_mock.post.return_value = {"new_build": {"name": "my-build"}}
@@ -907,6 +919,7 @@ class TestDoDeploy:
             storage=my_storage,
             tool_config=my_tool_config,
             tool_name="my-tool",
+            runtime=get_runtime(),
         )
 
         gotten_deployments = my_storage.list_deployments(tool_name="my-tool")
@@ -941,7 +954,7 @@ class TestDoDeploy:
 
         toolforge_client_mock = MagicMock(spec=ToolforgeClient)
         monkeypatch.setattr(
-            "components.deploy_task.get_toolforge_client",
+            "components.runtime.toolforge.get_toolforge_client",
             lambda: toolforge_client_mock,
         )
         toolforge_client_mock.post.return_value = {"new_build": {"name": "my-build"}}
@@ -984,6 +997,7 @@ class TestDoDeploy:
             storage=my_storage,
             tool_config=my_tool_config,
             tool_name="my-tool",
+            runtime=get_runtime(),
         )
 
         gotten_deployments = my_storage.list_deployments(tool_name="my-tool")

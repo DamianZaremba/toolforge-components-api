@@ -26,6 +26,8 @@ pre-commit = "^3.7.1"
 datamodel-code-generator = {extras = ["http"], version = "^0.26.1"}
 pytest-asyncio = "^0.25.3"
 freezegun = "^1.5.1"
+types-requests = "^2.32.4.20250611"
+types-toml = "^0.10.8.20240310"
 
 [tool.ruff.lint]
 # add isort

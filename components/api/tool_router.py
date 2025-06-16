@@ -16,6 +16,8 @@ from ..models.api_models import (
     ToolDeploymentListResponse,
     ToolDeploymentResponse,
 )
+from ..runtime.base import Runtime
+from ..runtime.utils import get_runtime
 from ..storage import Storage, get_storage
 from . import tool_handlers as handlers
 from .auth import ensure_authenticated, ensure_token_or_auth
@@ -146,6 +148,7 @@ def create_tool_deployment(
         alias="force-run",
     ),
     storage: Storage = Depends(get_storage),
+    runtime: Runtime = Depends(get_runtime),
 ) -> ToolDeploymentResponse:
     """Create a new tool deployment."""
     tool_config = handlers.get_tool_config(toolname=toolname, storage=storage)
@@ -170,6 +173,7 @@ def create_tool_deployment(
         tool_name=toolname,
         deployment=new_deployment,
         storage=storage,
+        runtime=runtime,
         background_tasks=background_tasks,
     )
     return ToolDeploymentResponse(

@@ -9,15 +9,19 @@ from toolforge_weld.api_client import ToolforgeClient
 from toolforge_weld.kubernetes_config import Kubeconfig
 
 import components.deploy_task
+import components.runtime.toolforge
+import components.runtime.utils
+import components.settings
 from components.main import create_app
 from components.settings import Settings
 
 logger = logging.getLogger(__name__)
 
 
-@pytest.fixture(scope="session")
-def app() -> FastAPI:
-    settings = Settings(log_level="debug")
+@pytest.fixture
+def app(monkeypatch: pytest.MonkeyPatch) -> FastAPI:
+    settings = Settings(log_level="debug", runtime_type="toolforge")
+    components.settings.settings = settings
     app = create_app(settings=settings)
     return app
 
@@ -35,7 +39,7 @@ def authenticated_client(test_client) -> TestClient:
 
 
 @pytest.fixture
-def fake_toolforge_client(monkeypatch) -> MagicMock:
+def fake_toolforge_client(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
     fake_kube_config = Kubeconfig(
         current_namespace="",
         current_server="",
@@ -45,7 +49,7 @@ def fake_toolforge_client(monkeypatch) -> MagicMock:
     fake_client = MagicMock(spec=ToolforgeClient)
 
     monkeypatch.setattr(
-        components.deploy_task, "get_toolforge_client", lambda: fake_client
+        components.runtime.toolforge, "get_toolforge_client", lambda: fake_client
     )
 
     return fake_client
@@ -64,7 +68,7 @@ def cleanup_deployments(app: FastAPI):
 
 
 @pytest.fixture(autouse=True)
-def mock_time_sleep(monkeypatch):
+def mock_time_sleep(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(components.deploy_task, "time", MagicMock())
     yield
     monkeypatch.undo()

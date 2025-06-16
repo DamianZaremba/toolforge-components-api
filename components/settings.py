@@ -1,6 +1,5 @@
 import datetime
 import logging
-from functools import lru_cache
 from typing import Literal
 
 from pydantic import AnyHttpUrl
@@ -14,6 +13,7 @@ class Settings(BaseSettings):
     port: int = 8000
     address: str = "127.0.0.1"
     storage_type: Literal["mock", "kubernetes"] = "mock"
+    runtime_type: Literal["toolforge"] = "toolforge"
     toolforge_api_url: AnyHttpUrl = AnyHttpUrl(
         "https://api.svc.tools.eqiad1.wikimedia.cloud"
     )
@@ -28,7 +28,13 @@ class Settings(BaseSettings):
     deployment_timeout: datetime.timedelta = datetime.timedelta(hours=1)
 
 
-@lru_cache()
 def get_settings() -> Settings:
-    log.info("Loading config settings from the environment...")
-    return Settings()
+    global settings
+    if not settings:
+        log.info("Loading config settings from the environment...")
+        settings = Settings()
+
+    return settings
+
+
+settings: Settings | None = None

@@ -9,6 +9,7 @@ from ..models.api_models import (
     DeployToken,
     ToolConfig,
 )
+from ..runtime.base import Runtime
 from ..settings import get_settings
 from ..storage import Storage
 from ..storage.exceptions import NotFoundInStorage
@@ -137,6 +138,7 @@ def create_tool_deployment(
     tool_name: str,
     deployment: Deployment,
     storage: Storage,
+    runtime: Runtime,
     background_tasks: BackgroundTasks,
 ) -> Deployment:
     logger.info(f"Creating deployment for tool: {tool_name}")
@@ -161,6 +163,7 @@ def create_tool_deployment(
         tool_config=tool_config,
         tool_name=tool_name,
         storage=storage,
+        runtime=runtime,
     )
 
     return deployment

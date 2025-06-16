@@ -1,30 +1,14 @@
-import subprocess
 import time
 import traceback
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import datetime
 from functools import partial, wraps
 from logging import getLogger
-from typing import Optional, Protocol, Union
+from typing import Protocol
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException
 from requests import HTTPError
-from toolforge_weld.api_client import ToolforgeClient
 
-from components.storage.base import Storage
-
-from .client import get_toolforge_client
-from .gen.toolforge_models import (
-    BuildsBuild,
-    BuildsBuildParameters,
-    BuildsBuildStatus,
-    BuildsListResponse,
-    JobsHttpHealthCheck,
-    JobsJobListResponse,
-    JobsJobResponse,
-    JobsNewJob,
-    JobsScriptHealthCheck,
-)
 from .models.api_models import (
     ComponentInfo,
     Deployment,
@@ -33,11 +17,12 @@ from .models.api_models import (
     DeploymentRunInfo,
     DeploymentRunState,
     DeploymentState,
-    RunInfo,
     SourceBuildInfo,
     ToolConfig,
 )
+from .runtime.base import Runtime
 from .settings import get_settings
+from .storage.base import Storage
 
 logger = getLogger(__name__)
 
@@ -77,6 +62,7 @@ class DoDeployFuncType(Protocol):
         tool_config: ToolConfig,
         deployment: Deployment,
         storage: Storage,
+        runtime: Runtime,
     ) -> None: ...
 
 
@@ -96,6 +82,7 @@ def set_deployment_as_failed_on_error(func: DoDeployFuncType) -> DoDeployFuncTyp
         tool_config: ToolConfig,
         deployment: Deployment,
         storage: Storage,
+        runtime: Runtime,
     ) -> None:
         try:
             return func(
@@ -103,6 +90,7 @@ def set_deployment_as_failed_on_error(func: DoDeployFuncType) -> DoDeployFuncTyp
                 tool_config=tool_config,
                 deployment=deployment,
                 storage=storage,
+                runtime=runtime,
             )
         except Exception as error:
             deployment.status = DeploymentState.failed
@@ -145,198 +133,11 @@ def _update_deployment_build_info(
     _update_deployment(deployment=deployment, storage=storage, tool_name=tool_name)
 
 
-def _resolve_ref(build_info: SourceBuildInfo) -> str:
-    source_url = build_info.repository
-    ref = build_info.ref
-    if not ref:
-        ref = "HEAD"
-
-    logger.debug(f"Resolving ref '{ref}' for git repository '{source_url}'")
-    result = subprocess.run(
-        ["git", "ls-remote", source_url, ref],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if result.returncode != 0:
-        logger.exception(
-            f"Got error trying to resolve ref '{ref}' for repository '{source_url}'. Error: {result.stderr}"
-        )
-        return ""
-
-    parts = result.stdout.split()
-    if parts:
-        logger.debug(
-            f"Resolved ref '{ref}' for repository '{source_url}' to commit hash '{parts[0]}'"
-        )
-        return parts[0]
-
-    logger.exception(
-        f"Failed to resolve ref '{ref}' for repository '{source_url}'. Got: {result.stdout}"
-    )
-    return ""
-
-
-def _check_for_matching_build(
-    component_name: str, build_info: SourceBuildInfo, tool_name: str
-) -> BuildsBuild | None:
-    matching_build: BuildsBuild | None = None
-    toolforge_client = get_toolforge_client()
-
-    response = toolforge_client.get(
-        f"/builds/v1/tool/{tool_name}/builds",
-        verify=get_settings().verify_toolforge_api_cert,
-    )
-
-    builds = BuildsListResponse.model_validate(response).builds
-    if not builds:
-        return None
-
-    builds = sorted(
-        builds,
-        key=lambda build: (
-            build.start_time
-            if build.start_time
-            else datetime.min.replace(tzinfo=timezone.utc).strftime(
-                "%Y-%m-%dT%H:%M:%SZ"
-            )
-        ),
-        reverse=True,
-    )
-    logger.debug(
-        f"Found {len(builds)} builds for tool {tool_name} to compare for skipping"
-    )
-    for build in builds:
-        image_name = (
-            build.destination_image
-            and build.destination_image.split("/")[-1].split(":")[0]
-        )
-        if image_name == component_name:
-            matching_build = build
-            break
-
-    if not matching_build:
-        return None
-
-    build_info_ref = _resolve_ref(build_info)
-    if matching_build.resolved_ref == build_info_ref:
-        logger.debug(f"Gotten matching build: {matching_build.model_dump()}")
-        return matching_build
-
-    return None
-
-
-def _start_build(
-    build: SourceBuildInfo,
-    tool_name: str,
-    component_name: str,
-    force_build: bool,
-) -> DeploymentBuildInfo:
-    toolforge_client = get_toolforge_client()
-    build_data = BuildsBuildParameters(
-        ref=build.ref,
-        source_url=build.repository,
-        image_name=component_name,
-        envvars={},
-        # TODO: pull from the config
-        use_latest_versions=False,
-    )
-
-    if not force_build:
-        matching_build = _check_for_matching_build(
-            component_name=component_name, build_info=build, tool_name=tool_name
-        )
-        if matching_build and matching_build.status == BuildsBuildStatus.BUILD_SUCCESS:
-            logger.debug(
-                f"A successful matching build '{matching_build.build_id}' for component '{component_name}' was found."
-                "Skipping build and marking deployment as skipped ..."
-            )
-            if not matching_build.build_id:
-                raise Exception(f"Unexpected build without id: {matching_build}")
-            return DeploymentBuildInfo(
-                build_id=matching_build.build_id,
-                build_status=DeploymentBuildState.skipped,
-            )
-
-        if matching_build and matching_build.status in (
-            BuildsBuildStatus.BUILD_PENDING,
-            BuildsBuildStatus.BUILD_RUNNING,
-        ):
-            logger.debug(
-                f"A pending matching build '{matching_build.build_id}' for component '{component_name}' was found."
-                "Skipping build and marking deployment as pending ..."
-            )
-            if not matching_build.build_id:
-                raise Exception(f"Unexpected build without id: {matching_build}")
-            return DeploymentBuildInfo(
-                build_id=matching_build.build_id,
-                build_status=DeploymentBuildState.pending,
-            )
-
-    response = toolforge_client.post(
-        f"/builds/v1/tool/{tool_name}/builds",
-        json=build_data.model_dump(),
-        verify=get_settings().verify_toolforge_api_cert,
-    )
-
-    return DeploymentBuildInfo(
-        build_id=response["new_build"]["name"],
-        build_status=DeploymentBuildState.pending,
-    )
-
-
-def _get_build_status(
-    build: DeploymentBuildInfo, tool_name: str
-) -> DeploymentBuildState:
-    toolforge_client = get_toolforge_client()
-    response = None
-    unknown_error_message = ""
-    try:
-        response = toolforge_client.get(
-            f"/builds/v1/tool/{tool_name}/builds/{build.build_id}",
-            verify=get_settings().verify_toolforge_api_cert,
-        )
-
-    except HTTPError as error:
-        if error.response.status_code == status.HTTP_404_NOT_FOUND:
-            logger.exception(
-                f"Got 404 trying to fetch build status for tool {tool_name}, "
-                f"build_id {build.build_id}, maybe someone deleted the build?: "
-                "\n{traceback.format_exc()}"
-            )
-            return DeploymentBuildState.failed
-
-        unknown_error_message = traceback.format_exc()
-
-    except Exception:
-        unknown_error_message = traceback.format_exc()
-
-    if unknown_error_message or not response:
-        logger.exception(
-            f"Got error trying to fetch build status for tool {tool_name}, "
-            f"build_id {build.build_id}: \n{unknown_error_message}"
-        )
-        return DeploymentBuildState.unknown
-
-    response_status = BuildsBuildStatus(response["build"]["status"])
-    if response_status == BuildsBuildStatus.BUILD_RUNNING:
-        return DeploymentBuildState.running
-    elif response_status == BuildsBuildStatus.BUILD_SUCCESS:
-        return DeploymentBuildState.successful
-    elif response_status in (
-        BuildsBuildStatus.BUILD_FAILURE,
-        BuildsBuildStatus.BUILD_CANCELLED,
-        BuildsBuildStatus.BUILD_TIMEOUT,
-    ):
-        return DeploymentBuildState.failed
-
-    return DeploymentBuildState.unknown
-
-
 def _wait_for_builds(
     builds: dict[str, DeploymentBuildInfo],
     update_build_info_func: UpdateBuildInfoFuncType,
     tool_name: str,
+    runtime: Runtime,
 ) -> None:
     settings = get_settings()
     pending_builds: dict[str, DeploymentBuildInfo] = {
@@ -361,7 +162,7 @@ def _wait_for_builds(
             prev_build_status = builds[component_name].build_status
             builds[component_name] = DeploymentBuildInfo(
                 build_id=build.build_id,
-                build_status=_get_build_status(build=build, tool_name=tool_name),
+                build_status=runtime.get_build_status(build=build, tool_name=tool_name),
             )
             # This saves some storage saving if the build status didn't change
             if prev_build_status != builds[component_name].build_status:
@@ -402,6 +203,7 @@ def _start_builds(
     components: dict[str, ComponentInfo],
     update_build_info_func: UpdateBuildInfoFuncType,
     tool_name: str,
+    runtime: Runtime,
     force_build: bool,
 ) -> dict[str, DeploymentBuildInfo]:
     any_failed = False
@@ -410,10 +212,11 @@ def _start_builds(
     for component_name, component in components.items():
         if isinstance(component.build, SourceBuildInfo):
             try:
-                new_build_info = _start_build(
+                new_build_info = runtime.start_build(
                     build=component.build,
                     tool_name=tool_name,
                     component_name=component_name,
+                    component_info=component,
                     force_build=force_build,
                 )
             except Exception as error:
@@ -443,6 +246,7 @@ def _do_build(
     update_build_info_func: UpdateBuildInfoFuncType,
     tool_name: str,
     force_build: bool,
+    runtime: Runtime,
 ) -> None:
     logger.debug(f"Starting builds for tool {tool_name}")
     all_builds = _start_builds(
@@ -450,12 +254,14 @@ def _do_build(
         update_build_info_func=update_build_info_func,
         tool_name=tool_name,
         force_build=force_build,
+        runtime=runtime,
     )
     logger.debug(f"Waiting for builds to complete for tool {tool_name}")
     _wait_for_builds(
         builds=all_builds,
         update_build_info_func=update_build_info_func,
         tool_name=tool_name,
+        runtime=runtime,
     )
     logger.debug(f"Builds done for tool {tool_name}")
 
@@ -465,8 +271,8 @@ def _do_run(
     tool_name: str,
     deployment: Deployment,
     storage: Storage,
+    runtime: Runtime,
 ) -> None:
-    toolforge_client = get_toolforge_client()
     for component_name, component_info in components.items():
         run_info = DeploymentRunInfo(run_status=DeploymentRunState.pending)
         deployment.runs[component_name] = run_info
@@ -499,23 +305,15 @@ def _do_run(
                 # TODO: we might want to implement a more 'graceful' way of restarting a continuous job than deleting
                 # and creating, to allow for example not needing te recreate the k8s service underneath forcing
                 # a restart of any other jobs that might be using this one by name internally
-                message = delete_continuous_job_if_exists(
+                message = runtime.delete_continuous_job_if_exists(
                     tool_name=tool_name,
                     component_name=component_name,
-                    toolforge_client=toolforge_client,
                 )
 
-            message = run_continuous_jobs(
+            message = runtime.run_continuous_job(
                 tool_name=tool_name,
-                run_info=component_info.run,
+                component_info=component_info,
                 component_name=component_name,
-                image_name=f"tool-{tool_name}/"
-                + _get_component_image_name(
-                    component_info=component_info,
-                    component_name=component_name,
-                )
-                + ":latest",
-                toolforge_client=toolforge_client,
             )
             has_error = False
 
@@ -556,123 +354,6 @@ def _do_run(
         _update_deployment(storage=storage, tool_name=tool_name, deployment=deployment)
 
 
-def delete_continuous_job_if_exists(
-    tool_name: str,
-    component_name: str,
-    toolforge_client: ToolforgeClient,
-) -> str:
-    message = ""
-    settings = get_settings()
-    logger.debug(f"Getting jobs for tool {tool_name}")
-    jobs = JobsJobListResponse.model_validate(
-        toolforge_client.get(
-            f"/jobs/v1/tool/{tool_name}/jobs",
-            verify=settings.verify_toolforge_api_cert,
-        )
-    ).jobs
-
-    if not jobs or not any([job.name == component_name for job in jobs]):
-        logger.debug(
-            f"Job {component_name} not found for tool {tool_name}. Skipping delete operation..."
-        )
-        return message
-
-    logger.debug(f"Deleting job {component_name} for tool {tool_name}")
-    delete_response = JobsJobResponse.model_validate(
-        toolforge_client.delete(
-            f"/jobs/v1/tool/{tool_name}/jobs/{component_name}",
-            verify=settings.verify_toolforge_api_cert,
-        )
-    )
-    logger.debug(
-        f"Deleted continuous job {component_name} for tool {tool_name}: {delete_response}"
-    )
-    if not delete_response.messages:
-        return message
-
-    for level, messages in delete_response.messages:
-        if messages:
-            message += f"[{level}] ({', '.join(messages)})"
-    return message
-
-
-def run_continuous_jobs(
-    tool_name: str,
-    component_name: str,
-    run_info: RunInfo,
-    image_name: str,
-    toolforge_client: ToolforgeClient,
-) -> str:
-    # TODO: support multiple run infos/jobs
-    settings = get_settings()
-
-    # TODO: delete all the other jobs that we don't manage
-    logger.debug(
-        f"Creating job for component {component_name} with image {image_name} and run_info {run_info}"
-    )
-    new_job = run_info_to_job(
-        component_name=component_name, run_info=run_info, image_name=image_name
-    )
-    logger.debug(f"Sending job info {new_job}")
-    # Using patch here does an upsert
-    create_response = JobsJobResponse.model_validate(
-        toolforge_client.patch(
-            f"/jobs/v1/tool/{tool_name}/jobs/",
-            json=new_job.model_dump(mode="json", exclude_none=True),
-            verify=settings.verify_toolforge_api_cert,
-        )
-    )
-    logger.debug(f"Deployed continuous job {component_name}: {create_response}")
-    # TODO: check if the job is actually running ok
-    if create_response.job:
-        return f"created continuous job {create_response.job.name}"
-
-    elif not create_response.messages:
-        return f"unable to get job info, response from jobs api {create_response}"
-
-    else:
-        message = ""
-        for level, messages in create_response.messages:
-            if messages:
-                message += f"[{level}] ({', '.join(messages)})"
-        return message
-
-
-def run_info_to_job(
-    component_name: str, run_info: RunInfo, image_name: str
-) -> JobsNewJob:
-    # TODO: the generator seems to make every parameter mandatory :/, try to fix that somehow
-
-    health_check: Optional[Union[JobsHttpHealthCheck, JobsScriptHealthCheck]] = None
-    if run_info.health_check_http:
-        health_check = JobsHttpHealthCheck(type="http", path=run_info.health_check_http)
-    elif run_info.health_check_script:
-        health_check = JobsScriptHealthCheck(
-            type="script",
-            script=run_info.health_check_script,
-        )
-
-    return JobsNewJob(
-        cmd=run_info.command,
-        name=component_name,
-        imagename=image_name,
-        continuous=True,
-        cpu=None,
-        emails=None,
-        filelog=None,
-        filelog_stderr=None,
-        filelog_stdout=None,
-        health_check=health_check,
-        memory=None,
-        mount=None,
-        port=run_info.port,
-        replicas=None,
-        retry=None,
-        schedule=None,
-        timeout=None,
-    )
-
-
 @set_deployment_as_failed_on_error
 def do_deploy(
     *,
@@ -680,6 +361,7 @@ def do_deploy(
     tool_config: ToolConfig,
     deployment: Deployment,
     storage: Storage,
+    runtime: Runtime,
 ) -> None:
     logger.info(f"Starting deployment for tool {tool_name}")
 
@@ -698,10 +380,12 @@ def do_deploy(
         update_build_info_func=_update_build_info_func,
         tool_name=tool_name,
         force_build=deployment.force_build,
+        runtime=runtime,
     )
     _do_run(
         components=tool_config.components,
         tool_name=tool_name,
         deployment=deployment,
         storage=storage,
+        runtime=runtime,
     )
