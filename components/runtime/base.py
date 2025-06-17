@@ -1,6 +1,7 @@
 import logging
 from abc import ABC, abstractmethod
 
+from ..gen.toolforge_models import BuildsBuild, JobsDefinedJob
 from ..models.api_models import (
     ComponentInfo,
     DeploymentBuildInfo,
@@ -44,4 +45,12 @@ class Runtime(ABC):
         tool_name: str,
         component_name: str,
     ) -> str:
+        pass
+
+    @abstractmethod
+    def get_jobs(self, tool_name: str) -> list[JobsDefinedJob]:
+        pass
+
+    @abstractmethod
+    def get_builds(self, tool_name: str) -> list[BuildsBuild]:
         pass

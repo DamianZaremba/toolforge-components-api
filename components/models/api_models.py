@@ -172,3 +172,31 @@ HealthzResponse = ApiResponse[HealthState]
 ToolDeploymentResponse = ApiResponse[Deployment]
 DeployTokenResponse = ApiResponse[DeployToken]
 ToolDeploymentListResponse = ApiResponse[DeploymentList]
+
+
+EXAMPLE_GENERATED_CONFIG = ToolConfig(
+    components={
+        "component1": ComponentInfo(
+            component_type="continuous",
+            build=SourceBuildInfo(
+                ref="main",
+                repository="https://gitlab.wikimedia.org/toolforge-repos/sample-static-buildpack-app",
+            ),
+            run=RunInfo(
+                command="while true; do echo 'hello world from component1'; sleep 10; done",
+                health_check_http="/healthz",
+            ),
+        ),
+        "component2": ComponentInfo(
+            component_type="continuous",
+            build=SourceBuildInfo(
+                ref="dummy_branch",
+                repository="https://gitlab.wikimedia.org/toolforge-repos/sample-static-buildpack-app",
+            ),
+            run=RunInfo(
+                command="while true; do touch /tmp/everything_ok; echo 'hello world from component2'; sleep 10; done",
+                health_check_script="test -e /tmp/everything_ok",
+            ),
+        ),
+    }
+)

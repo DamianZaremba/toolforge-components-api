@@ -3,10 +3,20 @@ import logging
 from fastapi import BackgroundTasks, HTTPException, status
 
 from ..deploy_task import do_deploy
+from ..gen.toolforge_models import (
+    BuildsBuild,
+    JobsDefinedJob,
+    JobsHttpHealthCheck,
+    JobsScriptHealthCheck,
+)
 from ..models.api_models import (
+    ComponentInfo,
+    ConfigVersion,
     Deployment,
     DeploymentState,
     DeployToken,
+    RunInfo,
+    SourceBuildInfo,
     ToolConfig,
 )
 from ..runtime.base import Runtime
@@ -60,6 +70,88 @@ def delete_tool_config(toolname: str, storage: Storage) -> ToolConfig:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
+
+
+def _get_build_for_job(
+    job: JobsDefinedJob, existing_builds: list[BuildsBuild]
+) -> SourceBuildInfo | None:
+    for build in existing_builds:
+        if not build.destination_image:
+            return None
+        # ugly matching, but good enough
+        if build.destination_image.endswith(job.image):
+            if not build.parameters or not build.parameters.source_url:
+                return None
+
+            return SourceBuildInfo(
+                repository=build.parameters.source_url,
+                # for now we require a ref, remove once ref can be optional
+                ref=build.parameters.ref or "HEAD",
+            )
+
+    return None
+
+
+def _get_run_for_job(job: JobsDefinedJob) -> RunInfo:
+    # we need to strip launcher because jobs adds it automatically but then does not remove it when getting the job
+    command = job.cmd.split("launcher ", 1)[-1]
+    params = {"command": command}
+    if job.health_check:
+        match job.health_check:
+            case JobsHttpHealthCheck():
+                params["health_check_http"] = job.health_check.path
+            case JobsScriptHealthCheck():
+                params["health_check_script"] = job.health_check.script
+
+    if job.port:
+        params["port"] = job.port
+
+    return RunInfo.model_validate(params)
+
+
+def _get_component_for_job(
+    job: JobsDefinedJob, existing_builds: list[BuildsBuild]
+) -> tuple[ComponentInfo | None, str]:
+    if not job.continuous:
+        return (
+            None,
+            f"Job {job.name} is not a continuous job, not supported yet, skipping",
+        )
+
+    build = _get_build_for_job(job=job, existing_builds=existing_builds)
+    if not build:
+        return (
+            None,
+            f"Job {job.name} seems not to be a build-service based job (or no build found for it), skipping",
+        )
+
+    run = _get_run_for_job(job=job)
+    return ComponentInfo(component_type="continuous", build=build, run=run), ""
+
+
+def generate_tool_config(
+    toolname: str, runtime: Runtime
+) -> tuple[ToolConfig | None, list[str]]:
+    messages: list[str] = []
+    logger.info(f"Generating config for tool: {toolname}")
+    jobs = runtime.get_jobs(tool_name=toolname)
+    builds = runtime.get_builds(tool_name=toolname)
+    components: dict[str, ComponentInfo] = {}
+    for job in jobs:
+        maybe_component, new_message = _get_component_for_job(
+            job=job, existing_builds=builds
+        )
+        if new_message:
+            messages.append(new_message)
+        if maybe_component:
+            components[job.name] = maybe_component
+
+    if not components:
+        return None, messages
+    return (
+        ToolConfig(components=components, config_version=ConfigVersion.V1_BETA1),
+        messages,
+    )
 
 
 def get_tool_deployment(

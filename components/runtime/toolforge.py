@@ -12,6 +12,7 @@ from ..gen.toolforge_models import (
     BuildsBuildParameters,
     BuildsBuildStatus,
     BuildsListResponse,
+    JobsDefinedJob,
     JobsHttpHealthCheck,
     JobsJobListResponse,
     JobsJobResponse,
@@ -364,3 +365,21 @@ class ToolforgeRuntime(Runtime):
             if messages:
                 message += f"[{level}] ({', '.join(messages)})"
         return message
+
+    def get_jobs(self, tool_name: str) -> list[JobsDefinedJob]:
+        toolforge_client = get_toolforge_client()
+        raw_response = toolforge_client.get(
+            f"/jobs/v1/tool/{tool_name}/jobs",
+            verify=get_settings().verify_toolforge_api_cert,
+        )
+        parsed_response = JobsJobListResponse.model_validate(raw_response)
+        return parsed_response.jobs or []
+
+    def get_builds(self, tool_name: str) -> list[BuildsBuild]:
+        toolforge_client = get_toolforge_client()
+        raw_response = toolforge_client.get(
+            f"/builds/v1/tool/{tool_name}/builds",
+            verify=get_settings().verify_toolforge_api_cert,
+        )
+        parsed_response = BuildsListResponse.model_validate(raw_response)
+        return parsed_response.builds or []

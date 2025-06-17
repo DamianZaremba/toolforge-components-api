@@ -116,6 +116,40 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /v1/tool/{toolname}/config/generate:
+    get:
+      tags:
+      - tool
+      summary: Generate Tool Config
+      description: 'Generate the configuration for a specific tool from existing jobs
+        if possible.
+
+
+        Fallback to a hardcoded example otherwise. Note that this will not generate
+        resources that are not supported.'
+      operationId: generate_tool_config
+      security:
+      - APIKeyHeader: []
+      parameters:
+      - name: toolname
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Toolname
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ToolConfig_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /v1/tool/{toolname}/deployment/token:
     get:
       tags:
