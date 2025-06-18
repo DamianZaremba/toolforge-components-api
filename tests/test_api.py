@@ -160,6 +160,11 @@ class TestCreateDeployment:
             "component1"
         ].build_status = DeploymentBuildState.successful
         expected_deployment.data.builds["component1"].build_id = "new-build-id"
+        expected_deployment.data.builds[
+            "component1"
+        ].build_long_status = (
+            "You can see the logs with `toolforge build logs new-build-id`"
+        )
         expected_deployment.data.runs[
             "component1"
         ].run_status = DeploymentRunState.successful
@@ -223,6 +228,11 @@ class TestCreateDeployment:
             "component1"
         ].build_status = DeploymentBuildState.successful
         expected_deployment.data.builds["component1"].build_id = "new-build-id"
+        expected_deployment.data.builds[
+            "component1"
+        ].build_long_status = (
+            "You can see the logs with `toolforge build logs new-build-id`"
+        )
         expected_deployment.data.runs[
             "component1"
         ].run_status = DeploymentRunState.successful
@@ -283,6 +293,11 @@ class TestCreateDeployment:
             "component1"
         ].build_status = DeploymentBuildState.successful
         expected_deployment.data.builds["component1"].build_id = "new-build-id"
+        expected_deployment.data.builds[
+            "component1"
+        ].build_long_status = (
+            "You can see the logs with `toolforge build logs new-build-id`"
+        )
         expected_deployment.data.runs[
             "component1"
         ].run_status = DeploymentRunState.successful
@@ -592,6 +607,11 @@ class TestListDeployments:
             "component1"
         ].build_status = DeploymentBuildState.successful
         expected_deployment.builds["component1"].build_id = "new-build-id"
+        expected_deployment.builds[
+            "component1"
+        ].build_long_status = (
+            "You can see the logs with `toolforge build logs new-build-id`"
+        )
         expected_deployment.runs[
             "component1"
         ].run_status = DeploymentRunState.successful
@@ -684,6 +704,11 @@ class TestBuildComponents:
             "component1"
         ].build_status = DeploymentBuildState.successful
         expected_deployment.data.builds["component1"].build_id = "new-build-id"
+        expected_deployment.data.builds[
+            "component1"
+        ].build_long_status = (
+            "You can see the logs with `toolforge build logs new-build-id`"
+        )
         expected_deployment.data.runs[
             "component1"
         ].run_status = DeploymentRunState.successful

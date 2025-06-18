@@ -120,6 +120,7 @@ class DeploymentBuildInfo(BaseModel):
     NO_BUILD_NEEDED: ClassVar[str] = "no-build-needed"
     build_id: str | Literal["no-id-yet", "no-build-needed"]
     build_status: DeploymentBuildState
+    build_long_status: str = ""
 
 
 class DeploymentRunState(str, Enum):

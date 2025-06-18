@@ -602,6 +602,10 @@ components:
           title: Build Id
         build_status:
           $ref: '#/components/schemas/DeploymentBuildState'
+        build_long_status:
+          type: string
+          title: Build Long Status
+          default: ''
       type: object
       required:
       - build_id

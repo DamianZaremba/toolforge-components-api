@@ -25,9 +25,10 @@ class Runtime(ABC):
         pass
 
     @abstractmethod
-    def get_build_status(
+    def get_build_statuses(
         self, build: DeploymentBuildInfo, tool_name: str
-    ) -> DeploymentBuildState:
+    ) -> tuple[DeploymentBuildState, str]:
+        """Returns the current state, and a string representing the long status in human-readable form."""
         pass
 
     @abstractmethod

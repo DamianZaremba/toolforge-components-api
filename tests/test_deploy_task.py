@@ -87,6 +87,7 @@ class TestDoDeploy:
                     "my-component": DeploymentBuildInfo(
                         build_id=existing_build_id,
                         build_status=DeploymentBuildState.skipped,
+                        build_long_status="Reusing existing build",
                     )
                 },
                 runs={
@@ -180,6 +181,7 @@ class TestDoDeploy:
                     "my-component": DeploymentBuildInfo(
                         build_id=existing_build_id,
                         build_status=DeploymentBuildState.successful,
+                        build_long_status="You can see the logs with `toolforge build logs random_existing_build_id`",
                     )
                 },
                 runs={
@@ -249,6 +251,7 @@ class TestDoDeploy:
                     "my-component": DeploymentBuildInfo(
                         build_id="new_build_name",
                         build_status=DeploymentBuildState.successful,
+                        build_long_status="You can see the logs with `toolforge build logs new_build_name`",
                     )
                 },
                 runs={
@@ -310,6 +313,7 @@ class TestDoDeploy:
                     "my-component": DeploymentBuildInfo(
                         build_id="my-build",
                         build_status=DeploymentBuildState.successful,
+                        build_long_status="You can see the logs with `toolforge build logs my-build`",
                     )
                 },
                 runs={
@@ -374,6 +378,7 @@ class TestDoDeploy:
                     "my-component": DeploymentBuildInfo(
                         build_id="my-build",
                         build_status=DeploymentBuildState.failed,
+                        build_long_status="You can see the logs with `toolforge build logs my-build`",
                     )
                 },
                 runs={
@@ -438,6 +443,7 @@ class TestDoDeploy:
                     "my-component": DeploymentBuildInfo(
                         build_id="my-build",
                         build_status=DeploymentBuildState.pending,
+                        build_long_status="Not started yet",
                     )
                 },
                 runs={
@@ -499,6 +505,7 @@ class TestDoDeploy:
                     "my-component": DeploymentBuildInfo(
                         build_id="my-build",
                         build_status=DeploymentBuildState.pending,
+                        build_long_status="Not started yet",
                     )
                 },
                 runs={
@@ -558,6 +565,7 @@ class TestDoDeploy:
                     "my-component": DeploymentBuildInfo(
                         build_id="my-build",
                         build_status=DeploymentBuildState.successful,
+                        build_long_status="You can see the logs with `toolforge build logs my-build`",
                     )
                 },
                 runs={
@@ -649,10 +657,12 @@ class TestDoDeploy:
                     "failed-component": DeploymentBuildInfo(
                         build_id="my-build",
                         build_status=DeploymentBuildState.successful,
+                        build_long_status="You can see the logs with `toolforge build logs my-build`",
                     ),
                     "successful-component": DeploymentBuildInfo(
                         build_id="my-build",
                         build_status=DeploymentBuildState.successful,
+                        build_long_status="You can see the logs with `toolforge build logs my-build`",
                     ),
                 },
                 runs={
@@ -739,6 +749,7 @@ class TestDoDeploy:
                     "my-component": DeploymentBuildInfo(
                         build_id="my-build",
                         build_status=DeploymentBuildState.successful,
+                        build_long_status="You can see the logs with `toolforge build logs my-build`",
                     ),
                 },
                 runs={
@@ -809,6 +820,7 @@ class TestDoDeploy:
                     "my-component": DeploymentBuildInfo(
                         build_id="my-build",
                         build_status=DeploymentBuildState.successful,
+                        build_long_status="You can see the logs with `toolforge build logs my-build`",
                     ),
                 },
                 runs={
@@ -900,6 +912,7 @@ class TestDoDeploy:
                     "my-component": DeploymentBuildInfo(
                         build_id="existing-build-id",
                         build_status=DeploymentBuildState.skipped,
+                        build_long_status="Reusing existing build",
                     )
                 },
                 runs={
@@ -978,6 +991,7 @@ class TestDoDeploy:
                     "my-component": DeploymentBuildInfo(
                         build_id="my-build",
                         build_status=DeploymentBuildState.successful,
+                        build_long_status="You can see the logs with `toolforge build logs my-build`",
                     )
                 },
                 runs={

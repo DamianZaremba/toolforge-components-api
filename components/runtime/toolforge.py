@@ -163,9 +163,9 @@ def _run_info_to_job(
 
 
 class ToolforgeRuntime(Runtime):
-    def get_build_status(
+    def get_build_statuses(
         self, build: DeploymentBuildInfo, tool_name: str
-    ) -> DeploymentBuildState:
+    ) -> tuple[DeploymentBuildState, str]:
         toolforge_client = get_toolforge_client()
         response = None
         unknown_error_message = ""
@@ -181,7 +181,10 @@ class ToolforgeRuntime(Runtime):
                     f"build_id {build.build_id}, maybe someone deleted the build?: "
                     "\n{traceback.format_exc()}"
                 )
-                return DeploymentBuildState.failed
+                return (
+                    DeploymentBuildState.failed,
+                    f"build {build.build_id} not found, maybe it was deleted?",
+                )
 
             unknown_error_message = traceback.format_exc()
 
@@ -193,21 +196,36 @@ class ToolforgeRuntime(Runtime):
                 f"Got error trying to fetch build status for tool {tool_name}, "
                 f"build_id {build.build_id}: \n{unknown_error_message}"
             )
-            return DeploymentBuildState.unknown
+            return (
+                DeploymentBuildState.unknown,
+                unknown_error_message or "got empty response",
+            )
 
         response_status = BuildsBuildStatus(response["build"]["status"])
         if response_status == BuildsBuildStatus.BUILD_RUNNING:
-            return DeploymentBuildState.running
+            return (
+                DeploymentBuildState.running,
+                f"You can see the logs with `toolforge build logs {build.build_id}`",
+            )
         elif response_status == BuildsBuildStatus.BUILD_SUCCESS:
-            return DeploymentBuildState.successful
+            return (
+                DeploymentBuildState.successful,
+                f"You can see the logs with `toolforge build logs {build.build_id}`",
+            )
         elif response_status in (
             BuildsBuildStatus.BUILD_FAILURE,
             BuildsBuildStatus.BUILD_CANCELLED,
             BuildsBuildStatus.BUILD_TIMEOUT,
         ):
-            return DeploymentBuildState.failed
+            return (
+                DeploymentBuildState.failed,
+                f"You can see the logs with `toolforge build logs {build.build_id}`",
+            )
 
-        return DeploymentBuildState.unknown
+        return (
+            DeploymentBuildState.unknown,
+            f"You can see the logs with `toolforge build logs {build.build_id}`",
+        )
 
     def start_build(
         self,
@@ -235,6 +253,7 @@ class ToolforgeRuntime(Runtime):
                 return DeploymentBuildInfo(
                     build_id=matching_build.build_id,
                     build_status=DeploymentBuildState.skipped,
+                    build_long_status="Reusing existing build",
                 )
 
             if matching_build and matching_build.status in (
@@ -250,6 +269,7 @@ class ToolforgeRuntime(Runtime):
                 return DeploymentBuildInfo(
                     build_id=matching_build.build_id,
                     build_status=DeploymentBuildState.pending,
+                    build_long_status="Not started yet",
                 )
 
         build_data = BuildsBuildParameters(
@@ -272,6 +292,7 @@ class ToolforgeRuntime(Runtime):
         return DeploymentBuildInfo(
             build_id=response["new_build"]["name"],
             build_status=DeploymentBuildState.pending,
+            build_long_status="Not started yet",
         )
 
     def run_continuous_job(

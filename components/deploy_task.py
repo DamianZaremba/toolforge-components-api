@@ -6,7 +6,7 @@ from functools import partial, wraps
 from logging import getLogger
 from typing import Protocol
 
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 from requests import HTTPError
 
 from .models.api_models import (
@@ -160,9 +160,13 @@ def _wait_for_builds(
         to_delete = []
         for component_name, build in pending_builds.items():
             prev_build_status = builds[component_name].build_status
+            build_status, build_long_status = runtime.get_build_statuses(
+                build=build, tool_name=tool_name
+            )
             builds[component_name] = DeploymentBuildInfo(
                 build_id=build.build_id,
-                build_status=runtime.get_build_status(build=build, tool_name=tool_name),
+                build_status=build_status,
+                build_long_status=build_long_status,
             )
             # This saves some storage saving if the build status didn't change
             if prev_build_status != builds[component_name].build_status:
@@ -199,6 +203,33 @@ def _wait_for_builds(
         )
 
 
+def _parse_build_error(error: Exception) -> str:
+    message = f"unexpected {error}"
+    logger.debug(f"Parsing build error {error}")
+    match error:
+        case BuildFailed():
+            logger.debug(f"Got BuildFailed: {error}")
+            message = f"{error}"
+        case HTTPError():
+            if (
+                status.HTTP_400_BAD_REQUEST
+                <= (error.response.status_code or 0)
+                <= status.HTTP_500_INTERNAL_SERVER_ERROR
+            ):
+                try:
+                    logger.debug(f"Got 4xx HTTPError: {error}")
+                    message = ", ".join(error.response.json()["error"])
+                except Exception:
+                    logger.debug(f"Got non-json 4xx HTTPError: {error}")
+                    message = f"unexpected {error}: {error.response.text}"
+            else:
+                logger.debug(f"Got unexpected HTTPError {error}:{error.response.text}")
+        case _:
+            logger.debug(f"Got unexpected non-HTTPError: {error}")
+
+    return message
+
+
 def _start_builds(
     components: dict[str, ComponentInfo],
     update_build_info_func: UpdateBuildInfoFuncType,
@@ -209,7 +240,9 @@ def _start_builds(
     any_failed = False
     failed_builds = []
     all_builds: dict[str, DeploymentBuildInfo] = {}
+    logger.debug(f"Starting {len(components)} components builds")
     for component_name, component in components.items():
+        logger.debug(f"Starting build for {component_name}")
         if isinstance(component.build, SourceBuildInfo):
             try:
                 new_build_info = runtime.start_build(
@@ -219,24 +252,33 @@ def _start_builds(
                     component_info=component,
                     force_build=force_build,
                 )
+                logger.debug(f"Build started {new_build_info}")
             except Exception as error:
                 any_failed = True
+                message = _parse_build_error(error=error)
                 new_build_info = DeploymentBuildInfo(
-                    build_id=DeploymentBuildInfo.NO_ID_YET,
+                    # TODO: maybe change this field name, or stop using it for non-ids
+                    build_id="no-id-yet",
                     build_status=DeploymentBuildState.failed,
+                    build_long_status=message,
                 )
                 failed_builds.append(f"{component_name}(error:{error})")
+                logger.debug(f"Build failed to start {new_build_info}")
         else:
             new_build_info = DeploymentBuildInfo(
                 build_id=DeploymentBuildInfo.NO_BUILD_NEEDED,
                 build_status=DeploymentBuildState.skipped,
+                build_long_status="Not a build-service based job",
             )
+            logger.debug("Skipping non-source build ")
 
         all_builds[component_name] = new_build_info
 
     update_build_info_func(build_info=all_builds)
     if any_failed:
-        raise BuildFailed(f"Some builds failed to start: {' '.join(failed_builds)}")
+        message = f"Some builds failed to start: {' '.join(failed_builds)}"
+        logger.error(message)
+        raise BuildFailed(message)
 
     return all_builds
 
