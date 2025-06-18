@@ -27,18 +27,50 @@ class ConfigVersion(str, Enum):
 
 
 class SourceBuildInfo(BaseModel):
-    repository: str
+    repository: str = Field(
+        description="URL of the public git repository with the code to build.",
+        examples=[
+            "https://gitlab.wikimedia.org/toolforge-repos/sample-complex-app-backend"
+        ],
+    )
     # TODO: maybe make this optional?
     # we don't really need a ref as providing just repository should default to default ref no?
-    ref: str
+    ref: str = Field(
+        description="Git ref to build from. This can be a tag, a branch name or a commit SHA.",
+        examples=["main", "v1.2.3", "35b594f5d452c288c4a15fe667a7dfb94a7e5489"],
+    )
 
 
 # TODO: split into base, one-off, scheduled and continuous when we support one-off and scheduled?
 class RunInfo(BaseModel):
-    command: str
-    port: Optional[int] = None
-    health_check_script: Optional[str] = None
-    health_check_http: Optional[str] = None
+    command: str = Field(
+        description=(
+            "Command to use to run this component, `launcher` will be prepended to it to load the "
+            "environment if needed."
+        ),
+        examples=["bash -c 'while date; do sleep 10; done'"],
+    )
+    port: Optional[int] = Field(
+        default=None,
+        description=(
+            "Port where the service listens on. Other components can then address this one with "
+            "`http://<this_component_name>:<port>`"
+        ),
+        examples=[8080],
+    )
+    health_check_script: Optional[str] = Field(
+        default=None,
+        description=(
+            "Script/command to run to check that the service is running correctly. This will run inside the same "
+            "container as the service itself."
+        ),
+        examples=["test -e /tmp/everything_is_ok"],
+    )
+    health_check_http: Optional[str] = Field(
+        default=None,
+        description="HTTP path to query for the status of the system. It expects an HTTP 200 OK response, anything else is interpreted as failure.",
+        examples=["/healthz"],
+    )
 
     @model_validator(mode="after")
     def validate_health_check(self) -> Self:
@@ -50,14 +82,28 @@ class RunInfo(BaseModel):
 
 
 class ComponentInfo(BaseModel):
-    component_type: ComponentType
-    build: Annotated[SourceBuildInfo, Tag("source_build_info_tag")]
-    run: RunInfo
+    component_type: ComponentType = Field(
+        examples=["continuous"],
+        description="Type of component, currently only `continuous` is supported.",
+    )
+    build: Annotated[SourceBuildInfo, Tag("source_build_info_tag")] = Field(
+        description="Parameters for building the component."
+    )
+    run: RunInfo = Field(description="Parameters describing how to run this component.")
 
 
 class ToolConfig(BaseModel):
-    config_version: Literal[ConfigVersion.V1_BETA1] | None = ConfigVersion.V1_BETA1
-    components: dict[str, ComponentInfo] = Field(..., min_length=1)
+    config_version: Literal[ConfigVersion.V1_BETA1] | None = Field(
+        examples=["v1beta1"], default=ConfigVersion.V1_BETA1
+    )
+    components: dict[str, ComponentInfo] = Field(
+        ...,
+        description=(
+            "List of components to run. Each component matches a continuous job, scheduled job, one-off job or "
+            "webservice."
+        ),
+        min_length=1,
+    )
 
 
 class DeploymentBuildState(str, Enum):
