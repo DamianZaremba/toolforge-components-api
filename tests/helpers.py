@@ -27,6 +27,11 @@ def get_fake_tool_config(
                     "command": "some command",
                     "port": 8080,
                     "health_check_http": "/health",
+                    "replicas": 2,
+                    "memory": "256Mi",
+                    "cpu": "0.5",
+                    "filelog": False,
+                    "mount": "none",
                 },
             }
         },

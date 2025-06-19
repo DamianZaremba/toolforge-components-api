@@ -103,8 +103,20 @@ def _get_run_for_job(job: JobsDefinedJob) -> RunInfo:
             case JobsScriptHealthCheck():
                 params["health_check_script"] = job.health_check.script
 
-    if job.port:
-        params["port"] = job.port
+    for param_name in [
+        "cpu",
+        "emails",
+        "filelog",
+        "filelog_stderr",
+        "filelog_stdout",
+        "memory",
+        "mount",
+        "port",
+        "replicas",
+    ]:
+        value = getattr(job, param_name)
+        if value is not None:
+            params[param_name] = value
 
     return RunInfo.model_validate(params)
 

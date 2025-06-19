@@ -517,7 +517,28 @@ components:
       required:
       - data
       title: ApiResponse[ToolConfig]
-    ComponentInfo:
+    ComponentInfo-Input:
+      properties:
+        component_type:
+          type: string
+          const: continuous
+          title: Component Type
+          description: Type of component, currently only `continuous` is supported.
+          examples:
+          - continuous
+        build:
+          $ref: '#/components/schemas/SourceBuildInfo'
+          description: Parameters for building the component.
+        run:
+          $ref: '#/components/schemas/RunInfo'
+          description: Parameters describing how to run this component.
+      type: object
+      required:
+      - component_type
+      - build
+      - run
+      title: ComponentInfo
+    ComponentInfo-Output:
       properties:
         component_type:
           type: string
@@ -667,6 +688,14 @@ components:
       - timed_out
       - successful
       title: DeploymentState
+    Emails:
+      type: string
+      enum:
+      - none
+      - all
+      - onfinish
+      - onfailure
+      title: Emails
     HTTPValidationError:
       properties:
         detail:
@@ -688,6 +717,12 @@ components:
       required:
       - status
       title: HealthState
+    Mount:
+      type: string
+      enum:
+      - all
+      - none
+      title: Mount
     ResponseMessages:
       properties:
         info:
@@ -720,6 +755,61 @@ components:
             to it to load the environment if needed.
           examples:
           - bash -c 'while date; do sleep 10; done'
+        cpu:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Cpu
+          description: Job CPU resource limit.
+          examples:
+          - '1'
+        emails:
+          anyOf:
+          - $ref: '#/components/schemas/Emails'
+          - type: 'null'
+          description: Job emails setting.
+          examples:
+          - all
+        filelog:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Filelog
+          description: Whether this job uses filelog or not.
+          examples:
+          - false
+        filelog_stderr:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Filelog Stderr
+          description: Path to the stderr file log.
+          examples:
+          - logs/my-job.err
+        filelog_stdout:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Filelog Stdout
+          description: Path to the stdout file log.
+          examples:
+          - logs/my-job.out
+        memory:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Memory
+          description: Job memory resource limit.
+          examples:
+          - 1G
+        mount:
+          anyOf:
+          - $ref: '#/components/schemas/Mount'
+          - type: 'null'
+          description: NFS mount configuration for the job.
+          examples:
+          - none
+          - all
         port:
           anyOf:
           - type: integer
@@ -729,6 +819,16 @@ components:
             address this one with `http://<this_component_name>:<port>`
           examples:
           - 8080
+        replicas:
+          anyOf:
+          - type: integer
+            minimum: 1.0
+          - type: 'null'
+          title: Replicas
+          description: Number of replicas to be used for the job. Configurable only
+            when continuous is true.
+          examples:
+          - 1
         health_check_script:
           anyOf:
           - type: string
@@ -786,7 +886,7 @@ components:
           - v1beta1
         components:
           additionalProperties:
-            $ref: '#/components/schemas/ComponentInfo'
+            $ref: '#/components/schemas/ComponentInfo-Input'
           type: object
           minProperties: 1
           title: Components
@@ -809,7 +909,7 @@ components:
           - v1beta1
         components:
           additionalProperties:
-            $ref: '#/components/schemas/ComponentInfo'
+            $ref: '#/components/schemas/ComponentInfo-Output'
           type: object
           minProperties: 1
           title: Components

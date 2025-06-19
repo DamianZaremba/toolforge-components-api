@@ -184,13 +184,15 @@ class TestCreateDeployment:
             json={
                 "cmd": "some command",
                 "continuous": True,
-                "name": "component1",
+                "cpu": "0.5",
+                "filelog": False,
+                "health_check": {"path": "/health", "type": "http"},
                 "imagename": "tool-test-tool-1/component1:latest",
+                "memory": "256Mi",
+                "mount": "none",
+                "name": "component1",
                 "port": 8080,
-                "health_check": {
-                    "path": "/health",
-                    "type": "http",
-                },
+                "replicas": 2,
             },
             verify=True,
         )
@@ -252,13 +254,15 @@ class TestCreateDeployment:
             json={
                 "cmd": "some command",
                 "continuous": True,
-                "name": "component1",
+                "cpu": "0.5",
+                "filelog": False,
+                "health_check": {"path": "/health", "type": "http"},
                 "imagename": "tool-test-tool-1/component1:latest",
+                "memory": "256Mi",
+                "mount": "none",
+                "name": "component1",
                 "port": 8080,
-                "health_check": {
-                    "path": "/health",
-                    "type": "http",
-                },
+                "replicas": 2,
             },
             verify=True,
         )
@@ -317,13 +321,15 @@ class TestCreateDeployment:
             json={
                 "cmd": "some command",
                 "continuous": True,
-                "name": "component1",
+                "cpu": "0.5",
+                "filelog": False,
+                "health_check": {"path": "/health", "type": "http"},
                 "imagename": "tool-test-tool-1/component1:latest",
+                "memory": "256Mi",
+                "mount": "none",
+                "name": "component1",
                 "port": 8080,
-                "health_check": {
-                    "path": "/health",
-                    "type": "http",
-                },
+                "replicas": 2,
             },
             verify=True,
         )
@@ -728,13 +734,15 @@ class TestBuildComponents:
             json={
                 "cmd": "some command",
                 "continuous": True,
-                "name": "component1",
+                "cpu": "0.5",
+                "filelog": False,
+                "health_check": {"path": "/health", "type": "http"},
                 "imagename": "tool-test-tool-1/component1:latest",
+                "memory": "256Mi",
+                "mount": "none",
+                "name": "component1",
                 "port": 8080,
-                "health_check": {
-                    "path": "/health",
-                    "type": "http",
-                },
+                "replicas": 2,
             },
             verify=True,
         )
