@@ -12,10 +12,13 @@ from ..gen.toolforge_models import (
 from ..models.api_models import (
     ComponentInfo,
     ConfigVersion,
+    ContinuousComponentInfo,
+    ContinuousRunInfo,
     Deployment,
     DeploymentState,
     DeployToken,
-    RunInfo,
+    ScheduledComponentInfo,
+    ScheduledRunInfo,
     SourceBuildInfo,
     ToolConfig,
 )
@@ -92,10 +95,11 @@ def _get_build_for_job(
     return None
 
 
-def _get_run_for_job(job: JobsDefinedJob) -> RunInfo:
+def _get_run_for_job(job: JobsDefinedJob) -> ScheduledRunInfo | ContinuousRunInfo:
     # we need to strip launcher because jobs adds it automatically but then does not remove it when getting the job
     command = job.cmd.split("launcher ", 1)[-1]
     params = {"command": command}
+
     if job.health_check:
         match job.health_check:
             case JobsHttpHealthCheck():
@@ -113,23 +117,23 @@ def _get_run_for_job(job: JobsDefinedJob) -> RunInfo:
         "mount",
         "port",
         "replicas",
+        "schedule",
+        "retry",
+        "timeout",
     ]:
-        value = getattr(job, param_name)
+        value = getattr(job, param_name, None)
         if value is not None:
             params[param_name] = value
 
-    return RunInfo.model_validate(params)
+    if job.continuous:
+        return ContinuousRunInfo.model_validate(params)
+
+    return ScheduledRunInfo.model_validate(params)
 
 
 def _get_component_for_job(
     job: JobsDefinedJob, existing_builds: list[BuildsBuild]
 ) -> tuple[ComponentInfo | None, str]:
-    if not job.continuous:
-        return (
-            None,
-            f"Job {job.name} is not a continuous job, not supported yet, skipping",
-        )
-
     build = _get_build_for_job(job=job, existing_builds=existing_builds)
     if not build:
         return (
@@ -138,7 +142,17 @@ def _get_component_for_job(
         )
 
     run = _get_run_for_job(job=job)
-    return ComponentInfo(component_type="continuous", build=build, run=run), ""
+    match run:
+        case ScheduledRunInfo():
+            return ScheduledComponentInfo(build=build, run=run), ""
+        case ContinuousRunInfo():
+            return ContinuousComponentInfo(build=build, run=run), ""
+        case _:
+            logger.debug(f"unknown run type {run}")
+            return (
+                None,
+                f"Job {job.name} is not a continuous or scheduled job, it's not supported yet, skipping",
+            )
 
 
 def generate_tool_config(
@@ -147,7 +161,9 @@ def generate_tool_config(
     messages: list[str] = []
     logger.info(f"Generating config for tool: {toolname}")
     jobs = runtime.get_jobs(tool_name=toolname)
+    logger.debug(f"Got jobs: {jobs}")
     builds = runtime.get_builds(tool_name=toolname)
+    logger.debug(f"Got builds: {builds}")
     components: dict[str, ComponentInfo] = {}
     for job in jobs:
         maybe_component, new_message = _get_component_for_job(
@@ -159,7 +175,10 @@ def generate_tool_config(
             components[job.name] = maybe_component
 
     if not components:
+        logger.debug("No components could be generated, using example.")
         return None, messages
+
+    logger.debug(f"Got components: {components}")
     return (
         ToolConfig(components=components, config_version=ConfigVersion.V1_BETA1),
         messages,

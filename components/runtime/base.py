@@ -41,7 +41,16 @@ class Runtime(ABC):
         pass
 
     @abstractmethod
-    def delete_continuous_job_if_exists(
+    def run_scheduled_job(
+        self,
+        tool_name: str,
+        component_name: str,
+        component_info: ComponentInfo,
+    ) -> str:
+        pass
+
+    @abstractmethod
+    def delete_job_if_exists(
         self,
         tool_name: str,
         component_name: str,

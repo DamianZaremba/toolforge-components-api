@@ -16,14 +16,14 @@ from components.gen.toolforge_models import (
     JobsResponseMessages,
 )
 from components.models.api_models import (
-    ComponentInfo,
+    ContinuousComponentInfo,
+    ContinuousRunInfo,
     Deployment,
     DeploymentBuildInfo,
     DeploymentBuildState,
     DeploymentRunInfo,
     DeploymentRunState,
     DeploymentState,
-    RunInfo,
     SourceBuildInfo,
 )
 from components.runtime.utils import get_runtime
@@ -610,23 +610,22 @@ class TestDoDeploy:
         my_storage = MockStorage()
         my_tool_config = get_tool_config(
             components={
-                "failed-component": ComponentInfo(
-                    component_type="continuous",
+                "failed-component": ContinuousComponentInfo(
                     build=SourceBuildInfo(
                         repository="my-repo",
                         ref="main",
                     ),
-                    run=RunInfo(
+                    run=ContinuousRunInfo(
                         command="my-command",
                     ),
                 ),
-                "successful-component": ComponentInfo(
+                "successful-component": ContinuousComponentInfo(
                     component_type="continuous",
                     build=SourceBuildInfo(
                         repository="my-repo",
                         ref="main",
                     ),
-                    run=RunInfo(
+                    run=ContinuousRunInfo(
                         command="my-command",
                     ),
                 ),

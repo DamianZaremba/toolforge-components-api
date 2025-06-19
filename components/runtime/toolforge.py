@@ -22,9 +22,10 @@ from ..gen.toolforge_models import (
 )
 from ..models.api_models import (
     ComponentInfo,
+    ContinuousRunInfo,
     DeploymentBuildInfo,
     DeploymentBuildState,
-    RunInfo,
+    ScheduledRunInfo,
     SourceBuildInfo,
 )
 from ..settings import get_settings
@@ -129,8 +130,8 @@ def _get_component_image_name(
     raise Exception(f"unsupported build information: {component_info.build}")
 
 
-def _run_info_to_job(
-    component_name: str, run_info: RunInfo, image_name: str
+def _run_info_to_continuous_job(
+    component_name: str, run_info: ContinuousRunInfo, image_name: str
 ) -> JobsNewJob:
     # TODO: the generator seems to make every parameter mandatory :/, try to fix that somehow
 
@@ -161,6 +162,30 @@ def _run_info_to_job(
         retry=None,
         schedule=None,
         timeout=None,
+    )
+
+
+def _run_info_to_scheduled_job(
+    component_name: str, run_info: ScheduledRunInfo, image_name: str
+) -> JobsNewJob:
+    return JobsNewJob(
+        cmd=run_info.command,
+        name=component_name,
+        imagename=image_name,
+        continuous=False,
+        cpu=run_info.cpu,
+        emails=run_info.emails,
+        filelog=run_info.filelog,
+        filelog_stderr=run_info.filelog_stderr,
+        filelog_stdout=run_info.filelog_stdout,
+        health_check=None,
+        memory=run_info.memory,
+        mount=run_info.mount,
+        port=None,
+        replicas=None,
+        retry=run_info.retry,
+        schedule=run_info.schedule,
+        timeout=run_info.timeout,
     )
 
 
@@ -303,6 +328,10 @@ class ToolforgeRuntime(Runtime):
         component_name: str,
         component_info: ComponentInfo,
     ) -> str:
+        if not isinstance(component_info.run, ContinuousRunInfo):
+            raise ValueError(
+                f"Invalid run info passed, it's not a ContinuousRunInfo: {component_info.run}"
+            )
         # TODO: manage the tag in a nicer way overall
         image_name = (
             f"tool-{tool_name}/"
@@ -312,7 +341,6 @@ class ToolforgeRuntime(Runtime):
             )
             + ":latest"
         )
-        # TODO: support multiple run infos/jobs
         settings = get_settings()
         toolforge_client = get_toolforge_client()
 
@@ -320,7 +348,7 @@ class ToolforgeRuntime(Runtime):
         logger.debug(
             f"Creating job for component {component_name} with image {image_name} and run_info {component_info.run}"
         )
-        new_job = _run_info_to_job(
+        new_job = _run_info_to_continuous_job(
             component_name=component_name,
             run_info=component_info.run,
             image_name=image_name,
@@ -349,7 +377,62 @@ class ToolforgeRuntime(Runtime):
                     message += f"[{level}] ({', '.join(messages)})"
             return message
 
-    def delete_continuous_job_if_exists(
+    def run_scheduled_job(
+        self,
+        tool_name: str,
+        component_name: str,
+        component_info: ComponentInfo,
+    ) -> str:
+        if not isinstance(component_info.run, ScheduledRunInfo):
+            raise ValueError(
+                f"Invalid run info passed, it's not a ScheduledRunInfo: {component_info.run}"
+            )
+        # TODO: manage the tag in a nicer way overall
+        image_name = (
+            f"tool-{tool_name}/"
+            + _get_component_image_name(
+                component_info=component_info,
+                component_name=component_name,
+            )
+            + ":latest"
+        )
+        settings = get_settings()
+        toolforge_client = get_toolforge_client()
+
+        # TODO: delete all the other jobs that we don't manage
+        logger.debug(
+            f"Creating job for component {component_name} with image {image_name} and run_info {component_info.run}"
+        )
+        new_job = _run_info_to_scheduled_job(
+            component_name=component_name,
+            run_info=component_info.run,
+            image_name=image_name,
+        )
+        logger.debug(f"Sending job info {new_job}")
+        # Using patch here does an upsert
+        create_response = JobsJobResponse.model_validate(
+            toolforge_client.patch(
+                f"/jobs/v1/tool/{tool_name}/jobs/",
+                json=new_job.model_dump(mode="json", exclude_none=True),
+                verify=settings.verify_toolforge_api_cert,
+            )
+        )
+        logger.debug(f"Deployed scheduled job {component_name}: {create_response}")
+        # TODO: check if the job is actually running ok
+        if create_response.job:
+            return f"created scheduled job {create_response.job.name}"
+
+        elif not create_response.messages:
+            return f"unable to get job info, response from jobs api {create_response}"
+
+        else:
+            message = ""
+            for level, messages in create_response.messages:
+                if messages:
+                    message += f"[{level}] ({', '.join(messages)})"
+            return message
+
+    def delete_job_if_exists(
         self,
         tool_name: str,
         component_name: str,

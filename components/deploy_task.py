@@ -12,12 +12,14 @@ from requests import HTTPError
 from .exceptions import BuildFailed, RunFailed
 from .models.api_models import (
     ComponentInfo,
+    ContinuousComponentInfo,
     Deployment,
     DeploymentBuildInfo,
     DeploymentBuildState,
     DeploymentRunInfo,
     DeploymentRunState,
     DeploymentState,
+    ScheduledComponentInfo,
     SourceBuildInfo,
     ToolConfig,
 )
@@ -310,16 +312,20 @@ def _do_run(
         _update_deployment(storage=storage, tool_name=tool_name, deployment=deployment)
 
         # TODO: add support to load all the components jobs and then sync the current status
-        if component_info.component_type != "continuous":
-            logger.info(
-                f"{tool_name}: skipping component {component_name} (non continuous is not supported yet)"
-            )
-            run_info = DeploymentRunInfo(run_status=DeploymentRunState.skipped)
-            deployment.runs[component_name] = run_info
-            _update_deployment(
-                storage=storage, tool_name=tool_name, deployment=deployment
-            )
-            continue
+        match component_info:
+            case ContinuousComponentInfo() | ScheduledComponentInfo():
+                pass
+            case _:
+                logger.info(
+                    f"{tool_name}: skipping component {component_name} ({component_info.component_type} "
+                    "is not supported yet)"
+                )
+                run_info = DeploymentRunInfo(run_status=DeploymentRunState.skipped)
+                deployment.runs[component_name] = run_info
+                _update_deployment(
+                    storage=storage, tool_name=tool_name, deployment=deployment
+                )
+                continue
 
         logger.info(
             f"{tool_name}: deploying component {component_name}: {component_info}"
@@ -336,16 +342,24 @@ def _do_run(
                 # TODO: we might want to implement a more 'graceful' way of restarting a continuous job than deleting
                 # and creating, to allow for example not needing te recreate the k8s service underneath forcing
                 # a restart of any other jobs that might be using this one by name internally
-                message = runtime.delete_continuous_job_if_exists(
+                message = runtime.delete_job_if_exists(
                     tool_name=tool_name,
                     component_name=component_name,
                 )
 
-            message = runtime.run_continuous_job(
-                tool_name=tool_name,
-                component_info=component_info,
-                component_name=component_name,
-            )
+            match component_info:
+                case ContinuousComponentInfo():
+                    message = runtime.run_continuous_job(
+                        tool_name=tool_name,
+                        component_info=component_info,
+                        component_name=component_name,
+                    )
+                case ScheduledComponentInfo():
+                    message = runtime.run_scheduled_job(
+                        tool_name=tool_name,
+                        component_info=component_info,
+                        component_name=component_name,
+                    )
             has_error = False
 
         except HTTPError as error:

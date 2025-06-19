@@ -517,48 +517,149 @@ components:
       required:
       - data
       title: ApiResponse[ToolConfig]
-    ComponentInfo-Input:
+    ContinuousComponentInfo-Input:
       properties:
-        component_type:
-          type: string
-          const: continuous
-          title: Component Type
-          description: Type of component, currently only `continuous` is supported.
-          examples:
-          - continuous
         build:
           $ref: '#/components/schemas/SourceBuildInfo'
-          description: Parameters for building the component.
         run:
-          $ref: '#/components/schemas/RunInfo'
-          description: Parameters describing how to run this component.
+          $ref: '#/components/schemas/ContinuousRunInfo'
+        component_type:
+          anyOf:
+          - type: string
+            const: continuous
+          - type: string
+            const: scheduled
+          title: Component Type
+          default: continuous
       type: object
       required:
-      - component_type
       - build
       - run
-      title: ComponentInfo
-    ComponentInfo-Output:
+      title: ContinuousComponentInfo
+    ContinuousComponentInfo-Output:
       properties:
-        component_type:
-          type: string
-          const: continuous
-          title: Component Type
-          description: Type of component, currently only `continuous` is supported.
-          examples:
-          - continuous
         build:
           $ref: '#/components/schemas/SourceBuildInfo'
-          description: Parameters for building the component.
         run:
-          $ref: '#/components/schemas/RunInfo'
-          description: Parameters describing how to run this component.
+          $ref: '#/components/schemas/ContinuousRunInfo'
+        component_type:
+          anyOf:
+          - type: string
+            const: continuous
+          - type: string
+            const: scheduled
+          title: Component Type
+          default: continuous
       type: object
       required:
-      - component_type
       - build
       - run
-      title: ComponentInfo
+      title: ContinuousComponentInfo
+    ContinuousRunInfo:
+      properties:
+        command:
+          type: string
+          title: Command
+          description: Command to use to run this component, `launcher` will be prepended
+            to it to load the environment if needed.
+          examples:
+          - bash -c 'while date; do sleep 10; done'
+        cpu:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Cpu
+          description: Job CPU resource limit.
+          examples:
+          - '1'
+        emails:
+          anyOf:
+          - $ref: '#/components/schemas/Emails'
+          - type: 'null'
+          description: Job emails setting.
+          examples:
+          - all
+        filelog:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Filelog
+          description: Whether this job uses filelog or not.
+          examples:
+          - false
+        filelog_stderr:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Filelog Stderr
+          description: Path to the stderr file log.
+          examples:
+          - logs/my-job.err
+        filelog_stdout:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Filelog Stdout
+          description: Path to the stdout file log.
+          examples:
+          - logs/my-job.out
+        memory:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Memory
+          description: Job memory resource limit.
+          examples:
+          - 1G
+        mount:
+          anyOf:
+          - $ref: '#/components/schemas/Mount'
+          - type: 'null'
+          description: NFS mount configuration for the job.
+          examples:
+          - none
+          - all
+        port:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Port
+          description: Port where the service listens on. Other components can then
+            address this one with `http://<this_component_name>:<port>`
+          examples:
+          - 8080
+        replicas:
+          anyOf:
+          - type: integer
+            minimum: 1.0
+          - type: 'null'
+          title: Replicas
+          description: Number of replicas to be used for the job. Configurable only
+            when continuous is true.
+          examples:
+          - 1
+        health_check_script:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Health Check Script
+          description: Script/command to run to check that the service is running
+            correctly. This will run inside the same container as the service itself.
+          examples:
+          - test -e /tmp/everything_is_ok
+        health_check_http:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Health Check Http
+          description: HTTP path to query for the status of the system. It expects
+            an HTTP 200 OK response, anything else is interpreted as failure.
+          examples:
+          - /healthz
+      type: object
+      required:
+      - command
+      title: ContinuousRunInfo
     DeployToken:
       properties:
         token:
@@ -746,7 +847,45 @@ components:
           default: []
       type: object
       title: ResponseMessages
-    RunInfo:
+    ScheduledComponentInfo-Input:
+      properties:
+        build:
+          $ref: '#/components/schemas/SourceBuildInfo'
+        run:
+          $ref: '#/components/schemas/ScheduledRunInfo'
+        component_type:
+          anyOf:
+          - type: string
+            const: continuous
+          - type: string
+            const: scheduled
+          title: Component Type
+          default: scheduled
+      type: object
+      required:
+      - build
+      - run
+      title: ScheduledComponentInfo
+    ScheduledComponentInfo-Output:
+      properties:
+        build:
+          $ref: '#/components/schemas/SourceBuildInfo'
+        run:
+          $ref: '#/components/schemas/ScheduledRunInfo'
+        component_type:
+          anyOf:
+          - type: string
+            const: continuous
+          - type: string
+            const: scheduled
+          title: Component Type
+          default: scheduled
+      type: object
+      required:
+      - build
+      - run
+      title: ScheduledComponentInfo
+    ScheduledRunInfo:
       properties:
         command:
           type: string
@@ -810,47 +949,38 @@ components:
           examples:
           - none
           - all
-        port:
+        retry:
           anyOf:
           - type: integer
+            maximum: 5.0
+            minimum: 0.0
           - type: 'null'
-          title: Port
-          description: Port where the service listens on. Other components can then
-            address this one with `http://<this_component_name>:<port>`
+          title: Retry
+          description: Job retry policy. Zero means don't retry at all (the default)
           examples:
-          - 8080
-        replicas:
+          - 0
+        schedule:
+          type: string
+          title: Schedule
+          description: If the job is a cronjob, execution schedule.
+          examples:
+          - '@hourly'
+          - '*/15 * * * *'
+        timeout:
           anyOf:
           - type: integer
-            minimum: 1.0
+            minimum: 0.0
           - type: 'null'
-          title: Replicas
-          description: Number of replicas to be used for the job. Configurable only
-            when continuous is true.
+          title: Timeout
+          description: Maximum amount of seconds the job will be allowed to run before
+            it is failed
           examples:
-          - 1
-        health_check_script:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Health Check Script
-          description: Script/command to run to check that the service is running
-            correctly. This will run inside the same container as the service itself.
-          examples:
-          - test -e /tmp/everything_is_ok
-        health_check_http:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Health Check Http
-          description: HTTP path to query for the status of the system. It expects
-            an HTTP 200 OK response, anything else is interpreted as failure.
-          examples:
-          - /healthz
+          - 120
       type: object
       required:
       - command
-      title: RunInfo
+      - schedule
+      title: ScheduledRunInfo
     SourceBuildInfo:
       properties:
         repository:
@@ -886,7 +1016,9 @@ components:
           - v1beta1
         components:
           additionalProperties:
-            $ref: '#/components/schemas/ComponentInfo-Input'
+            anyOf:
+            - $ref: '#/components/schemas/ContinuousComponentInfo-Input'
+            - $ref: '#/components/schemas/ScheduledComponentInfo-Input'
           type: object
           minProperties: 1
           title: Components
@@ -909,7 +1041,9 @@ components:
           - v1beta1
         components:
           additionalProperties:
-            $ref: '#/components/schemas/ComponentInfo-Output'
+            anyOf:
+            - $ref: '#/components/schemas/ContinuousComponentInfo-Output'
+            - $ref: '#/components/schemas/ScheduledComponentInfo-Output'
           type: object
           minProperties: 1
           title: Components

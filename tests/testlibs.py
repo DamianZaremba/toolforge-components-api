@@ -1,13 +1,13 @@
 from components.gen.toolforge_models import JobsDefinedJob
 from components.models.api_models import (
-    ComponentInfo,
+    ContinuousComponentInfo,
+    ContinuousRunInfo,
     Deployment,
     DeploymentBuildInfo,
     DeploymentBuildState,
     DeploymentRunInfo,
     DeploymentRunState,
     DeploymentState,
-    RunInfo,
     SourceBuildInfo,
     ToolConfig,
 )
@@ -60,13 +60,12 @@ def get_tool_config(**overrides) -> ToolConfig:
     params = dict(
         config_version="v1beta1",
         components={
-            "my-component": ComponentInfo(
-                component_type="continuous",
+            "my-component": ContinuousComponentInfo(
                 build=SourceBuildInfo(
                     repository="my-repo",
                     ref="main",
                 ),
-                run=RunInfo(
+                run=ContinuousRunInfo(
                     command="my-command",
                 ),
             )
