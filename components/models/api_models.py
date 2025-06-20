@@ -14,7 +14,7 @@ from typing import (
 )
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field, Tag, model_validator
+from pydantic import AnyHttpUrl, BaseModel, Field, Tag, model_validator
 
 from components.gen.toolforge_models import (
     Emails,
@@ -180,6 +180,13 @@ class ToolConfig(BaseModel):
         examples=["v1beta1"],
         default=ConfigVersion.V1_BETA1,
         json_schema_extra={"nullable": True},
+    )
+    source_url: AnyHttpUrl | None = Field(
+        default=None,
+        description=(
+            "If passed, it will ignore anything else and try to fetch the configuration from the given "
+            "URL on every deploy."
+        ),
     )
     components: dict[str, ComponentInfo] = Field(
         ...,

@@ -17,6 +17,20 @@
       ],
       "nullable": true
     },
+    "source_url": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "format": "uri"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Source Url",
+      "description": "If passed, it will ignore anything else and try to fetch the configuration from the given URL on every deploy."
+    },
     "components": {
       "additionalProperties": {
         "anyOf": [

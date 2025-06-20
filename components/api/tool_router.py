@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request
@@ -22,6 +23,8 @@ from ..runtime.utils import get_runtime
 from ..storage import Storage, get_storage
 from . import tool_handlers as handlers
 from .auth import ensure_authenticated, ensure_token_or_auth
+
+logger = logging.getLogger(__name__)
 
 # Used for most requests, authenticates only with the header
 header_auth_router = APIRouter(
@@ -97,7 +100,11 @@ async def update_tool_config(
     messages = ResponseMessages(
         info=[f"Configuration for {toolname} updated successfully."]
     )
-    updated_config = handlers.update_tool_config(toolname, config, storage)
+    handlers.update_tool_config(toolname, config, storage)
+    # trigger a fetch from source_url if there was any
+    updated_config = handlers.get_and_refetch_config_if_needed(
+        toolname=toolname, storage=storage
+    )
     messages.warning.extend(
         f"Unknown field {field}, skipped"
         for field in _get_unknown_config_fields(
@@ -261,7 +268,10 @@ def create_tool_deployment(
     runtime: Runtime = Depends(get_runtime),
 ) -> ToolDeploymentResponse:
     """Create a new tool deployment."""
-    tool_config = handlers.get_tool_config(toolname=toolname, storage=storage)
+    tool_config = handlers.get_and_refetch_config_if_needed(
+        toolname=toolname, storage=storage
+    )
+
     builds = {
         component_name: DeploymentBuildInfo(
             build_id=DeploymentBuildInfo.NO_ID_YET,

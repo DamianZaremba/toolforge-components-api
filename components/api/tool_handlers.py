@@ -1,7 +1,10 @@
 import logging
 from datetime import datetime
 
+import requests
+import yaml
 from fastapi import BackgroundTasks, HTTPException, status
+from pydantic import AnyHttpUrl
 
 from ..deploy_task import do_deploy
 from ..gen.toolforge_models import (
@@ -31,6 +34,21 @@ from ..storage.exceptions import NotFoundInStorage
 logger = logging.getLogger(__name__)
 
 
+def get_and_refetch_config_if_needed(toolname: str, storage: Storage) -> ToolConfig:
+    logger.debug("Checking if I should update the config from source_url")
+    config = get_tool_config(toolname=toolname, storage=storage)
+    if config.source_url:
+        logger.info(f"Re-fetching config from source_url: {config.source_url}")
+        config = _fetch_config_from_url(url=config.source_url)
+        config = update_tool_config(toolname=toolname, config=config, storage=storage)
+        logger.info("Config re-updated from source_url")
+        logger.debug(f"New config: {config}")
+    else:
+        logger.debug(f"No refetching of the config needed: {config}")
+
+    return config
+
+
 def get_tool_config(toolname: str, storage: Storage) -> ToolConfig:
     logger.info(f"Retrieving config for tool: {toolname}")
     try:
@@ -48,16 +66,41 @@ def get_tool_config(toolname: str, storage: Storage) -> ToolConfig:
         )
 
 
+def _fetch_config_from_url(url: AnyHttpUrl) -> ToolConfig:
+    settings = get_settings()
+    response = None
+    try:
+        response = requests.get(
+            url.encoded_string(),
+            headers={"User-Agent": settings.user_agent},
+        )
+        response.raise_for_status()
+        config = ToolConfig.model_validate(yaml.safe_load(response.text))
+    except Exception as error:
+        logging.error(f"Got error trying to re-fetch the config from {url}: {error}")
+        if response:
+            logging.debug(f"response: {response.text}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unable to retrive config from source url {url}: {error}",
+        ) from error
+
+    return config
+
+
 def update_tool_config(
     toolname: str, config: ToolConfig, storage: Storage
 ) -> ToolConfig:
     logger.info(f"Modifying config for tool: {toolname}")
+    logger.debug(f"passed config: {config}")
     try:
         storage.set_tool_config(toolname, config)
         logger.info(f"Config updated successfully for tool: {toolname}")
+        logger.debug(f"New config {config}")
         return config
     except Exception as e:
         logger.error(f"Error updating config for tool {toolname}: {str(e)}")
+        logger.debug(f"Failed config {config}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
@@ -313,6 +356,8 @@ def create_tool_deployment(
     logger.info(f"Creating deployment for tool: {tool_name}")
     _check_parallel_deployment_limit(storage=storage, tool_name=tool_name)
 
+    tool_config = get_tool_config(toolname=tool_name, storage=storage)
+
     try:
         storage.create_deployment(tool_name=tool_name, deployment=deployment)
         logger.info(f"Created deployment {deployment} for tool {tool_name}")
@@ -323,8 +368,6 @@ def create_tool_deployment(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
-
-    tool_config = get_tool_config(toolname=tool_name, storage=storage)
 
     background_tasks.add_task(
         do_deploy,

@@ -3,6 +3,8 @@ from unittest.mock import ANY, MagicMock
 from uuid import UUID
 
 import pytest
+import requests
+import yaml
 from fastapi import BackgroundTasks, FastAPI, status
 from fastapi.testclient import TestClient
 
@@ -117,6 +119,39 @@ class TestUpdateToolConfig:
         gotten_response = ToolConfigResponse.model_validate(raw_response.json())
         assert gotten_response.data == expected_tool_config
         assert gotten_response.messages == expected_messages
+
+    def test_fetches_config_when_source_url_passed(
+        self, authenticated_client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ):
+        expected_tool_config = get_fake_tool_config(
+            source_url="http://idontexist.local/myconfig"
+        )
+
+        expected_messages = ResponseMessages(
+            warning=[
+                "You are using a beta feature of Toolforge.",
+            ],
+            info=["Configuration for test-tool-1 updated successfully."],
+        )
+        sent_config_json = json.loads(expected_tool_config.model_dump_json())
+
+        response_mock = MagicMock()
+        response_mock.text = yaml.safe_dump(
+            json.loads(expected_tool_config.model_dump_json())
+        )
+        get_mock = MagicMock()
+        get_mock.return_value = response_mock
+        monkeypatch.setattr(requests, "get", get_mock)
+
+        raw_response = authenticated_client.post(
+            "/v1/tool/test-tool-1/config", json=sent_config_json
+        )
+
+        assert raw_response.status_code == status.HTTP_200_OK
+        gotten_response = ToolConfigResponse.model_validate(raw_response.json())
+        assert gotten_response.data == expected_tool_config
+        assert gotten_response.messages == expected_messages
+        get_mock.assert_called_once()
 
 
 class TestGetToolConfig:
@@ -411,6 +446,44 @@ class TestCreateDeployment:
         response = authenticated_client.post("/v1/tool/test-tool-1/deployment")
 
         assert response.status_code == status.HTTP_409_CONFLICT
+
+    def test_fetches_config_when_source_url_passed(
+        self,
+        authenticated_client: TestClient,
+        monkeypatch: pytest.MonkeyPatch,
+        fake_toolforge_client: MagicMock,
+    ):
+        fake_toolforge_client.post.return_value = {
+            "new_build": {"name": "new-build-id"}
+        }
+        fake_toolforge_client.get.return_value = {
+            "build": {"status": BuildsBuildStatus.BUILD_SUCCESS.value}
+        }
+        fake_toolforge_client.patch.return_value = JobsJobResponse(
+            job=get_defined_job(), messages=None
+        ).model_dump()
+        my_tool_config = get_fake_tool_config(
+            source_url="http://idontexist.local/myconfig",
+            build={"repository": "some_repo", "ref": "some_ref"},
+        )
+        response_mock = MagicMock()
+        response_mock.text = yaml.safe_dump(
+            json.loads(my_tool_config.model_dump_json())
+        )
+        get_mock = MagicMock()
+        get_mock.return_value = response_mock
+        monkeypatch.setattr(requests, "get", get_mock)
+        response = authenticated_client.post(
+            "/v1/tool/test-tool-1/config", content=my_tool_config.model_dump_json()
+        )
+        response.raise_for_status()
+        get_mock.assert_called_once()
+        get_mock.reset_mock()
+
+        response = authenticated_client.post("/v1/tool/test-tool-1/deployment")
+        response.raise_for_status()
+
+        get_mock.assert_called_once()
 
 
 class TestDeleteDeployment:
