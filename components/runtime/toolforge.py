@@ -7,6 +7,7 @@ from fastapi import status
 from requests import HTTPError
 
 from ..client import get_toolforge_client
+from ..exceptions import BuildFailed
 from ..gen.toolforge_models import (
     BuildsBuild,
     BuildsBuildParameters,
@@ -58,10 +59,11 @@ def _resolve_ref(build_info: SourceBuildInfo) -> str:
         )
         return parts[0]
 
-    logger.exception(
-        f"Failed to resolve ref '{ref}' for repository '{source_url}'. Got: {result.stdout}"
+    message = (
+        f"Failed to resolve ref '{ref}' for repository '{source_url}', does it exist?"
     )
-    return ""
+    logger.exception(f"{message} Got: {result.stdout}")
+    raise BuildFailed(message)
 
 
 def _check_for_matching_build(

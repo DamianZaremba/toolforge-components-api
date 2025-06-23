@@ -9,6 +9,7 @@ from typing import Protocol
 from fastapi import HTTPException, status
 from requests import HTTPError
 
+from .exceptions import BuildFailed, RunFailed
 from .models.api_models import (
     ComponentInfo,
     Deployment,
@@ -25,18 +26,6 @@ from .settings import get_settings
 from .storage.base import Storage
 
 logger = getLogger(__name__)
-
-
-class DeployException(Exception):
-    pass
-
-
-class BuildFailed(DeployException):
-    pass
-
-
-class RunFailed(DeployException):
-    pass
 
 
 def _get_component_image_name(
