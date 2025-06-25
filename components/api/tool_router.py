@@ -1,6 +1,7 @@
 from datetime import datetime
+from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request
 
 from ..models.api_models import (
     EXAMPLE_GENERATED_CONFIG,
@@ -50,20 +51,62 @@ def get_tool_config(
     return ToolConfigResponse(data=config, messages=ResponseMessages())
 
 
+def _get_unknown_config_fields(
+    user_passed_config: dict[str, Any],
+    parsed_config: dict[str, Any],
+    cur_path: str = "",
+) -> list[str]:
+    # We could instead try to use pydantic `extra="allowed"`, but that would mean changing every model and then
+    # stripping the extra fields when storing/returning the models.
+    unknown_fields: list[str] = []
+    for key, value in user_passed_config.items():
+        if key not in parsed_config:
+            unknown_fields.append(f"{cur_path}{key}")
+            continue
+
+        if isinstance(value, dict):
+            unknown_fields.extend(
+                _get_unknown_config_fields(
+                    user_passed_config=value,
+                    parsed_config=parsed_config[key],
+                    cur_path=f"{cur_path}{key}.",
+                )
+            )
+
+        if isinstance(value, list):
+            for index, elem in enumerate(value):
+                if isinstance(elem, dict):
+                    unknown_fields.extend(
+                        _get_unknown_config_fields(
+                            user_passed_config=elem,
+                            parsed_config=parsed_config[key][index],
+                            cur_path=f"{cur_path}{key}[{index}].",
+                        )
+                    )
+
+    return unknown_fields
+
+
 @header_auth_router.post("/{toolname}/config", response_model_exclude_defaults=True)
-def update_tool_config(
+async def update_tool_config(
     toolname: str,
     config: ToolConfig,
+    request: Request,
     storage: Storage = Depends(get_storage),
 ) -> ToolConfigResponse:
     """Update or create the configuration for a specific tool."""
-    updated_config = handlers.update_tool_config(toolname, config, storage)
-    return ToolConfigResponse(
-        data=updated_config,
-        messages=ResponseMessages(
-            info=[f"Configuration for {toolname} updated successfully."]
-        ),
+    messages = ResponseMessages(
+        info=[f"Configuration for {toolname} updated successfully."]
     )
+    updated_config = handlers.update_tool_config(toolname, config, storage)
+    messages.warning.extend(
+        f"Unknown field {field}, skipped"
+        for field in _get_unknown_config_fields(
+            user_passed_config=await request.json(),
+            parsed_config=updated_config.model_dump(),
+        )
+    )
+    return ToolConfigResponse(data=updated_config, messages=messages)
 
 
 @header_auth_router.delete("/{toolname}/config", response_model_exclude_defaults=True)

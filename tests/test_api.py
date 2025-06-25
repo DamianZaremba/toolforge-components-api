@@ -1,3 +1,4 @@
+import json
 from unittest.mock import ANY, MagicMock
 from uuid import UUID
 
@@ -58,6 +59,10 @@ def test_healthz_endpoint_returns_ok_status(test_client: TestClient):
 class TestUpdateToolConfig:
     def test_succeeds_with_valid_config(self, authenticated_client: TestClient):
         expected_tool_config = get_fake_tool_config()
+        expected_messages = ResponseMessages(
+            warning=["You are using a beta feature of Toolforge."],
+            info=["Configuration for test-tool-1 updated successfully."],
+        )
         raw_response = authenticated_client.post(
             "/v1/tool/test-tool-1/config",
             content=expected_tool_config.model_dump_json(),
@@ -66,7 +71,7 @@ class TestUpdateToolConfig:
         assert raw_response.status_code == status.HTTP_200_OK
         gotten_response = ToolConfigResponse.model_validate(raw_response.json())
         assert gotten_response.data == expected_tool_config
-        assert gotten_response.messages != []
+        assert gotten_response.messages == expected_messages
 
     def test_fails_with_invalid_config_data(
         self,
@@ -85,6 +90,30 @@ class TestUpdateToolConfig:
         )
 
         assert raw_response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_returns_warning_with_unknown_fields(
+        self, authenticated_client: TestClient
+    ):
+        expected_tool_config = get_fake_tool_config()
+        expected_messages = ResponseMessages(
+            warning=[
+                "You are using a beta feature of Toolforge.",
+                "Unknown field components.component1.internal_extra_field, skipped",
+                "Unknown field extra_field_1, skipped",
+            ],
+            info=["Configuration for test-tool-1 updated successfully."],
+        )
+        sent_config = json.loads(expected_tool_config.model_dump_json())
+        sent_config["extra_field_1"] = 1234
+        sent_config["components"]["component1"]["internal_extra_field"] = 1234
+        raw_response = authenticated_client.post(
+            "/v1/tool/test-tool-1/config", json=sent_config
+        )
+
+        assert raw_response.status_code == status.HTTP_200_OK
+        gotten_response = ToolConfigResponse.model_validate(raw_response.json())
+        assert gotten_response.data == expected_tool_config
+        assert gotten_response.messages == expected_messages
 
 
 class TestGetToolConfig:
