@@ -1,0 +1,509 @@
+{
+  "properties": {
+    "config_version": {
+      "anyOf": [
+        {
+          "type": "string",
+          "const": "v1beta1"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Config Version",
+      "default": "v1beta1",
+      "examples": [
+        "v1beta1"
+      ]
+    },
+    "components": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "properties": {
+              "build": {
+                "properties": {
+                  "repository": {
+                    "type": "string",
+                    "title": "Repository",
+                    "description": "URL of the public git repository with the code to build.",
+                    "examples": [
+                      "https://gitlab.wikimedia.org/toolforge-repos/sample-complex-app-backend"
+                    ]
+                  },
+                  "ref": {
+                    "type": "string",
+                    "title": "Ref",
+                    "description": "Git ref to build from. This can be a tag, a branch name or a commit SHA.",
+                    "examples": [
+                      "main",
+                      "v1.2.3",
+                      "35b594f5d452c288c4a15fe667a7dfb94a7e5489"
+                    ]
+                  }
+                },
+                "type": "object",
+                "required": [
+                  "repository",
+                  "ref"
+                ],
+                "title": "SourceBuildInfo"
+              },
+              "run": {
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "title": "Command",
+                    "description": "Command to use to run this component, `launcher` will be prepended to it to load the environment if needed.",
+                    "examples": [
+                      "bash -c 'while date; do sleep 10; done'"
+                    ]
+                  },
+                  "cpu": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Cpu",
+                    "description": "Job CPU resource limit.",
+                    "examples": [
+                      "1"
+                    ]
+                  },
+                  "emails": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "none",
+                          "all",
+                          "onfinish",
+                          "onfailure"
+                        ],
+                        "title": "Emails"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "Job emails setting.",
+                    "examples": [
+                      "all"
+                    ]
+                  },
+                  "filelog": {
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Filelog",
+                    "description": "Whether this job uses filelog or not.",
+                    "examples": [
+                      false
+                    ]
+                  },
+                  "filelog_stderr": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Filelog Stderr",
+                    "description": "Path to the stderr file log.",
+                    "examples": [
+                      "logs/my-job.err"
+                    ]
+                  },
+                  "filelog_stdout": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Filelog Stdout",
+                    "description": "Path to the stdout file log.",
+                    "examples": [
+                      "logs/my-job.out"
+                    ]
+                  },
+                  "memory": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Memory",
+                    "description": "Job memory resource limit.",
+                    "examples": [
+                      "1G"
+                    ]
+                  },
+                  "mount": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "all",
+                          "none"
+                        ],
+                        "title": "Mount"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "NFS mount configuration for the job.",
+                    "examples": [
+                      "none",
+                      "all"
+                    ]
+                  },
+                  "port": {
+                    "anyOf": [
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Port",
+                    "description": "Port where the service listens on. Other components can then address this one with `http://<this_component_name>:<port>`",
+                    "examples": [
+                      8080
+                    ]
+                  },
+                  "replicas": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 1.0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Replicas",
+                    "description": "Number of replicas to be used for the job. Configurable only when continuous is true.",
+                    "examples": [
+                      1
+                    ]
+                  },
+                  "health_check_script": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Health Check Script",
+                    "description": "Script/command to run to check that the service is running correctly. This will run inside the same container as the service itself.",
+                    "examples": [
+                      "test -e /tmp/everything_is_ok"
+                    ]
+                  },
+                  "health_check_http": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Health Check Http",
+                    "description": "HTTP path to query for the status of the system. It expects an HTTP 200 OK response, anything else is interpreted as failure.",
+                    "examples": [
+                      "/healthz"
+                    ]
+                  }
+                },
+                "type": "object",
+                "required": [
+                  "command"
+                ],
+                "title": "ContinuousRunInfo"
+              },
+              "component_type": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "const": "continuous"
+                  },
+                  {
+                    "type": "string",
+                    "const": "scheduled"
+                  }
+                ],
+                "title": "Component Type",
+                "default": "continuous"
+              }
+            },
+            "type": "object",
+            "required": [
+              "build",
+              "run"
+            ],
+            "title": "ContinuousComponentInfo"
+          },
+          {
+            "properties": {
+              "build": {
+                "properties": {
+                  "repository": {
+                    "type": "string",
+                    "title": "Repository",
+                    "description": "URL of the public git repository with the code to build.",
+                    "examples": [
+                      "https://gitlab.wikimedia.org/toolforge-repos/sample-complex-app-backend"
+                    ]
+                  },
+                  "ref": {
+                    "type": "string",
+                    "title": "Ref",
+                    "description": "Git ref to build from. This can be a tag, a branch name or a commit SHA.",
+                    "examples": [
+                      "main",
+                      "v1.2.3",
+                      "35b594f5d452c288c4a15fe667a7dfb94a7e5489"
+                    ]
+                  }
+                },
+                "type": "object",
+                "required": [
+                  "repository",
+                  "ref"
+                ],
+                "title": "SourceBuildInfo"
+              },
+              "run": {
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "title": "Command",
+                    "description": "Command to use to run this component, `launcher` will be prepended to it to load the environment if needed.",
+                    "examples": [
+                      "bash -c 'while date; do sleep 10; done'"
+                    ]
+                  },
+                  "cpu": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Cpu",
+                    "description": "Job CPU resource limit.",
+                    "examples": [
+                      "1"
+                    ]
+                  },
+                  "emails": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "none",
+                          "all",
+                          "onfinish",
+                          "onfailure"
+                        ],
+                        "title": "Emails"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "Job emails setting.",
+                    "examples": [
+                      "all"
+                    ]
+                  },
+                  "filelog": {
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Filelog",
+                    "description": "Whether this job uses filelog or not.",
+                    "examples": [
+                      false
+                    ]
+                  },
+                  "filelog_stderr": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Filelog Stderr",
+                    "description": "Path to the stderr file log.",
+                    "examples": [
+                      "logs/my-job.err"
+                    ]
+                  },
+                  "filelog_stdout": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Filelog Stdout",
+                    "description": "Path to the stdout file log.",
+                    "examples": [
+                      "logs/my-job.out"
+                    ]
+                  },
+                  "memory": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Memory",
+                    "description": "Job memory resource limit.",
+                    "examples": [
+                      "1G"
+                    ]
+                  },
+                  "mount": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "all",
+                          "none"
+                        ],
+                        "title": "Mount"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "NFS mount configuration for the job.",
+                    "examples": [
+                      "none",
+                      "all"
+                    ]
+                  },
+                  "retry": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "maximum": 5.0,
+                        "minimum": 0.0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Retry",
+                    "description": "Job retry policy. Zero means don't retry at all (the default)",
+                    "examples": [
+                      0
+                    ]
+                  },
+                  "schedule": {
+                    "type": "string",
+                    "title": "Schedule",
+                    "description": "If the job is a cronjob, execution schedule.",
+                    "examples": [
+                      "@hourly",
+                      "*/15 * * * *"
+                    ]
+                  },
+                  "timeout": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0.0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Timeout",
+                    "description": "Maximum amount of seconds the job will be allowed to run before it is failed",
+                    "examples": [
+                      120
+                    ]
+                  }
+                },
+                "type": "object",
+                "required": [
+                  "command",
+                  "schedule"
+                ],
+                "title": "ScheduledRunInfo"
+              },
+              "component_type": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "const": "continuous"
+                  },
+                  {
+                    "type": "string",
+                    "const": "scheduled"
+                  }
+                ],
+                "title": "Component Type",
+                "default": "scheduled"
+              }
+            },
+            "type": "object",
+            "required": [
+              "build",
+              "run"
+            ],
+            "title": "ScheduledComponentInfo"
+          }
+        ]
+      },
+      "type": "object",
+      "minProperties": 1,
+      "title": "Components",
+      "description": "List of components to run. Each component matches a continuous job, scheduled job, one-off job or webservice."
+    }
+  },
+  "type": "object",
+  "required": [
+    "components"
+  ],
+  "title": "ToolConfig"
+}

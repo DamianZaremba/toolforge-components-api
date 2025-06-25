@@ -28,6 +28,8 @@ pytest-asyncio = "^0.25.3"
 freezegun = "^1.5.1"
 types-requests = "^2.32.4.20250611"
 types-toml = "^0.10.8.20240310"
+jsonref = "^1.1.0"
+types-pyyaml = "^6.0.12.20250516"
 
 [tool.ruff.lint]
 # add isort

@@ -27,6 +27,8 @@ repos:
             "types-requests",
             "prometheus-client",
             "prometheus-fastapi-instrumentator",
+            "jsonref",
+            "types-PyYAML",
           ]
 
   - repo: https://github.com/pre-commit/pre-commit-hooks

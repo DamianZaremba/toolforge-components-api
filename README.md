@@ -10,7 +10,7 @@ To deploy it, follow the same pattern as the other Toolforge components
 For local development, you can use the following command to start the
 application:
 
-```bash
+```shell
 poetry run uvicorn --factory components.main:create_app --workers=2 --reload
 ```
 
@@ -18,26 +18,24 @@ This will start the application on <http://localhost:8000>.
 
 ## API Endpoints
 
-The API provides the following endpoints:
-
-### Tool Configuration
-
-- `GET /v1/tool/{toolname}/config`: Retrieve the configuration for a specific
-  tool.
-- `POST /v1/tool/{toolname}/config`: Update the configuration for a specific
-  tool.
-
-### Deployments
-
-- `POST /v1/tool/{toolname}/deploy`: Create a new deployment for a specific
-  tool.
-- `GET /v1/tool/{toolname}/deploy/{deploy_id}`: Retrieve information about a
-  specific deployment.
-
 All endpoints are prefixed with `/v1` to ensure versioning of the API.
 
 For detailed information about request and response formats, please refer to the
 API documentation or the OpenAPI specification.
+
+## Generating the tool config schema
+
+You can generate the tool config schema from the `openapi.yaml` file by running
+the scr `utils/generate_config_schema.py`.
+
+### How to use it
+
+You can now set the schema on your config file, for example, if you use
+yaml-language-server, you have to add this line to the top:
+
+```yaml
+# yaml-language-server: $schema=https://gitlab.wikimedia.org/repos/cloud/toolforge/components-api/-/raw/main/openapi/tool-config-schema.json
+```
 
 ## Developing tricks
 
@@ -45,7 +43,7 @@ API documentation or the OpenAPI specification.
 
 To regenerate the toolforge models you can just run:
 
-```
+```shell
 dcaro@lima-kilo$ poetry run datamodel-codegen --url https://api.svc.toolforge.org/openapi.json --output components/gen/toolforge_models.py
 ```
 
@@ -54,7 +52,7 @@ dcaro@lima-kilo$ poetry run datamodel-codegen --url https://api.svc.toolforge.or
 For this you can start your lima-kilo installation, then copy the `.kube/config`
 file locally:
 
-```
+```shell
 dcaro@lima-kilo$ cat ~/.kube/config
 .... some data, copy-paste to a local file
 
@@ -65,7 +63,7 @@ dcaro@mylaptop$ vim ~/.kube/lima-kilo-config
 Create a tunnel to the k8s cluster API (whichever way you prefer, this is just
 one of many):
 
-```
+```shell
 dcaro@mylaptop$ limactl list
 WARN[0000] provisioning scripts should not reference the LIMA_CIDATA variables
 NAME         STATUS     SSH                VMTYPE    ARCH      CPUS    MEMORY    DISK      DIR
@@ -78,6 +76,6 @@ dcaro@mylaptop$ ssh -NfL 33785:127.0.0.1:33785 127.0.0.1 -p 44417
 
 Then tell the components api where to find the kubeconfig
 
-```
+```shell
 dcaro@mylaptop$ env KUBECONFIG=~/.kube/lima-kilo-config STORAGE_TYPE=kubernetes LOG_LEVEL=debug poetry run fastapi run components/main.py
 ```
