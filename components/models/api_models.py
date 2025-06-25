@@ -191,6 +191,7 @@ class DeploymentBuildState(str, Enum):
     successful = "successful"
     unknown = "unknown"
     skipped = "skipped"
+    cancelled = "cancelled"
 
 
 class DeploymentBuildInfo(BaseModel):
@@ -226,6 +227,8 @@ class DeploymentState(str, Enum):
     failed = "failed"
     timed_out = "timed_out"
     successful = "successful"
+    cancelling = "cancelling"
+    cancelled = "cancelled"
 
 
 class Deployment(BaseModel):

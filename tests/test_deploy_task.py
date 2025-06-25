@@ -27,6 +27,7 @@ from components.models.api_models import (
     SourceBuildInfo,
 )
 from components.runtime.utils import get_runtime
+from components.settings import get_settings
 from components.storage.mock import MockStorage
 
 from .testlibs import get_defined_job, get_deployment_from_tool_config, get_tool_config
@@ -106,7 +107,7 @@ class TestDoDeploy:
             storage=my_storage,
             tool_config=my_tool_config,
             tool_name="my-tool",
-            runtime=get_runtime(),
+            runtime=get_runtime(settings=get_settings()),
         )
 
         gotten_deployments = my_storage.list_deployments(tool_name="my-tool")
@@ -200,7 +201,7 @@ class TestDoDeploy:
             storage=my_storage,
             tool_config=my_tool_config,
             tool_name="my-tool",
-            runtime=get_runtime(),
+            runtime=get_runtime(settings=get_settings()),
         )
 
         gotten_deployments = my_storage.list_deployments(tool_name="my-tool")
@@ -271,7 +272,7 @@ class TestDoDeploy:
             storage=my_storage,
             tool_config=my_tool_config,
             tool_name="my-tool",
-            runtime=get_runtime(),
+            runtime=get_runtime(settings=get_settings()),
         )
 
         gotten_deployments = my_storage.list_deployments(tool_name="my-tool")
@@ -332,7 +333,7 @@ class TestDoDeploy:
             storage=my_storage,
             tool_config=my_tool_config,
             tool_name="my-tool",
-            runtime=get_runtime(),
+            runtime=get_runtime(settings=get_settings()),
         )
 
         gotten_deployments = my_storage.list_deployments(tool_name="my-tool")
@@ -397,7 +398,7 @@ class TestDoDeploy:
             storage=my_storage,
             tool_config=my_tool_config,
             tool_name="my-tool",
-            runtime=get_runtime(),
+            runtime=get_runtime(settings=get_settings()),
         )
 
         gotten_deployments = my_storage.list_deployments(tool_name="my-tool")
@@ -467,7 +468,7 @@ class TestDoDeploy:
                 storage=my_storage,
                 tool_config=my_tool_config,
                 tool_name="my-tool",
-                runtime=get_runtime(),
+                runtime=get_runtime(settings=get_settings()),
             )
 
         gotten_deployments = my_storage.list_deployments(tool_name="my-tool")
@@ -529,7 +530,7 @@ class TestDoDeploy:
                 storage=my_storage,
                 tool_config=my_tool_config,
                 tool_name="my-tool",
-                runtime=get_runtime(),
+                runtime=get_runtime(settings=get_settings()),
             )
 
         gotten_deployments = my_storage.list_deployments(tool_name="my-tool")
@@ -584,7 +585,7 @@ class TestDoDeploy:
             storage=my_storage,
             tool_config=my_tool_config,
             tool_name="my-tool",
-            runtime=get_runtime(),
+            runtime=get_runtime(settings=get_settings()),
         )
 
         gotten_deployments = my_storage.list_deployments(tool_name="my-tool")
@@ -684,7 +685,7 @@ class TestDoDeploy:
             storage=my_storage,
             tool_config=my_tool_config,
             tool_name="my-tool",
-            runtime=get_runtime(),
+            runtime=get_runtime(settings=get_settings()),
         )
 
         gotten_deployments = my_storage.list_deployments(tool_name="my-tool")
@@ -704,6 +705,74 @@ class TestDoDeploy:
             },
             verify=True,
         )
+
+    def test_cancels_builds_when_deploy_is_cancelled(self, monkeypatch: MonkeyPatch):
+        my_storage = MockStorage()
+        my_tool_config = get_tool_config()
+        my_deployment = get_deployment_from_tool_config(
+            tool_config=my_tool_config, with_build_state=DeploymentBuildState.failed
+        )
+        my_storage.create_deployment(tool_name="my-tool", deployment=my_deployment)
+
+        toolforge_client_mock = MagicMock(spec=ToolforgeClient)
+        monkeypatch.setattr(
+            "components.runtime.toolforge.get_toolforge_client",
+            lambda: toolforge_client_mock,
+        )
+        toolforge_client_mock.post.return_value = {"new_build": {"name": "my-build"}}
+        toolforge_client_mock.get.return_value = {
+            "build": {"status": BuildsBuildStatus.BUILD_RUNNING.value}
+        }
+
+        count = 0
+
+        def fake_get_deployment(tool_name: str, deployment_name: str) -> Deployment:
+            nonlocal count
+            # 3 is the magic number here, so it gets to start the build before cancelling
+            if count == 3:
+                my_deployment.status = DeploymentState.cancelling
+            else:
+                count += 1
+            return my_deployment
+
+        monkeypatch.setattr(my_storage, "get_deployment", fake_get_deployment)
+
+        expected_deployments = [
+            Deployment(
+                deploy_id="my-deploy-id",
+                creation_time="2021-06-01T00:00:00",
+                builds={
+                    "my-component": DeploymentBuildInfo(
+                        build_id="my-build",
+                        build_status=DeploymentBuildState.cancelled,
+                        build_long_status="You can see the logs with `toolforge build logs my-build`",
+                    )
+                },
+                runs={
+                    "my-component": DeploymentRunInfo(
+                        run_status=DeploymentRunState.skipped,
+                        run_long_status="The deployment was cancelled",
+                    )
+                },
+                status=DeploymentState.cancelled,
+                long_status="Deployment was cancelled",
+            )
+        ]
+
+        do_deploy(
+            deployment=my_deployment,
+            storage=my_storage,
+            tool_config=my_tool_config,
+            tool_name="my-tool",
+            runtime=get_runtime(settings=get_settings()),
+        )
+
+        gotten_deployments = my_storage.list_deployments(tool_name="my-tool")
+
+        # make sure that we have some deployments
+        assert gotten_deployments
+        assert gotten_deployments == expected_deployments
+        toolforge_client_mock.patch.assert_not_called()
 
     def test_parses_jobs_api_http_error_messages_when_run_fails(
         self, monkeypatch: MonkeyPatch
@@ -767,7 +836,7 @@ class TestDoDeploy:
             storage=my_storage,
             tool_config=my_tool_config,
             tool_name="my-tool",
-            runtime=get_runtime(),
+            runtime=get_runtime(settings=get_settings()),
         )
 
         gotten_deployments = my_storage.list_deployments(tool_name="my-tool")
@@ -838,7 +907,7 @@ class TestDoDeploy:
             storage=my_storage,
             tool_config=my_tool_config,
             tool_name="my-tool",
-            runtime=get_runtime(),
+            runtime=get_runtime(settings=get_settings()),
         )
 
         gotten_deployments = my_storage.list_deployments(tool_name="my-tool")
@@ -931,7 +1000,7 @@ class TestDoDeploy:
             storage=my_storage,
             tool_config=my_tool_config,
             tool_name="my-tool",
-            runtime=get_runtime(),
+            runtime=get_runtime(settings=get_settings()),
         )
 
         gotten_deployments = my_storage.list_deployments(tool_name="my-tool")
@@ -1010,7 +1079,7 @@ class TestDoDeploy:
             storage=my_storage,
             tool_config=my_tool_config,
             tool_name="my-tool",
-            runtime=get_runtime(),
+            runtime=get_runtime(settings=get_settings()),
         )
 
         gotten_deployments = my_storage.list_deployments(tool_name="my-tool")

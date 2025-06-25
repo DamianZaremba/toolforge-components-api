@@ -489,3 +489,10 @@ class ToolforgeRuntime(Runtime):
         )
         parsed_response = BuildsListResponse.model_validate(raw_response)
         return parsed_response.builds or []
+
+    def cancel_build(self, tool_name: str, build_id: str) -> None:
+        toolforge_client = get_toolforge_client()
+        toolforge_client.put(
+            f"/builds/v1/tool/{tool_name}/builds/{build_id}/cancel",
+            verify=get_settings().verify_toolforge_api_cert,
+        )

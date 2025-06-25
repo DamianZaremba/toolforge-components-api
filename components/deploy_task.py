@@ -9,7 +9,7 @@ from typing import Protocol
 from fastapi import HTTPException, status
 from requests import HTTPError
 
-from .exceptions import BuildFailed, RunFailed
+from .exceptions import BuildFailed, DeployCancelled, RunFailed
 from .models.api_models import (
     ComponentInfo,
     ContinuousComponentInfo,
@@ -30,21 +30,6 @@ from .storage.base import Storage
 logger = getLogger(__name__)
 
 
-def _get_component_image_name(
-    component_info: ComponentInfo,
-    component_name: str,
-) -> str:
-    match component_info.build:
-        case SourceBuildInfo():
-            logger.debug(f"Got source build type: {component_info}")
-            # TODO: use the actual build logs/info to get the image name once we trigger builds
-            # The tag and the prefix are currently added by builds-api during build
-            return component_name
-
-    logger.error(f"Unsupported build information: {component_info.build}")
-    raise Exception(f"unsupported build information: {component_info.build}")
-
-
 class DoDeployFuncType(Protocol):
     def __call__(
         self,
@@ -61,7 +46,33 @@ class UpdateBuildInfoFuncType(Protocol):
     def __call__(self, *, build_info: dict[str, DeploymentBuildInfo]) -> None: ...
 
 
-def set_deployment_as_failed_on_error(func: DoDeployFuncType) -> DoDeployFuncType:
+def _raise_if_cancelled(storage: Storage, tool_name: str, deployment_id: str) -> None:
+    existing_deployment = storage.get_deployment(
+        tool_name=tool_name, deployment_name=deployment_id
+    )
+    if existing_deployment.status == DeploymentState.cancelling:
+        logger.debug("Checking if deploy")
+        raise DeployCancelled(f"Deployment {deployment_id} has been cancelled")
+
+
+def _cancel_builds(deployment: Deployment, runtime: Runtime, tool_name: str) -> None:
+    for build in deployment.builds.values():
+        if build.build_status in (
+            DeploymentBuildState.pending,
+            DeploymentBuildState.running,
+        ):
+            try:
+                runtime.cancel_build(tool_name=tool_name, build_id=build.build_id)
+            except Exception as error:
+                logger.exception(f"Failed trying to cancel build {build}: {error}")
+                pass
+
+            build.build_status = DeploymentBuildState.cancelled
+
+
+def handle_deployment_exception(
+    func: DoDeployFuncType,
+) -> DoDeployFuncType:
     """Wraps the function in a try-except and sets the deployment status to error if any exception is raised.
 
     Very specific for do_deploy, but if needed could be generalized for others.
@@ -83,27 +94,46 @@ def set_deployment_as_failed_on_error(func: DoDeployFuncType) -> DoDeployFuncTyp
                 storage=storage,
                 runtime=runtime,
             )
+
+        except DeployCancelled:
+            deployment.status = DeploymentState.cancelled
+            deployment.long_status = "Deployment was cancelled"
+            run_long_status = "The deployment was cancelled"
+            logger.debug(f"Cancelling deploy {deployment.deploy_id}")
+            _cancel_builds(deployment=deployment, runtime=runtime, tool_name=tool_name)
+
         except Exception as error:
             deployment.status = DeploymentState.failed
             deployment.long_status = f"Got exception: {error}\n{traceback.format_exc()}"
-
-            for run in deployment.runs.values():
-                if run.run_status == DeploymentRunState.pending:
-                    run.run_status = DeploymentRunState.skipped
-                    run.run_long_status = "Skipped due to previous failure"
-
-            _update_deployment(
-                storage=storage, tool_name=tool_name, deployment=deployment
-            )
             logger.exception(f"Deployment {deployment} failed: {error}")
+            run_long_status = "Skipped due to previous failure"
+
+        for run in deployment.runs.values():
+            if run.run_status == DeploymentRunState.pending:
+                run.run_status = DeploymentRunState.skipped
+                run.run_long_status = run_long_status
+
+        _update_deployment(
+            storage=storage,
+            tool_name=tool_name,
+            deployment=deployment,
+            raise_if_cancelled=False,
+        )
 
     return _inner
 
 
 def _update_deployment(
-    storage: Storage, tool_name: str, deployment: Deployment
+    storage: Storage,
+    tool_name: str,
+    deployment: Deployment,
+    raise_if_cancelled: bool = True,
 ) -> None:
     """Thin wrapper on storage to add the http exception for the task."""
+    if raise_if_cancelled:
+        _raise_if_cancelled(
+            storage=storage, tool_name=tool_name, deployment_id=deployment.deploy_id
+        )
     try:
         storage.update_deployment(tool_name=tool_name, deployment=deployment)
         logger.info(f"Updated deployment {deployment} for tool {tool_name}")
@@ -129,6 +159,8 @@ def _wait_for_builds(
     update_build_info_func: UpdateBuildInfoFuncType,
     tool_name: str,
     runtime: Runtime,
+    storage: Storage,
+    deployment_id: str,
 ) -> None:
     settings = get_settings()
     pending_builds: dict[str, DeploymentBuildInfo] = {
@@ -174,6 +206,11 @@ def _wait_for_builds(
             logger.debug(
                 f"Build for {component_name} finished, removing from list, {len(pending_builds)} builds left."
             )
+
+        # just in case that there's no updates to any builds, double check if we should stop.
+        _raise_if_cancelled(
+            deployment_id=deployment_id, storage=storage, tool_name=tool_name
+        )
         # Builds currently take in the order of minutes to complete, 2 seconds seems like often enough not to
         # overwhelm the api and still get a quick response once the build is finished.
         time.sleep(2)
@@ -280,8 +317,13 @@ def _do_build(
     tool_name: str,
     force_build: bool,
     runtime: Runtime,
+    storage: Storage,
+    deployment_id: str,
 ) -> None:
     logger.debug(f"Starting builds for tool {tool_name}")
+    _raise_if_cancelled(
+        storage=storage, tool_name=tool_name, deployment_id=deployment_id
+    )
     all_builds = _start_builds(
         components=components,
         update_build_info_func=update_build_info_func,
@@ -295,6 +337,8 @@ def _do_build(
         update_build_info_func=update_build_info_func,
         tool_name=tool_name,
         runtime=runtime,
+        storage=storage,
+        deployment_id=deployment_id,
     )
     logger.debug(f"Builds done for tool {tool_name}")
 
@@ -399,7 +443,7 @@ def _do_run(
         _update_deployment(storage=storage, tool_name=tool_name, deployment=deployment)
 
 
-@set_deployment_as_failed_on_error
+@handle_deployment_exception
 def do_deploy(
     *,
     tool_name: str,
@@ -425,7 +469,12 @@ def do_deploy(
         update_build_info_func=_update_build_info_func,
         tool_name=tool_name,
         force_build=deployment.force_build,
+        deployment_id=deployment.deploy_id,
         runtime=runtime,
+        storage=storage,
+    )
+    _raise_if_cancelled(
+        storage=storage, tool_name=tool_name, deployment_id=deployment.deploy_id
     )
     _do_run(
         components=tool_config.components,

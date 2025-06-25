@@ -64,3 +64,7 @@ class Runtime(ABC):
     @abstractmethod
     def get_builds(self, tool_name: str) -> list[BuildsBuild]:
         pass
+
+    @abstractmethod
+    def cancel_build(self, tool_name: str, build_id: str) -> None:
+        pass

@@ -293,7 +293,6 @@ paths:
       tags:
       - tool
       summary: Get Tool Deployment
-      description: Retrieve the configuration for a specific tool.
       operationId: get_tool_deployment
       security:
       - APIKeyHeader: []
@@ -339,6 +338,74 @@ paths:
           title: Toolname
       - name: deployment_id
         in: path
+        required: true
+        schema:
+          type: string
+          title: Deployment Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Deployment_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/tool/{toolname}/deployment/{deployment_id}/cancel:
+    put:
+      tags:
+      - tool
+      summary: Cancel Tool Deployment
+      operationId: cancel_tool_deployment
+      security:
+      - APIKeyHeader: []
+      parameters:
+      - name: toolname
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Toolname
+      - name: deployment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Deployment Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Deployment_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/tool/{toolname}/deployment/latest/cancel:
+    put:
+      tags:
+      - tool
+      summary: Cancel Tool Deployment
+      operationId: cancel_tool_deployment
+      security:
+      - APIKeyHeader: []
+      parameters:
+      - name: toolname
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Toolname
+      - name: deployment_id
+        in: query
         required: true
         schema:
           type: string
@@ -742,6 +809,7 @@ components:
       - successful
       - unknown
       - skipped
+      - cancelled
       title: DeploymentBuildState
     DeploymentList:
       properties:
@@ -788,6 +856,8 @@ components:
       - failed
       - timed_out
       - successful
+      - cancelling
+      - cancelled
       title: DeploymentState
     Emails:
       type: string

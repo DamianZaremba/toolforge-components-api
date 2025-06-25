@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 
 from fastapi import BackgroundTasks, HTTPException, status
 
@@ -206,6 +207,51 @@ def get_tool_deployment(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error",
         )
+
+
+def cancel_tool_deployment(
+    tool_name: str, deployment_name: str, storage: Storage
+) -> Deployment:
+    logger.info(f"Cancelling deployment {deployment_name} for tool {tool_name}")
+    try:
+        deployment = storage.get_deployment(
+            tool_name=tool_name, deployment_name=deployment_name
+        )
+        if deployment.status not in (DeploymentState.pending, DeploymentState.running):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Deployment can't be cancelled, it's state is {deployment.status.value}",
+            )
+
+        deployment.status = DeploymentState.cancelling
+        storage.update_deployment(tool_name=tool_name, deployment=deployment)
+        logger.info(
+            f"Deployment {deployment_name} flagged for cancelling successfully for tool {tool_name}"
+        )
+        return deployment
+
+    except NotFoundInStorage as e:
+        logger.warning(str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+    except HTTPException:
+        # bubble up http exceptions for the api to return
+        raise
+
+    except Exception as e:
+        logger.error(f"Error cancelling deployment for tool {tool_name}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error",
+        )
+
+
+def get_latest_deployment(tool_name: str, storage: Storage) -> Deployment:
+    deployments = list_tool_deployments(tool_name=tool_name, storage=storage)
+    sorted_deployments = sorted(
+        deployments, key=lambda d: datetime.strptime(d.creation_time, "%Y%m%d-%H%M%S")
+    )
+    return sorted_deployments[-1]
 
 
 def list_tool_deployments(tool_name: str, storage: Storage) -> list[Deployment]:

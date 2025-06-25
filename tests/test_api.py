@@ -19,7 +19,9 @@ from components.models.api_models import (
     ContinuousComponentInfo,
     ContinuousRunInfo,
     Deployment,
+    DeploymentBuildInfo,
     DeploymentBuildState,
+    DeploymentRunInfo,
     DeploymentRunState,
     DeploymentState,
     DeployTokenResponse,
@@ -34,6 +36,7 @@ from components.models.api_models import (
 from components.runtime.utils import get_runtime
 from components.settings import get_settings
 from components.storage.mock import MockStorage
+from components.storage.utils import get_storage
 from tests.helpers import (
     create_deploy_token,
     create_tool_config,
@@ -894,3 +897,117 @@ class TestGenerateConfig:
 
         assert parsed_response.data == expected_config.data
         assert parsed_response.messages == expected_config.messages
+
+
+class TestCancelDeployment:
+    def test_fails_without_auth_header(self, test_client: TestClient):
+        raw_response = test_client.put("/v1/tool/test-tool-1/deployment/some-id/cancel")
+
+        assert raw_response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_fails_if_tool_has_no_config(self, authenticated_client: TestClient):
+        authenticated_client.delete("/v1/tool/test-tool-1/config")
+        raw_response = authenticated_client.get("/v1/tool/test-tool-1/config")
+        assert raw_response.status_code == status.HTTP_404_NOT_FOUND
+
+        raw_response = authenticated_client.put(
+            "/v1/tool/test-tool-1/deployment/some-id/cancel"
+        )
+
+        assert raw_response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_returns_not_found_when_tool_does_not_exist(
+        self,
+        authenticated_client: TestClient,
+    ):
+        raw_response = authenticated_client.put(
+            "/v1/tool/idontexist/deployment/some-id/cancel"
+        )
+
+        assert raw_response.status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.parametrize(
+        "deployment_status", [DeploymentState.pending, DeploymentState.running]
+    )
+    def test_flags_deployment_for_cancellation(
+        self, authenticated_client: TestClient, deployment_status: DeploymentState
+    ):
+        create_tool_config(authenticated_client)
+
+        # this breaks a bit the barrier between api tests only testing through the api, but found no nicer way to
+        # test this as we have to catch the deployment "on the fly"
+        storage = get_storage()
+        storage.create_deployment(
+            tool_name="test-tool-1",
+            deployment=Deployment(
+                deploy_id="my-deploy-id",
+                creation_time="2021-06-01T00:00:00",
+                builds={
+                    "my-component": DeploymentBuildInfo(
+                        build_id="my-build",
+                        build_status=DeploymentBuildState.pending,
+                    )
+                },
+                runs={
+                    "my-component": DeploymentRunInfo(
+                        run_status=DeploymentRunState.pending,
+                        run_long_status="",
+                    )
+                },
+                status=deployment_status,
+                long_status="",
+            ),
+        )
+
+        response = authenticated_client.put(
+            "/v1/tool/test-tool-1/deployment/my-deploy-id/cancel"
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        expected_deployment = ToolDeploymentResponse.model_validate(response.json())
+        expected_deployment.data.status = DeploymentState.cancelling
+
+    @pytest.mark.parametrize(
+        "deployment_status",
+        [
+            DeploymentState.cancelled,
+            DeploymentState.cancelling,
+            DeploymentState.failed,
+            DeploymentState.successful,
+            DeploymentState.timed_out,
+        ],
+    )
+    def test_returns_conflict_if_deployment_not_running(
+        self, authenticated_client: TestClient, deployment_status: DeploymentState
+    ):
+        create_tool_config(authenticated_client)
+
+        # this breaks a bit the barrier between api tests only testing through the api, but found no nicer way to
+        # test this as we have to catch the deployment "on the fly"
+        storage = get_storage()
+        storage.create_deployment(
+            tool_name="test-tool-1",
+            deployment=Deployment(
+                deploy_id="my-deploy-id",
+                creation_time="2021-06-01T00:00:00",
+                builds={
+                    "my-component": DeploymentBuildInfo(
+                        build_id="my-build",
+                        build_status=DeploymentBuildState.pending,
+                    )
+                },
+                runs={
+                    "my-component": DeploymentRunInfo(
+                        run_status=DeploymentRunState.pending,
+                        run_long_status="",
+                    )
+                },
+                status=deployment_status,
+                long_status="",
+            ),
+        )
+
+        response = authenticated_client.put(
+            "/v1/tool/test-tool-1/deployment/my-deploy-id/cancel"
+        )
+        assert response.status_code == status.HTTP_409_CONFLICT

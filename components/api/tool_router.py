@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request
@@ -167,13 +166,10 @@ def get_latest_deployment(
     toolname: str, storage: Storage = Depends(get_storage)
 ) -> ToolDeploymentResponse:
     """Print the latest deployment for a specific tool, sorted by creation_time"""
-    deployments = handlers.list_tool_deployments(tool_name=toolname, storage=storage)
-    sorted_deployments = sorted(
-        deployments, key=lambda d: datetime.strptime(d.creation_time, "%Y%m%d-%H%M%S")
+    latest_deployment = handlers.get_latest_deployment(
+        tool_name=toolname, storage=storage
     )
-    return ToolDeploymentResponse(
-        data=sorted_deployments[-1], messages=ResponseMessages()
-    )
+    return ToolDeploymentResponse(data=latest_deployment, messages=ResponseMessages())
 
 
 @header_auth_router.get("/{toolname}/deployment/{deployment_id}")
@@ -182,11 +178,48 @@ def get_tool_deployment(
     deployment_id: str,
     storage: Storage = Depends(get_storage),
 ) -> ToolDeploymentResponse:
-    """Retrieve the configuration for a specific tool."""
     deployment = handlers.get_tool_deployment(
         tool_name=toolname, deployment_name=deployment_id, storage=storage
     )
     return ToolDeploymentResponse(data=deployment, messages=ResponseMessages())
+
+
+@header_auth_router.put("/{toolname}/deployment/latest/cancel")
+@header_auth_router.put("/{toolname}/deployment/{deployment_id}/cancel")
+def cancel_tool_deployment(
+    toolname: str,
+    deployment_id: str,
+    storage: Storage = Depends(get_storage),
+) -> ToolDeploymentResponse:
+    # The current flow is:
+
+    # * A deployment is triggered, and runs as a background task in the process that received that request.
+    # * A cancellation request comes, and updates the deployment status to 'cancelling'.
+    # * The deployment task checks every time it updates the deployment status to see if it should cancel, and also at
+    #   some selected points during the process.
+    # * If so, it cancels the deployment, and tries to cancel any builds that it might have started.
+    # * Marks as skipped any builds and runs that did not start yet.
+
+    # There's some drawbacks:
+    # * Updating the deployment status is not atomic, so there's a very small chance that we miss the cancellation and
+    #   override it with a status update. Currently considered small enough to not be a bother, but we can address it
+    #   if/when it becomes relevant.
+    # * We can't cancel a job once we start running it
+    if deployment_id == "latest":
+        latest_deployment = handlers.get_latest_deployment(
+            tool_name=toolname, storage=storage
+        )
+        deployment_id = latest_deployment.deploy_id
+
+    deployment = handlers.cancel_tool_deployment(
+        tool_name=toolname, deployment_name=deployment_id, storage=storage
+    )
+    return ToolDeploymentResponse(
+        data=deployment,
+        messages=ResponseMessages(
+            info=["Deployment flagged for cancellation, might take a moment to cancel."]
+        ),
+    )
 
 
 @header_auth_router.get("/{toolname}/deployment")

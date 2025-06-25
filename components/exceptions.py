@@ -8,3 +8,7 @@ class BuildFailed(DeployException):
 
 class RunFailed(DeployException):
     pass
+
+
+class DeployCancelled(DeployException):
+    pass
