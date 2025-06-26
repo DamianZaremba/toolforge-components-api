@@ -47,7 +47,7 @@ def _resolve_ref(build_info: SourceBuildInfo) -> str:
         check=False,
     )
     if result.returncode != 0:
-        logger.exception(
+        logger.error(
             f"Got error trying to resolve ref '{ref}' for repository '{source_url}'. Error: {result.stderr}"
         )
         return ""
@@ -62,7 +62,7 @@ def _resolve_ref(build_info: SourceBuildInfo) -> str:
     message = (
         f"Failed to resolve ref '{ref}' for repository '{source_url}', does it exist?"
     )
-    logger.exception(f"{message} Got: {result.stdout}")
+    logger.error(f"{message} Got: {result.stdout}")
     raise BuildFailed(message)
 
 
@@ -194,7 +194,7 @@ class ToolforgeRuntime(Runtime):
             unknown_error_message = traceback.format_exc()
 
         if unknown_error_message or not response:
-            logger.exception(
+            logger.error(
                 f"Got error trying to fetch build status for tool {tool_name}, "
                 f"build_id {build.build_id}: \n{unknown_error_message}"
             )
