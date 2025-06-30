@@ -902,7 +902,7 @@ components:
           anyOf:
           - type: string
             const: v1beta1
-          - type: 'null'
+            nullable: true
           title: Config Version
           default: v1beta1
           examples:
