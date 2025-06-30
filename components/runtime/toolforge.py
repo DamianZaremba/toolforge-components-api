@@ -1,6 +1,5 @@
 import datetime
 import subprocess
-import traceback
 from logging import getLogger
 
 from fastapi import status
@@ -205,18 +204,25 @@ class ToolforgeRuntime(Runtime):
             if error.response.status_code == status.HTTP_404_NOT_FOUND:
                 logger.exception(
                     f"Got 404 trying to fetch build status for tool {tool_name}, "
-                    f"build_id {build.build_id}, maybe someone deleted the build?: "
-                    "\n{traceback.format_exc()}"
+                    f"build_id {build.build_id}, maybe someone deleted the build?"
                 )
                 return (
                     DeploymentBuildState.failed,
                     f"build {build.build_id} not found, maybe it was deleted?",
                 )
 
-            unknown_error_message = traceback.format_exc()
+            logger.exception(
+                f"Got {error} trying to fetch build status for tool {tool_name}, "
+                f"build_id {build.build_id}"
+            )
+            unknown_error_message = f"Unknown HTTP error {error}"
 
-        except Exception:
-            unknown_error_message = traceback.format_exc()
+        except Exception as error:
+            logger.exception(
+                f"Got {error} trying to fetch build status for tool {tool_name}, "
+                f"build_id {build.build_id}"
+            )
+            unknown_error_message = f"Unknown error {error}"
 
         if unknown_error_message or not response:
             logger.error(

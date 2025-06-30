@@ -1,5 +1,4 @@
 import time
-import traceback
 from copy import deepcopy
 from datetime import datetime
 from functools import partial, wraps
@@ -104,7 +103,7 @@ def handle_deployment_exception(
 
         except Exception as error:
             deployment.status = DeploymentState.failed
-            deployment.long_status = f"Got exception: {error}\n{traceback.format_exc()}"
+            deployment.long_status = f"Got exception: {error}"
             logger.exception(f"Deployment {deployment} failed: {error}")
             run_long_status = "Skipped due to previous failure"
 
