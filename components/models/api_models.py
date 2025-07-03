@@ -172,7 +172,9 @@ ComponentInfo = ContinuousComponentInfo | ScheduledComponentInfo
 
 class ToolConfig(BaseModel):
     config_version: Literal[ConfigVersion.V1_BETA1] | None = Field(
-        examples=["v1beta1"], default=ConfigVersion.V1_BETA1
+        examples=["v1beta1"],
+        default=ConfigVersion.V1_BETA1,
+        json_schema_extra={"nullable": True},
     )
     components: dict[str, ComponentInfo] = Field(
         ...,

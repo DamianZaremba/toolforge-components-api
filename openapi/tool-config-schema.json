@@ -14,7 +14,8 @@
       "default": "v1beta1",
       "examples": [
         "v1beta1"
-      ]
+      ],
+      "nullable": true
     },
     "components": {
       "additionalProperties": {
