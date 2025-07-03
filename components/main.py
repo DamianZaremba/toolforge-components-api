@@ -53,7 +53,36 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     logging.root.setLevel(level=level)
     LOGGER.debug("Got settings: %r", settings)
 
-    app = FastAPI(title=title, version=version)
+    app = FastAPI(
+        title=title,
+        servers=[
+            {
+                "url": "http://127.0.0.1:8000",
+                "description": "Local direct development server.",
+            },
+            {
+                "url": "https://127.0.0.1:3000/components",
+                "description": "Lima-kilo development server.",
+            },
+            {
+                "url": "https://api.svc.tools.eqiad1.wikimedia.cloud:30003/components",
+                "description": "Toolforge internal API gateway endpoint.",
+            },
+            {
+                "url": "https://api.svc.toolsbeta.eqiad1.wikimedia.cloud:30003/components",
+                "description": "Toolforge beta internal API gateway endpoint.",
+            },
+            {
+                "url": "https://api.svc.toolforge.org/components",
+                "description": "Toolforge external API gateway endpoint.",
+            },
+            {
+                "url": "https://api.svc.beta.toolforge.org/components",
+                "description": "Toolforge beta external API gateway endpoint.",
+            },
+        ],
+        version=version,
+    )
 
     # Initialize metrics
     metrics_app = get_metrics_app()
