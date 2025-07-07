@@ -31,7 +31,7 @@ header_auth_router = APIRouter(
     ],
 )
 
-# Used only for deployment creation, authenticates with both, token and header
+# Used only for deployment creation and retrieval, authenticates with both, token and header
 token_auth_router = APIRouter(
     prefix="/tool",
     dependencies=[
@@ -172,7 +172,7 @@ def get_latest_deployment(
     return ToolDeploymentResponse(data=latest_deployment, messages=ResponseMessages())
 
 
-@header_auth_router.get("/{toolname}/deployment/{deployment_id}")
+@token_auth_router.get("/{toolname}/deployment/{deployment_id}")
 def get_tool_deployment(
     toolname: str,
     deployment_id: str,

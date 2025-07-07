@@ -301,73 +301,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /v1/tool/{toolname}/deployment/{deployment_id}:
-    get:
-      tags:
-      - tool
-      summary: Get Tool Deployment
-      operationId: get_tool_deployment
-      security:
-      - APIKeyHeader: []
-      parameters:
-      - name: toolname
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Toolname
-      - name: deployment_id
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Deployment Id
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse_Deployment_'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-    delete:
-      tags:
-      - tool
-      summary: Delete Tool Deployment
-      operationId: delete_tool_deployment
-      security:
-      - APIKeyHeader: []
-      parameters:
-      - name: toolname
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Toolname
-      - name: deployment_id
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Deployment Id
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse_Deployment_'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
   /v1/tool/{toolname}/deployment/{deployment_id}/cancel:
     put:
       tags:
@@ -507,6 +440,74 @@ paths:
         description: By default an already running component is not restarted if there
           are no changes to the run parameters. To force a re-run regardless of the
           run parameters, use force-run
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Deployment_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/tool/{toolname}/deployment/{deployment_id}:
+    delete:
+      tags:
+      - tool
+      summary: Delete Tool Deployment
+      operationId: delete_tool_deployment
+      security:
+      - APIKeyHeader: []
+      parameters:
+      - name: toolname
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Toolname
+      - name: deployment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Deployment Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Deployment_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - tool
+      summary: Get Tool Deployment
+      operationId: get_tool_deployment
+      security:
+      - APIKeyHeader: []
+      - APIKeyQuery: []
+      parameters:
+      - name: toolname
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Toolname
+      - name: deployment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Deployment Id
       responses:
         '200':
           description: Successful Response
