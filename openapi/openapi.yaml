@@ -322,40 +322,12 @@ paths:
         schema:
           type: string
           title: Deployment Id
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse_Deployment_'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-  /v1/tool/{toolname}/deployment/latest/cancel:
-    put:
-      tags:
-      - tool
-      summary: Cancel Tool Deployment
-      operationId: cancel_tool_deployment
-      security:
-      - APIKeyHeader: []
-      parameters:
-      - name: toolname
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Toolname
-      - name: deployment_id
-        in: query
-        required: true
-        schema:
-          type: string
-          title: Deployment Id
+          description: The deployment ID to cancel. Use "latest" to refer to the most recent deployment.
+          examples:
+          - value: "123e4567-e89b-12d3-a456-426614174000"
+            summary: Specific deployment ID
+          - value: "latest"
+            summary: Cancel the latest deployment
       responses:
         '200':
           description: Successful Response
