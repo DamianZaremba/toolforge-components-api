@@ -771,6 +771,10 @@ components:
             $ref: '#/components/schemas/DeploymentRunInfo'
           type: object
           title: Runs
+        tool_config:
+          anyOf:
+          - $ref: '#/components/schemas/ToolConfig-Output'
+          - type: 'null'
         status:
           $ref: '#/components/schemas/DeploymentState'
           default: pending

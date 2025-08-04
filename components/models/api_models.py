@@ -238,6 +238,7 @@ class Deployment(BaseModel):
     creation_time: str
     builds: dict[str, DeploymentBuildInfo]
     runs: dict[str, DeploymentRunInfo]
+    tool_config: ToolConfig | None = None
     status: DeploymentState = DeploymentState.pending
     long_status: str = ""
     force_build: bool = False
@@ -248,6 +249,7 @@ class Deployment(BaseModel):
         cls: "Type[Deployment]",
         builds: dict[str, DeploymentBuildInfo],
         runs: dict[str, DeploymentRunInfo],
+        tool_config: ToolConfig,
         force_build: bool = False,
         force_run: bool = False,
     ) -> "Deployment":
@@ -263,6 +265,7 @@ class Deployment(BaseModel):
             deploy_id=new_id,
             builds=builds,
             runs=runs,
+            tool_config=tool_config,
             force_build=force_build,
             force_run=force_run,
         )

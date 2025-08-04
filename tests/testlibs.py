@@ -43,6 +43,7 @@ def get_deployment_from_tool_config(
             )
             for component_name in tool_config.components.keys()
         },
+        tool_config=tool_config,
         deploy_id="my-deploy-id",
         creation_time="2021-06-01T00:00:00",
         status=(

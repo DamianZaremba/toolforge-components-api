@@ -46,7 +46,7 @@ from tests.helpers import (
     get_deploy_token,
     get_fake_tool_config,
 )
-from tests.testlibs import get_defined_job
+from tests.testlibs import get_defined_job, get_tool_config
 
 
 def test_healthz_endpoint_returns_ok_status(test_client: TestClient):
@@ -954,6 +954,7 @@ class TestCancelDeployment:
                         run_long_status="",
                     )
                 },
+                tool_config=get_tool_config(),
                 status=deployment_status,
                 long_status="",
             ),
@@ -1002,6 +1003,7 @@ class TestCancelDeployment:
                         run_long_status="",
                     )
                 },
+                tool_config=get_tool_config(),
                 status=deployment_status,
                 long_status="",
             ),

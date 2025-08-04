@@ -97,6 +97,7 @@ class TestDoDeploy:
                         run_long_status="created continuous job my-job-name",
                     )
                 },
+                tool_config=get_tool_config(),
                 status=DeploymentState.successful,
                 long_status="I will not be checked",
             )
@@ -191,6 +192,7 @@ class TestDoDeploy:
                         run_long_status="created continuous job my-job-name",
                     )
                 },
+                tool_config=get_tool_config(),
                 status=DeploymentState.successful,
                 long_status="I will not be checked",
             )
@@ -261,6 +263,7 @@ class TestDoDeploy:
                         run_long_status="created continuous job my-job-name",
                     )
                 },
+                tool_config=get_tool_config(),
                 status=DeploymentState.successful,
                 long_status="I will not be checked",
                 force_build=True,
@@ -323,6 +326,7 @@ class TestDoDeploy:
                         run_long_status="created continuous job my-job-name",
                     )
                 },
+                tool_config=get_tool_config(),
                 status=DeploymentState.successful,
                 long_status="I will not be checked",
             )
@@ -388,6 +392,7 @@ class TestDoDeploy:
                         run_long_status="Skipped due to previous failure",
                     )
                 },
+                tool_config=get_tool_config(),
                 status=DeploymentState.failed,
                 long_status="I will not be checked",
             )
@@ -453,6 +458,7 @@ class TestDoDeploy:
                         run_long_status="Skipped due to previous failure",
                     )
                 },
+                tool_config=get_tool_config(),
                 status=DeploymentState.failed,
                 long_status="I will not be checked",
             )
@@ -515,6 +521,7 @@ class TestDoDeploy:
                         run_long_status="Skipped due to previous failure",
                     )
                 },
+                tool_config=get_tool_config(),
                 status=DeploymentState.failed,
                 long_status="I will not be checked",
             )
@@ -575,6 +582,7 @@ class TestDoDeploy:
                         run_long_status="Ayayayay!",
                     )
                 },
+                tool_config=get_tool_config(),
                 status=DeploymentState.failed,
                 long_status="I will not be checked",
             )
@@ -675,6 +683,7 @@ class TestDoDeploy:
                         run_long_status="Skipped due to previous failure",
                     ),
                 },
+                tool_config=my_tool_config,
                 status=DeploymentState.failed,
                 long_status="I will not be checked",
             )
@@ -754,6 +763,7 @@ class TestDoDeploy:
                         run_long_status="The deployment was cancelled",
                     )
                 },
+                tool_config=get_tool_config(),
                 status=DeploymentState.cancelled,
                 long_status="Deployment was cancelled",
             )
@@ -826,6 +836,7 @@ class TestDoDeploy:
                         run_long_status="Bad request (400): Ayayayay!",
                     ),
                 },
+                tool_config=get_tool_config(),
                 status=DeploymentState.failed,
                 long_status="I will not be checked",
             )
@@ -897,6 +908,7 @@ class TestDoDeploy:
                         run_long_status="[info] (Job component1 is already up to date)",
                     ),
                 },
+                tool_config=get_tool_config(),
                 status=DeploymentState.successful,
                 long_status="I will not be checked",
             )
@@ -989,6 +1001,7 @@ class TestDoDeploy:
                         run_long_status="created continuous job my-component",
                     )
                 },
+                tool_config=get_tool_config(),
                 status=DeploymentState.successful,
                 long_status="I will not be checked",
                 force_run=True,
@@ -1068,6 +1081,7 @@ class TestDoDeploy:
                         run_long_status="created continuous job my-component",
                     )
                 },
+                tool_config=get_tool_config(),
                 status=DeploymentState.successful,
                 long_status="I will not be checked",
                 force_run=False,

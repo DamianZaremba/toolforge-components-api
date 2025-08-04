@@ -276,6 +276,7 @@ def create_tool_deployment(
     new_deployment = Deployment.get_new_deployment(
         builds=builds,
         runs=runs,
+        tool_config=tool_config,
         force_build=force_build,
         force_run=force_run,
     )
