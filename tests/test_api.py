@@ -1072,12 +1072,19 @@ class TestGenerateConfig:
             BuildsBuild(
                 destination_image=jobs[0].image,
                 parameters=BuildsBuildParameters(
-                    source_url="https://some.source/url", ref="some-ref"
+                    source_url="https://some.source/url",
+                    ref="some-ref",
+                    # this has to be the same name as the job name
+                    image_name="job1",
                 ),
             ),
             BuildsBuild(
                 destination_image=jobs[1].image,
-                parameters=BuildsBuildParameters(source_url="https://some.source/url"),
+                parameters=BuildsBuildParameters(
+                    source_url="https://some.source/url",
+                    # this has to be the same name as the job name
+                    image_name="job2",
+                ),
             ),
         ]
         monkeypatch.setattr(

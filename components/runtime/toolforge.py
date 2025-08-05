@@ -103,11 +103,7 @@ def _check_for_matching_build(
     )
 
     for build in builds:
-        image_name = (
-            build.destination_image
-            and build.destination_image.split("/")[-1].split(":")[0]
-        )
-        if image_name == component_name:
+        if build.parameters and build.parameters.image_name == component_name:
             matching_build = build
             break
 

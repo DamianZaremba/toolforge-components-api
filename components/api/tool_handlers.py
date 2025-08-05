@@ -133,23 +133,29 @@ def _get_build_for_job(
     job: AnyDefinedJob, existing_builds: list[BuildsBuild]
 ) -> SourceBuildInfo | None:
     for build in existing_builds:
-        if not build.destination_image:
-            return None
-        # ugly matching, but good enough
         if (
-            build.destination_image
-            and job.image
-            and build.destination_image.endswith(job.image)
+            not build.destination_image
+            or not build.parameters
+            or not build.parameters.source_url
         ):
-            if not build.parameters or not build.parameters.source_url:
-                return None
+            logger.debug(
+                f"Build did not have the needed parameters for {job.name}, skipped: {build}"
+            )
+            continue
 
+        if build.parameters.image_name == job.name:
+            logger.debug(f"Found matching build for job {job.name}: {build}")
             return SourceBuildInfo(
                 repository=AnyGitUrl(build.parameters.source_url),
                 # for now we require a ref, remove once ref can be optional
                 ref=build.parameters.ref or "HEAD",
             )
 
+        logger.debug(
+            f"Build did not have the needed parameters for {job.name}, skipped: {build}"
+        )
+
+    logger.debug(f"Found no suitable builds for job {job}: {existing_builds}")
     return None
 
 
