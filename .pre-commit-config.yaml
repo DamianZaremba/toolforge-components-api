@@ -54,3 +54,9 @@ repos:
         entry: poetry run python openapi/export-openapi.py components.main:create_app
         language: system
         pass_filenames: false
+
+  # has to run after exporting the openapi spec
+  - repo: https://gitlab.wikimedia.org/repos/cloud/cicd/gitlab-ci
+    rev: 10a6d2120841adaa2dfc6857c82bb59b5538eacb
+    hooks:
+      - id: check-openapi-version-bump
