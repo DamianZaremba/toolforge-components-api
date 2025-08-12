@@ -168,7 +168,9 @@ def get_tool_deploy_token(
     return DeployTokenResponse(data=token, messages=ResponseMessages())
 
 
-@header_auth_router.get("/{toolname}/deployment/latest")
+@header_auth_router.get(
+    "/{toolname}/deployment/latest", response_model_exclude_defaults=True
+)
 def get_latest_deployment(
     toolname: str, storage: Storage = Depends(get_storage)
 ) -> ToolDeploymentResponse:
@@ -179,7 +181,9 @@ def get_latest_deployment(
     return ToolDeploymentResponse(data=latest_deployment, messages=ResponseMessages())
 
 
-@token_auth_router.get("/{toolname}/deployment/{deployment_id}")
+@token_auth_router.get(
+    "/{toolname}/deployment/{deployment_id}", response_model_exclude_defaults=True
+)
 def get_tool_deployment(
     toolname: str,
     deployment_id: str,
@@ -191,8 +195,13 @@ def get_tool_deployment(
     return ToolDeploymentResponse(data=deployment, messages=ResponseMessages())
 
 
-@header_auth_router.put("/{toolname}/deployment/latest/cancel")
-@header_auth_router.put("/{toolname}/deployment/{deployment_id}/cancel")
+@header_auth_router.put(
+    "/{toolname}/deployment/latest/cancel", response_model_exclude_defaults=True
+)
+@header_auth_router.put(
+    "/{toolname}/deployment/{deployment_id}/cancel",
+    response_model_exclude_defaults=True,
+)
 def cancel_tool_deployment(
     toolname: str,
     deployment_id: str,
@@ -229,7 +238,7 @@ def cancel_tool_deployment(
     )
 
 
-@header_auth_router.get("/{toolname}/deployment")
+@header_auth_router.get("/{toolname}/deployment", response_model_exclude_defaults=True)
 def list_tool_deployments(
     toolname: str,
     storage: Storage = Depends(get_storage),
@@ -242,7 +251,7 @@ def list_tool_deployments(
     )
 
 
-@token_auth_router.post("/{toolname}/deployment")
+@token_auth_router.post("/{toolname}/deployment", response_model_exclude_defaults=True)
 def create_tool_deployment(
     toolname: str,
     background_tasks: BackgroundTasks,
@@ -347,7 +356,9 @@ def delete_tool_deploy_token(
     )
 
 
-@header_auth_router.delete("/{toolname}/deployment/{deployment_id}")
+@header_auth_router.delete(
+    "/{toolname}/deployment/{deployment_id}", response_model_exclude_defaults=True
+)
 def delete_tool_deployment(
     toolname: str, deployment_id: str, storage: Storage = Depends(get_storage)
 ) -> ToolDeploymentResponse:
