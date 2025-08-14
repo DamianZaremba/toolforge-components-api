@@ -601,7 +601,10 @@ components:
     ContinuousComponentInfo-Input:
       properties:
         build:
-          $ref: '#/components/schemas/SourceBuildInfo'
+          anyOf:
+          - $ref: '#/components/schemas/SourceBuildInfo'
+          - $ref: '#/components/schemas/SourceBuildReference'
+          title: Build
         run:
           $ref: '#/components/schemas/ContinuousRunInfo'
         component_type:
@@ -620,7 +623,10 @@ components:
     ContinuousComponentInfo-Output:
       properties:
         build:
-          $ref: '#/components/schemas/SourceBuildInfo'
+          anyOf:
+          - $ref: '#/components/schemas/SourceBuildInfo'
+          - $ref: '#/components/schemas/SourceBuildReference'
+          title: Build
         run:
           $ref: '#/components/schemas/ContinuousRunInfo'
         component_type:
@@ -938,7 +944,10 @@ components:
     ScheduledComponentInfo-Input:
       properties:
         build:
-          $ref: '#/components/schemas/SourceBuildInfo'
+          anyOf:
+          - $ref: '#/components/schemas/SourceBuildInfo'
+          - $ref: '#/components/schemas/SourceBuildReference'
+          title: Build
         run:
           $ref: '#/components/schemas/ScheduledRunInfo'
         component_type:
@@ -957,7 +966,10 @@ components:
     ScheduledComponentInfo-Output:
       properties:
         build:
-          $ref: '#/components/schemas/SourceBuildInfo'
+          anyOf:
+          - $ref: '#/components/schemas/SourceBuildInfo'
+          - $ref: '#/components/schemas/SourceBuildReference'
+          title: Build
         run:
           $ref: '#/components/schemas/ScheduledRunInfo'
         component_type:
@@ -1098,6 +1110,18 @@ components:
       - repository
       - ref
       title: SourceBuildInfo
+    SourceBuildReference:
+      properties:
+        reuse_from:
+          type: string
+          title: Reuse From
+          description: Component to re-use the build config from.
+          examples:
+          - parent-component
+      type: object
+      required:
+      - reuse_from
+      title: SourceBuildReference
     ToolConfig-Input:
       properties:
         config_version:

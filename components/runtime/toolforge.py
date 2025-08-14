@@ -26,6 +26,7 @@ from ..models.api_models import (
     DeploymentBuildState,
     ScheduledRunInfo,
     SourceBuildInfo,
+    SourceBuildReference,
 )
 from ..settings import get_settings
 from .base import Runtime
@@ -67,7 +68,9 @@ def _resolve_ref(build_info: SourceBuildInfo) -> str:
 
 
 def _check_for_matching_build(
-    component_name: str, build_info: SourceBuildInfo, tool_name: str
+    component_name: str,
+    build_info: SourceBuildInfo,
+    tool_name: str,
 ) -> BuildsBuild | None:
     matching_build: BuildsBuild | None = None
     toolforge_client = get_toolforge_client()
@@ -95,6 +98,7 @@ def _check_for_matching_build(
     logger.debug(
         f"Found {len(builds)} builds for tool {tool_name} to compare for skipping"
     )
+
     for build in builds:
         image_name = (
             build.destination_image
@@ -127,12 +131,15 @@ def _check_for_matching_build(
 def _get_component_image_name(
     component_info: ComponentInfo, component_name: str
 ) -> str:
+    # TODO: use the actual build logs/info to get the image name once we trigger builds
+    # The tag and the prefix are currently added by builds-api during build
     match component_info.build:
         case SourceBuildInfo():
             logger.debug(f"Got source build type: {component_info}")
-            # TODO: use the actual build logs/info to get the image name once we trigger builds
-            # The tag and the prefix are currently added by builds-api during build
             return f"{component_name}"
+        case SourceBuildReference():
+            logger.debug(f"Got source build reference: {component_info}")
+            return f"{component_info.build.reuse_from}"
 
     logger.error(f"Unsupported build information: {component_info.build}")
     raise Exception(f"unsupported build information: {component_info.build}")
@@ -280,7 +287,9 @@ class ToolforgeRuntime(Runtime):
         toolforge_client = get_toolforge_client()
         if not force_build:
             matching_build = _check_for_matching_build(
-                component_name=component_name, build_info=build, tool_name=tool_name
+                component_name=component_name,
+                build_info=build,
+                tool_name=tool_name,
             )
             if (
                 matching_build
@@ -322,7 +331,7 @@ class ToolforgeRuntime(Runtime):
                 component_name=component_name,
             ),
             envvars={},
-            use_latest_versions=component_info.build.use_latest_versions,
+            use_latest_versions=build.use_latest_versions,
         )
         response = toolforge_client.post(
             f"/builds/v1/tool/{tool_name}/builds",

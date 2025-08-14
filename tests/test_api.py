@@ -153,6 +153,37 @@ class TestUpdateToolConfig:
         assert gotten_response.messages == expected_messages
         get_mock.assert_called_once()
 
+    def test_fails_with_missing_referenced_component(
+        self, authenticated_client: TestClient
+    ):
+        config_json = {
+            "components": {
+                "my-component": {
+                    "build": {
+                        "ref": "main",
+                        "repository": "my-repo",
+                        "use_latest_versions": False,
+                    },
+                    "component_type": "continuous",
+                    "run": {"command": "my-command"},
+                },
+                "child-component": {
+                    "build": {"reuse_from": "very-important"},
+                    "component_type": "continuous",
+                    "run": {"command": "child-command"},
+                },
+            },
+            "config_version": "v1beta1",
+        }
+        raw_response = authenticated_client.post(
+            "/v1/tool/test-tool-1/config", json=config_json
+        )
+        assert raw_response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert (
+            "Missing components are referenced for re-use"
+            in raw_response.json()["messages"]["error"][0]
+        )
+
 
 class TestGetToolConfig:
     def test_returns_not_found_when_tool_does_not_exist(

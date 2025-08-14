@@ -20,6 +20,7 @@ from .models.api_models import (
     DeploymentState,
     ScheduledComponentInfo,
     SourceBuildInfo,
+    SourceBuildReference,
     ToolConfig,
 )
 from .runtime.base import Runtime
@@ -291,6 +292,13 @@ def _start_builds(
                 )
                 failed_builds.append(f"{component_name}(error:{error})")
                 logger.debug(f"Build failed to start {new_build_info}")
+        elif isinstance(component.build, SourceBuildReference):
+            new_build_info = DeploymentBuildInfo(
+                build_id=DeploymentBuildInfo.NO_BUILD_NEEDED,
+                build_status=DeploymentBuildState.skipped,
+                build_long_status=f"Build from {component.build.reuse_from} will be used",
+            )
+            logger.debug(f"Skipping reuse-from build for {component}")
         else:
             new_build_info = DeploymentBuildInfo(
                 build_id=DeploymentBuildInfo.NO_BUILD_NEEDED,
@@ -373,7 +381,6 @@ def _do_run(
         logger.info(
             f"{tool_name}: deploying component {component_name}: {component_info}"
         )
-        has_error = True
         message = "Unknown error"
         needs_rerun = (
             deployment.force_run
