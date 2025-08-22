@@ -217,7 +217,7 @@ class ToolConfig(BaseModel):
         }
         if missing_components := required_components - set(self.components.keys()):
             raise ValueError(
-                f"Missing components are referenced for re-use: {', '.join(missing_components)}"
+                f"Missing components referenced from reuse-from: {', '.join(missing_components)}"
             )
 
         return self
