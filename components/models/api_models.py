@@ -52,7 +52,7 @@ class SourceBuildInfo(BaseModel):
 
 class SourceBuildReference(BaseModel):
     reuse_from: str = Field(
-        description="Component to re-use the build config from.",
+        description="Component to re-use the build from.",
         examples=["parent-component"],
     )
 

@@ -1115,7 +1115,7 @@ components:
         reuse_from:
           type: string
           title: Reuse From
-          description: Component to re-use the build config from.
+          description: Component to re-use the build from.
           examples:
           - parent-component
       type: object
