@@ -12,6 +12,8 @@ releases:
           pullPolicy: Never
         config:
           debug: true
+          toolforge_api_url: "https://api-gateway.api-gateway.svc"
+          verify_toolforge_api_cert: false
         certificates:
           internalClusterDomain: cluster.local
 
