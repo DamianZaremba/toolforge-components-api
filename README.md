@@ -79,3 +79,45 @@ Then tell the components api where to find the kubeconfig
 ```shell
 dcaro@mylaptop$ env KUBECONFIG=~/.kube/lima-kilo-config STORAGE_TYPE=kubernetes LOG_LEVEL=debug poetry run fastapi run components/main.py
 ```
+
+### Deploying into lima-kimo
+
+To support running functional tests, it is useful to be able to change the deployed image inside lima-kilo.
+
+* Build the components-api container image
+```
+lima-kilo:~$ git clone https://gitlab.wikimedia.org/repos/cloud/toolforge/components-api
+lima-kilo:~$ cd components-api
+lima-kilo:~/components-api$ docker buildx build --target image -f .pipeline/blubber.yaml -t tools-harbor.wmcloud.org/toolforge/components-api:dev .
+```
+
+* Load the built container image
+```
+lima-kilo:~/components-api$ kind load docker-image tools-harbor.wmcloud.org/toolforge/components-api:dev -n toolforge
+```
+
+* Deploy to restart the service
+```
+lima-kilo:~/components-api$ ./deploy.sh local
+```
+
+* The API should now be accessible
+```
+lima-kilo:~/components-api$ kubectl -n components-api get pods
+NAME                              READY   STATUS    RESTARTS   AGE
+components-api-569b967ffc-hjw2p   1/2     Running   0          8s
+
+lima-kilo:~/components-api$ curl -sk https://localhost:30003/components/v1/healthz | jq .
+{
+  "data": {
+    "status": "OK"
+  },
+  "messages": {
+    "info": [],
+    "warning": [
+      "You are using a beta feature of Toolforge."
+    ],
+    "error": []
+  }
+}
+```
