@@ -68,9 +68,7 @@ def _resolve_ref(build_info: SourceBuildInfo) -> str:
 
 
 def _check_for_matching_build(
-    component_name: str,
-    build_info: SourceBuildInfo,
-    tool_name: str,
+    component_name: str, build_info: SourceBuildInfo, tool_name: str
 ) -> BuildsBuild | None:
     matching_build: BuildsBuild | None = None
     toolforge_client = get_toolforge_client()
@@ -287,9 +285,7 @@ class ToolforgeRuntime(Runtime):
         toolforge_client = get_toolforge_client()
         if not force_build:
             matching_build = _check_for_matching_build(
-                component_name=component_name,
-                build_info=build,
-                tool_name=tool_name,
+                component_name=component_name, build_info=build, tool_name=tool_name
             )
             if (
                 matching_build
