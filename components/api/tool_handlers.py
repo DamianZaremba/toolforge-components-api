@@ -14,6 +14,7 @@ from ..gen.toolforge_models import (
     JobsScriptHealthCheck,
 )
 from ..models.api_models import (
+    AnyGitUrl,
     ComponentInfo,
     ConfigVersion,
     ContinuousComponentInfo,
@@ -131,7 +132,7 @@ def _get_build_for_job(
                 return None
 
             return SourceBuildInfo(
-                repository=build.parameters.source_url,
+                repository=AnyGitUrl(build.parameters.source_url),
                 # for now we require a ref, remove once ref can be optional
                 ref=build.parameters.ref or "HEAD",
             )

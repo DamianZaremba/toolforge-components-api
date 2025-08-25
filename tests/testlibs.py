@@ -63,7 +63,7 @@ def get_tool_config(**overrides) -> ToolConfig:
         components={
             "my-component": ContinuousComponentInfo(
                 build=SourceBuildInfo(
-                    repository="my-repo",
+                    repository="https://gitlab-example.wikimedia.org/my-repo.git",
                     ref="main",
                 ),
                 run=ContinuousRunInfo(

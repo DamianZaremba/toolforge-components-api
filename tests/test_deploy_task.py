@@ -622,7 +622,7 @@ class TestDoDeploy:
             components={
                 "failed-component": ContinuousComponentInfo(
                     build=SourceBuildInfo(
-                        repository="my-repo",
+                        repository="https://gitlab-example.wikimedia.org/my-repo.git",
                         ref="main",
                     ),
                     run=ContinuousRunInfo(
@@ -632,7 +632,7 @@ class TestDoDeploy:
                 "successful-component": ContinuousComponentInfo(
                     component_type="continuous",
                     build=SourceBuildInfo(
-                        repository="my-repo",
+                        repository="https://gitlab-example.wikimedia.org/my-repo.git",
                         ref="main",
                     ),
                     run=ContinuousRunInfo(
@@ -1126,7 +1126,7 @@ class TestDoDeploy:
             components={
                 "my-component": ContinuousComponentInfo(
                     build=SourceBuildInfo(
-                        repository="my-repo",
+                        repository="https://gitlab-example.wikimedia.org/my-repo.git",
                         ref="main",
                     ),
                     run=ContinuousRunInfo(
@@ -1213,7 +1213,7 @@ class TestDoDeploy:
             components={
                 "my-component": ContinuousComponentInfo(
                     build=SourceBuildInfo(
-                        repository="my-repo",
+                        repository="https://gitlab-example.wikimedia.org/my-repo.git",
                         ref="main",
                     ),
                     run=ContinuousRunInfo(

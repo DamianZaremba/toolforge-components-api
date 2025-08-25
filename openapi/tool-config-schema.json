@@ -42,6 +42,8 @@
                     "properties": {
                       "repository": {
                         "type": "string",
+                        "minLength": 1,
+                        "format": "uri",
                         "title": "Repository",
                         "description": "URL of the public git repository with the code to build.",
                         "examples": [
@@ -316,6 +318,8 @@
                     "properties": {
                       "repository": {
                         "type": "string",
+                        "minLength": 1,
+                        "format": "uri",
                         "title": "Repository",
                         "description": "URL of the public git repository with the code to build.",
                         "examples": [

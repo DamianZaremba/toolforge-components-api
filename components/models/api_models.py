@@ -14,7 +14,15 @@ from typing import (
 )
 from uuid import UUID, uuid4
 
-from pydantic import AnyHttpUrl, BaseModel, Field, Tag, model_validator
+from pydantic import (
+    AnyHttpUrl,
+    AnyUrl,
+    BaseModel,
+    Field,
+    Tag,
+    UrlConstraints,
+    model_validator,
+)
 
 from components.gen.toolforge_models import (
     Emails,
@@ -26,15 +34,23 @@ ComponentType: TypeAlias = Literal["continuous"] | Literal["scheduled"]
 T = TypeVar("T")
 
 
+class AnyGitUrl(AnyUrl):
+    """A type that will accept any http, https or git URL."""
+
+    _constraints = UrlConstraints(allowed_schemes=["http", "https", "git"])
+
+
 class ConfigVersion(str, Enum):
     V1_BETA1 = "v1beta1"
 
 
 class SourceBuildInfo(BaseModel):
-    repository: str = Field(
+    repository: AnyGitUrl = Field(
         description="URL of the public git repository with the code to build.",
         examples=[
-            "https://gitlab.wikimedia.org/toolforge-repos/sample-complex-app-backend"
+            AnyGitUrl(
+                "https://gitlab.wikimedia.org/toolforge-repos/sample-complex-app-backend"
+            )
         ],
     )
     # TODO: maybe make this optional?
@@ -362,7 +378,9 @@ EXAMPLE_GENERATED_CONFIG = ToolConfig(
             component_type="continuous",
             build=SourceBuildInfo(
                 ref="main",
-                repository="https://gitlab.wikimedia.org/toolforge-repos/sample-static-buildpack-app",
+                repository=AnyGitUrl(
+                    "https://gitlab.wikimedia.org/toolforge-repos/sample-static-buildpack-app"
+                ),
             ),
             run=ContinuousRunInfo(
                 command="bash -c 'while true; do echo hello world from component1; sleep 10; done'",
@@ -375,7 +393,9 @@ EXAMPLE_GENERATED_CONFIG = ToolConfig(
             component_type="continuous",
             build=SourceBuildInfo(
                 ref="dummy_branch",
-                repository="https://gitlab.wikimedia.org/toolforge-repos/sample-static-buildpack-app",
+                repository=AnyGitUrl(
+                    "https://gitlab.wikimedia.org/toolforge-repos/sample-static-buildpack-app"
+                ),
             ),
             run=ContinuousRunInfo(
                 command="bash -c 'while true; do touch /tmp/everything_ok; echo hello world from component2; sleep 10; done'",

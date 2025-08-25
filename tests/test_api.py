@@ -161,7 +161,7 @@ class TestUpdateToolConfig:
                 "my-component": {
                     "build": {
                         "ref": "main",
-                        "repository": "my-repo",
+                        "repository": "https://gitlab-example.wikimedia.org/my-repo.git",
                         "use_latest_versions": False,
                     },
                     "component_type": "continuous",
@@ -192,7 +192,7 @@ class TestUpdateToolConfig:
                 "parent-component": {
                     "build": {
                         "ref": "main",
-                        "repository": "my-repo",
+                        "repository": "https://gitlab-example.wikimedia.org/some-repo.git",
                         "use_latest_versions": False,
                     },
                     "component_type": "continuous",
@@ -414,7 +414,10 @@ class TestCreateDeployment:
             job=get_defined_job(), messages=None
         ).model_dump()
         my_tool_config = get_fake_tool_config(
-            build={"repository": "some_repo", "ref": "some_ref"}
+            build={
+                "repository": "https://gitlab-example.wikimedia.org/some-repo.git",
+                "ref": "some_ref",
+            }
         )
         response = authenticated_client.post(
             "/v1/tool/test-tool-1/config", content=my_tool_config.model_dump_json()
@@ -496,7 +499,10 @@ class TestCreateDeployment:
         }
         fake_toolforge_client.get.return_value = {"build": {"status": "BUILD_RUNNING"}}
         my_tool_config = get_fake_tool_config(
-            build={"repository": "some_repo", "ref": "some_ref"}
+            build={
+                "repository": "https://gitlab-example.wikimedia.org/some-repo.git",
+                "ref": "some_ref",
+            }
         )
         response = authenticated_client.post(
             "/v1/tool/test-tool-1/config", content=my_tool_config.model_dump_json()
@@ -531,7 +537,10 @@ class TestCreateDeployment:
         ).model_dump()
         my_tool_config = get_fake_tool_config(
             source_url="http://idontexist.local/myconfig",
-            build={"repository": "some_repo", "ref": "some_ref"},
+            build={
+                "repository": "https://gitlab-example.wikimedia.org/some-repo.git",
+                "ref": "some_ref",
+            },
         )
         response_mock = MagicMock()
         response_mock.text = yaml.safe_dump(
@@ -862,7 +871,10 @@ class TestBuildComponents:
         }
         fake_toolforge_client.get.return_value = {"build": {"status": "BUILD_SUCCESS"}}
         my_tool_config = get_fake_tool_config(
-            build={"repository": "some_repo", "ref": "some_ref"}
+            build={
+                "repository": "https://gitlab-example.wikimedia.org/some-repo.git",
+                "ref": "some_ref",
+            }
         )
         response = authenticated_client.post(
             "/v1/tool/test-tool-1/config", content=my_tool_config.model_dump_json()
@@ -964,7 +976,8 @@ class TestGenerateConfig:
                 components={
                     "job1": ContinuousComponentInfo(
                         build=SourceBuildInfo(
-                            repository="https://some.source/url", ref="some-ref"
+                            repository="https://some.source/url",
+                            ref="some-ref",
                         ),
                         run=ContinuousRunInfo(
                             command=jobs[0].cmd,

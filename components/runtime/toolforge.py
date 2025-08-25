@@ -35,7 +35,7 @@ logger = getLogger(__name__)
 
 
 def _resolve_ref(build_info: SourceBuildInfo) -> str:
-    source_url = build_info.repository
+    source_url = build_info.repository.encoded_string()
     ref = build_info.ref
     if not ref:
         ref = "HEAD"
@@ -321,7 +321,7 @@ class ToolforgeRuntime(Runtime):
 
         build_data = BuildsBuildParameters(
             ref=build.ref,
-            source_url=build.repository,
+            source_url=build.repository.encoded_string(),
             image_name=_get_component_image_name(
                 component_info=component_info,
                 component_name=component_name,
