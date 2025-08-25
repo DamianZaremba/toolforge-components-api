@@ -11,7 +11,7 @@ For local development, you can use the following command to start the
 application:
 
 ```shell
-poetry run uvicorn --factory components.main:create_app --workers=2 --reload
+poetry run uvicorn --factory components.main:create_app --reload
 ```
 
 This will start the application on <http://localhost:8000>.
