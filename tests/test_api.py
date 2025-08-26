@@ -16,8 +16,10 @@ from components.gen.toolforge_models import (
     JobsJobResponse,
     JobsScriptHealthCheck,
 )
+from components.main import create_app
 from components.models.api_models import (
     EXAMPLE_GENERATED_CONFIG,
+    AnyGitUrl,
     ContinuousComponentInfo,
     ContinuousRunInfo,
     Deployment,
@@ -36,7 +38,7 @@ from components.models.api_models import (
     ToolDeploymentResponse,
 )
 from components.runtime.utils import get_runtime
-from components.settings import get_settings
+from components.settings import Settings, get_settings
 from components.storage.mock import MockStorage
 from components.storage.utils import get_storage
 from tests.helpers import (
@@ -62,6 +64,24 @@ def test_healthz_endpoint_returns_ok_status(test_client: TestClient):
 
 
 class TestUpdateToolConfig:
+    def test_valid_config_gets_saved_to_storage(
+        self, authenticated_client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ):
+        storage = get_storage()
+        mock_set_tool_config = MagicMock(wraps=storage.set_tool_config)
+        monkeypatch.setattr(storage, "set_tool_config", mock_set_tool_config)
+
+        expected_tool_config = get_fake_tool_config()
+        raw_response = authenticated_client.post(
+            "/v1/tool/test-tool-1/config",
+            content=expected_tool_config.model_dump_json(exclude_unset=True),
+        )
+
+        assert raw_response.status_code == status.HTTP_200_OK
+        assert mock_set_tool_config.call_args.kwargs["config"].model_dump(
+            exclude_unset=True
+        ) == expected_tool_config.model_dump(exclude_unset=True)
+
     def test_succeeds_with_valid_config(self, authenticated_client: TestClient):
         expected_tool_config = get_fake_tool_config()
         expected_messages = ResponseMessages(
@@ -70,12 +90,14 @@ class TestUpdateToolConfig:
         )
         raw_response = authenticated_client.post(
             "/v1/tool/test-tool-1/config",
-            content=expected_tool_config.model_dump_json(),
+            content=expected_tool_config.model_dump_json(exclude_unset=True),
         )
 
         assert raw_response.status_code == status.HTTP_200_OK
         gotten_response = ToolConfigResponse.model_validate(raw_response.json())
-        assert gotten_response.data == expected_tool_config
+        assert gotten_response.data.model_dump(
+            exclude_unset=True
+        ) == expected_tool_config.model_dump(exclude_unset=True)
         assert gotten_response.messages == expected_messages
 
     def test_fails_with_invalid_config_data(
@@ -91,7 +113,7 @@ class TestUpdateToolConfig:
         expected_tool_config = get_fake_tool_config()
         raw_response = test_client.post(
             "/v1/tool/test-tool-1/config",
-            content=expected_tool_config.model_dump_json(),
+            content=expected_tool_config.model_dump_json(exclude_unset=True),
         )
 
         assert raw_response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -108,7 +130,9 @@ class TestUpdateToolConfig:
             ],
             info=["Configuration for test-tool-1 updated successfully."],
         )
-        sent_config = json.loads(expected_tool_config.model_dump_json())
+        sent_config = json.loads(
+            expected_tool_config.model_dump_json(exclude_unset=True)
+        )
         sent_config["extra_field_1"] = 1234
         sent_config["components"]["component1"]["internal_extra_field"] = 1234
         raw_response = authenticated_client.post(
@@ -117,7 +141,9 @@ class TestUpdateToolConfig:
 
         assert raw_response.status_code == status.HTTP_200_OK
         gotten_response = ToolConfigResponse.model_validate(raw_response.json())
-        assert gotten_response.data == expected_tool_config
+        assert gotten_response.data.model_dump(
+            exclude_unset=True
+        ) == expected_tool_config.model_dump(exclude_unset=True)
         assert gotten_response.messages == expected_messages
 
     def test_fetches_config_when_source_url_passed(
@@ -133,11 +159,13 @@ class TestUpdateToolConfig:
             ],
             info=["Configuration for test-tool-1 updated successfully."],
         )
-        sent_config_json = json.loads(expected_tool_config.model_dump_json())
+        sent_config_json = json.loads(
+            expected_tool_config.model_dump_json(exclude_unset=True)
+        )
 
         response_mock = MagicMock()
         response_mock.text = yaml.safe_dump(
-            json.loads(expected_tool_config.model_dump_json())
+            json.loads(expected_tool_config.model_dump_json(exclude_unset=True))
         )
         get_mock = MagicMock()
         get_mock.return_value = response_mock
@@ -149,7 +177,9 @@ class TestUpdateToolConfig:
 
         assert raw_response.status_code == status.HTTP_200_OK
         gotten_response = ToolConfigResponse.model_validate(raw_response.json())
-        assert gotten_response.data == expected_tool_config
+        assert gotten_response.data.model_dump(
+            exclude_unset=True
+        ) == expected_tool_config.model_dump(exclude_unset=True)
         assert gotten_response.messages == expected_messages
         get_mock.assert_called_once()
 
@@ -236,13 +266,16 @@ class TestGetToolConfig:
 
         expected_response = ToolConfigResponse(
             messages=ResponseMessages(warning=[BETA_WARNING_MESSAGE]),
-            data=get_fake_tool_config(),
-        )
+            data=ToolConfig.model_validate(
+                get_fake_tool_config().model_dump(exclude_unset=True)
+            ),
+        ).model_dump(exclude_unset=True, mode="json")
 
         response = authenticated_client.get("/v1/tool/test-tool-1/config")
         assert response.status_code == status.HTTP_200_OK
 
-        gotten_response = ToolConfigResponse.model_validate(response.json())
+        gotten_response = response.json()
+
         assert gotten_response == expected_response
 
         delete_tool_config(authenticated_client)
@@ -269,6 +302,75 @@ class TestCreateDeployment:
         raw_response = authenticated_client.post("/v1/tool/idontexist/deployment")
 
         assert raw_response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_deployment_gets_saved_to_storage_with_valid_config(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        fake_toolforge_client: MagicMock,
+        storage_k8s_cli: MagicMock,
+    ):
+        my_settings = Settings(runtime_type="toolforge", storage_type="kubernetes")
+        my_app = create_app(settings=my_settings)
+        my_client = TestClient(my_app)
+        my_client.headers.update({"x-toolforge-tool": "test-tool-1"})
+        k8s_storage = get_storage(settings=my_settings, rebuild_storage=True)
+        monkeypatch.setattr(k8s_storage, "k8s", storage_k8s_cli)
+
+        expected_k8s_config = {
+            "config_version": "v1beta1",
+            "components": {
+                "component1": {
+                    "build": {
+                        "repository": "https://gitlab.wikimedia.org/toolforge-repos/sample-static-buildpack-app",
+                        "ref": "main",
+                    },
+                    "run": {
+                        "command": "some command",
+                        "cpu": "0.5",
+                        "filelog": False,
+                        "memory": "256Mi",
+                        "mount": "none",
+                        "port": 8080,
+                        "replicas": 2,
+                        "health_check_http": "/health",
+                    },
+                    "component_type": "continuous",
+                }
+            },
+        }
+
+        fake_toolforge_client.post.return_value = {
+            "new_build": {"name": "new-build-id"}
+        }
+        fake_toolforge_client.get.return_value = {
+            "build": {"status": BuildsBuildStatus.BUILD_SUCCESS.value}
+        }
+        fake_toolforge_client.patch.return_value = JobsJobResponse(
+            job=get_defined_job(), messages=None
+        ).model_dump()
+        tool_config = get_fake_tool_config()
+        monkeypatch.setattr(
+            k8s_storage, "get_tool_config", lambda *args, **kwargs: tool_config
+        )
+        monkeypatch.setattr(
+            k8s_storage, "get_deploy_token", lambda *args, **kwargs: "idontmatter"
+        )
+        monkeypatch.setattr(
+            k8s_storage,
+            "update_deployment",
+            MagicMock(spec=k8s_storage.update_deployment),
+        )
+
+        response = my_client.post("/v1/tool/test-tool-1/deployment")
+        assert response.status_code == status.HTTP_200_OK
+
+        gotten_k8s_config = (
+            storage_k8s_cli.create_namespaced_custom_object.call_args.kwargs["body"][
+                "spec"
+            ]["tool_config"]
+        )
+
+        assert gotten_k8s_config == expected_k8s_config
 
     def test_creates_and_returns_the_new_deployment_of_source_built_component_using_header_auth(
         self, authenticated_client: TestClient, fake_toolforge_client: MagicMock
@@ -311,7 +413,9 @@ class TestCreateDeployment:
         assert response.status_code == status.HTTP_200_OK
         gotten_deployment = ToolDeploymentResponse.model_validate(response.json())
         # we kinda ignore the messages
-        assert expected_deployment.data == gotten_deployment.data
+        assert expected_deployment.data.model_dump(
+            exclude_unset=True
+        ) == gotten_deployment.data.model_dump(exclude_unset=True)
 
         fake_toolforge_client.patch.assert_called_once_with(
             "/jobs/v1/tool/test-tool-1/jobs/",
@@ -323,10 +427,10 @@ class TestCreateDeployment:
                 "health_check": {"path": "/health", "type": "http"},
                 "imagename": "tool-test-tool-1/component1:latest",
                 "memory": "256Mi",
-                "mount": "none",
                 "name": "component1",
                 "port": 8080,
                 "replicas": 2,
+                "mount": "none",
             },
             verify=True,
         )
@@ -381,7 +485,9 @@ class TestCreateDeployment:
         assert response.status_code == status.HTTP_200_OK
         gotten_deployment = ToolDeploymentResponse.model_validate(response.json())
         # we kinda ignore the messages
-        assert expected_deployment.data == gotten_deployment.data
+        assert expected_deployment.data.model_dump(
+            exclude_unset=True
+        ) == gotten_deployment.data.model_dump(exclude_unset=True)
 
         fake_toolforge_client.patch.assert_called_once_with(
             "/jobs/v1/tool/test-tool-1/jobs/",
@@ -393,10 +499,10 @@ class TestCreateDeployment:
                 "health_check": {"path": "/health", "type": "http"},
                 "imagename": "tool-test-tool-1/component1:latest",
                 "memory": "256Mi",
-                "mount": "none",
                 "name": "component1",
                 "port": 8080,
                 "replicas": 2,
+                "mount": "none",
             },
             verify=True,
         )
@@ -420,7 +526,8 @@ class TestCreateDeployment:
             }
         )
         response = authenticated_client.post(
-            "/v1/tool/test-tool-1/config", content=my_tool_config.model_dump_json()
+            "/v1/tool/test-tool-1/config",
+            content=my_tool_config.model_dump_json(exclude_unset=True),
         )
         response.raise_for_status()
 
@@ -451,7 +558,9 @@ class TestCreateDeployment:
         assert response.status_code == status.HTTP_200_OK
         gotten_deployment = ToolDeploymentResponse.model_validate(response.json())
         # we kinda ignore the messages
-        assert expected_deployment.data == gotten_deployment.data
+        assert expected_deployment.data.model_dump(
+            exclude_unset=True
+        ) == gotten_deployment.data.model_dump(exclude_unset=True)
 
         fake_toolforge_client.patch.assert_called_once_with(
             "/jobs/v1/tool/test-tool-1/jobs/",
@@ -463,10 +572,10 @@ class TestCreateDeployment:
                 "health_check": {"path": "/health", "type": "http"},
                 "imagename": "tool-test-tool-1/component1:latest",
                 "memory": "256Mi",
-                "mount": "none",
                 "name": "component1",
                 "port": 8080,
                 "replicas": 2,
+                "mount": "none",
             },
             verify=True,
         )
@@ -505,7 +614,8 @@ class TestCreateDeployment:
             }
         )
         response = authenticated_client.post(
-            "/v1/tool/test-tool-1/config", content=my_tool_config.model_dump_json()
+            "/v1/tool/test-tool-1/config",
+            content=my_tool_config.model_dump_json(exclude_unset=True),
         )
         # as the deployment will never be ending, and during tests there's no real background tasks, we mock it so it
         # returns keeping the deployment pending
@@ -544,13 +654,14 @@ class TestCreateDeployment:
         )
         response_mock = MagicMock()
         response_mock.text = yaml.safe_dump(
-            json.loads(my_tool_config.model_dump_json())
+            json.loads(my_tool_config.model_dump_json(exclude_unset=True))
         )
         get_mock = MagicMock()
         get_mock.return_value = response_mock
         monkeypatch.setattr(requests, "get", get_mock)
         response = authenticated_client.post(
-            "/v1/tool/test-tool-1/config", content=my_tool_config.model_dump_json()
+            "/v1/tool/test-tool-1/config",
+            content=my_tool_config.model_dump_json(exclude_unset=True),
         )
         response.raise_for_status()
         get_mock.assert_called_once()
@@ -734,7 +845,7 @@ class TestDeleteDeployToken:
         expected_tool_config = get_fake_tool_config()
         raw_response = authenticated_client.post(
             "/v1/tool/test-tool-1/config",
-            content=expected_tool_config.model_dump_json(),
+            content=expected_tool_config.model_dump_json(exclude_unset=True),
         )
 
         assert raw_response.status_code == status.HTTP_200_OK
@@ -877,7 +988,8 @@ class TestBuildComponents:
             }
         )
         response = authenticated_client.post(
-            "/v1/tool/test-tool-1/config", content=my_tool_config.model_dump_json()
+            "/v1/tool/test-tool-1/config",
+            content=my_tool_config.model_dump_json(exclude_unset=True),
         )
         response.raise_for_status()
 
@@ -923,10 +1035,10 @@ class TestBuildComponents:
                 "health_check": {"path": "/health", "type": "http"},
                 "imagename": "tool-test-tool-1/component1:latest",
                 "memory": "256Mi",
-                "mount": "none",
                 "name": "component1",
                 "port": 8080,
                 "replicas": 2,
+                "mount": "none",
             },
             verify=True,
         )
@@ -976,7 +1088,7 @@ class TestGenerateConfig:
                 components={
                     "job1": ContinuousComponentInfo(
                         build=SourceBuildInfo(
-                            repository="https://some.source/url",
+                            repository=AnyGitUrl("https://some.source/url"),
                             ref="some-ref",
                         ),
                         run=ContinuousRunInfo(
@@ -987,7 +1099,7 @@ class TestGenerateConfig:
                     "job2": ContinuousComponentInfo(
                         component_type="continuous",
                         build=SourceBuildInfo(
-                            repository="https://some.source/url", ref="HEAD"
+                            repository=AnyGitUrl("https://some.source/url"), ref="HEAD"
                         ),
                         run=ContinuousRunInfo(
                             command=jobs[0].cmd, health_check_http="/healthz", port=1234

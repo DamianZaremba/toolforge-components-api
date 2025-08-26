@@ -22,22 +22,42 @@ logger = logging.getLogger(__name__)
 DEPLOY_TOKEN_ENVVAR = "TOOL_DEPLOY_TOKEN"
 
 
+def _remove_none_values(obj: dict[str, Any]) -> Any:
+    """
+    Recursively removes keys from dictionaries if their value is None.
+    This function modifies the dictionary and lists in-place.
+    """
+    if isinstance(obj, dict):
+        for key in list(obj.keys()):
+            value = obj[key]
+            if value is None:
+                del obj[key]
+            else:
+                _remove_none_values(value)
+
+    elif isinstance(obj, list):
+        for item in obj:
+            _remove_none_values(item)
+
+    return obj
+
+
 def _tool_config_to_k8s_crd(tool_name: str, tool_config: ToolConfig) -> dict[str, Any]:
     k8s_dict = {
         "kind": "ToolConfig",
         "apiVersion": "components-api.toolforge.org/v1",
         "metadata": {"name": _get_k8s_tool_config_name(tool_name)},
-        "spec": tool_config.model_dump(mode="json"),
+        "spec": tool_config.model_dump(mode="json", exclude_unset=True),
     }
     return k8s_dict
 
 
-def _deploy_to_k8s_crd(tool_name: str, deployment: Deployment) -> dict[str, Any]:
+def _deploy_to_k8s_crd(deployment: Deployment) -> dict[str, Any]:
     k8s_dict = {
         "kind": "ToolDeployment",
         "apiVersion": "components-api.toolforge.org/v1",
         "metadata": {"name": deployment.deploy_id},
-        "spec": deployment.model_dump(mode="json"),
+        "spec": deployment.model_dump(mode="json", exclude_unset=True),
     }
     return k8s_dict
 
@@ -97,6 +117,9 @@ class KubernetesStorage(Storage):
                 f"Got unexpected error when trying to load deploy token for {tool_name}, expected a dict but got {k8s_tool_config}"
             )
 
+        # we changed ToolConfig to reject None values, but we already have some configs storing None values.
+        # remove all None values in those configs before validating with ToolConfig
+        _remove_none_values(k8s_tool_config["spec"])
         return ToolConfig.model_validate(k8s_tool_config["spec"])
 
     def set_tool_config(self, tool_name: str, config: ToolConfig) -> None:
@@ -202,6 +225,10 @@ class KubernetesStorage(Storage):
                 f"Got unexpected error when trying to load deploy token for {tool_name}, expected a dict but got {k8s_deployment}"
             )
 
+        if k8s_deployment["spec"].get("tool_config", None):
+            # we changed ToolConfig to reject None values, but we already have some configs storing None values (and deployments storing those configs).
+            # remove all None values in deployments before validating. After validation all defaults will be populated by the model so that's fine.
+            _remove_none_values(k8s_deployment["spec"]["tool_config"])
         return Deployment.model_validate(k8s_deployment["spec"])
 
     def list_deployments(self, tool_name: str) -> list[Deployment]:
@@ -218,6 +245,11 @@ class KubernetesStorage(Storage):
                 plural="tooldeployments",
                 namespace=namespace,
             )
+            for deployment in deployments["items"]:
+                if deployment["spec"].get("tool_config", None):
+                    # we changed ToolConfig to reject None values, but we already have some configs storing None values (and deployments storing those configs).
+                    # remove all None values in deployments before validating. After validation all defaults will be populated by the model so that's fine.
+                    _remove_none_values(deployment["spec"]["tool_config"])
             return [
                 Deployment.model_validate(dep["spec"]) for dep in deployments["items"]
             ]
@@ -280,7 +312,7 @@ class KubernetesStorage(Storage):
 
     def create_deployment(self, tool_name: str, deployment: Deployment) -> None:
         namespace = _get_k8s_tool_namespace(tool_name=tool_name)
-        body = _deploy_to_k8s_crd(deployment=deployment, tool_name=tool_name)
+        body = _deploy_to_k8s_crd(deployment=deployment)
         try:
             self.k8s.create_namespaced_custom_object(
                 group="components-api.toolforge.org",
@@ -303,10 +335,10 @@ class KubernetesStorage(Storage):
         self._timeout_old_deployments(tool_name=tool_name)
 
     def _update_deployment(self, tool_name: str, deployment: Deployment) -> None:
-        """Reusable function to updaet a deployment"""
+        """Reusable function to update a deployment"""
         namespace = _get_k8s_tool_namespace(tool_name=tool_name)
         self._get_deployment(tool_name=tool_name, deployment_name=deployment.deploy_id)
-        new_body = _deploy_to_k8s_crd(deployment=deployment, tool_name=tool_name)
+        new_body = _deploy_to_k8s_crd(deployment=deployment)
         try:
             self.k8s.patch_namespaced_custom_object(
                 name=deployment.deploy_id,

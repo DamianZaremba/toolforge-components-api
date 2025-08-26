@@ -1,7 +1,6 @@
 import datetime
 from unittest.mock import MagicMock
 
-import kubernetes
 import pytest
 from freezegun import freeze_time
 from pytest import MonkeyPatch
@@ -11,13 +10,6 @@ from components.settings import get_settings
 from components.storage.kubernetes import KubernetesStorage
 
 from ..testlibs import get_deployment_from_tool_config, get_tool_config
-
-
-@pytest.fixture
-def k8s_cli(monkeypatch: MonkeyPatch) -> MagicMock:
-    k8s_mock = MagicMock(spec=kubernetes)
-    monkeypatch.setattr("components.storage.kubernetes.kubernetes", k8s_mock)
-    return k8s_mock.client.CustomObjectsApi()
 
 
 class TestKubernetesStorage:
@@ -31,11 +23,11 @@ class TestKubernetesStorage:
     def test_create_and_update_time_out_old_deployments(
         self,
         storage_func: str,
-        k8s_cli: MagicMock,
+        storage_k8s_cli: MagicMock,
         monkeypatch: MonkeyPatch,
     ):
         """This is needed to ensure the specific _timeout_old_deployment tests are valid."""
-        k8s_cli.get_namespaced_custom_object.return_value = {
+        storage_k8s_cli.get_namespaced_custom_object.return_value = {
             "spec": get_deployment_from_tool_config(
                 tool_config=get_tool_config()
             ).model_dump()
@@ -66,11 +58,11 @@ class TestKubernetesStorage:
     def test_delete_and_get_time_out_old_deployments(
         self,
         storage_func: str,
-        k8s_cli: MagicMock,
+        storage_k8s_cli: MagicMock,
         monkeypatch: MonkeyPatch,
     ):
         """This is needed to ensure the specific _timeout_old_deployment tests are valid."""
-        k8s_cli.get_namespaced_custom_object.return_value = {
+        storage_k8s_cli.get_namespaced_custom_object.return_value = {
             "spec": get_deployment_from_tool_config(
                 tool_config=get_tool_config()
             ).model_dump()
@@ -95,11 +87,11 @@ class TestKubernetesStorage:
 
     def test_list_deployments_time_out_old_deployments(
         self,
-        k8s_cli: MagicMock,
+        storage_k8s_cli: MagicMock,
         monkeypatch: MonkeyPatch,
     ):
         """This is needed to ensure the specific _timeout_old_deployment tests are valid."""
-        k8s_cli.get_namespaced_custom_object.return_value = {
+        storage_k8s_cli.get_namespaced_custom_object.return_value = {
             "spec": get_deployment_from_tool_config(
                 tool_config=get_tool_config()
             ).model_dump()
@@ -119,7 +111,7 @@ class TestKubernetesStorage:
 
 
 class TestTimeoutOldDeployments:
-    def test_times_out_old_deployment_but_not_new(self, k8s_cli: MagicMock):
+    def test_times_out_old_deployment_but_not_new(self, storage_k8s_cli: MagicMock):
         storage = KubernetesStorage()
         old_deployment = get_deployment_from_tool_config(
             tool_config=get_tool_config(), creation_time="20210601-000000"
@@ -138,7 +130,7 @@ class TestTimeoutOldDeployments:
         )
 
     def test_times_out_old_deployment_after_a_bit_more_than_config(
-        self, k8s_cli: MagicMock
+        self, storage_k8s_cli: MagicMock
     ):
         storage = KubernetesStorage()
         settings = get_settings()
@@ -168,7 +160,7 @@ class TestTimeoutOldDeployments:
         ],
     )
     def test_times_out_active_deployments(
-        self, deployment_state: DeploymentState, k8s_cli: MagicMock
+        self, deployment_state: DeploymentState, storage_k8s_cli: MagicMock
     ):
         storage = KubernetesStorage()
         deployment_to_time_out = get_deployment_from_tool_config(
@@ -195,7 +187,7 @@ class TestTimeoutOldDeployments:
         ],
     )
     def test_does_not_time_out_inactive_deployments(
-        self, deployment_state: DeploymentState, k8s_cli: MagicMock
+        self, deployment_state: DeploymentState, storage_k8s_cli: MagicMock
     ):
         storage = KubernetesStorage()
         deployment_to_ignore = get_deployment_from_tool_config(

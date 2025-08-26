@@ -153,60 +153,71 @@ def _run_info_to_continuous_job(
 ) -> AnyNewJob:
     # TODO: the generator seems to make every parameter mandatory :/, try to fix that somehow
 
+    run_info_data = run_info.model_dump(exclude_unset=True)
     health_check: JobsHttpHealthCheck | JobsScriptHealthCheck | None = None
-    if run_info.health_check_http:
-        health_check = JobsHttpHealthCheck(type="http", path=run_info.health_check_http)
-    elif run_info.health_check_script:
+    if run_info_data.get("health_check_http", None):
+        health_check = JobsHttpHealthCheck(
+            type="http", path=run_info_data["health_check_http"]
+        )
+    elif run_info_data.get("health_check_script", None):
         health_check = JobsScriptHealthCheck(
             type="script",
-            script=run_info.health_check_script,
+            script=run_info_data["health_check_script"],
         )
+    params = {
+        # we always want to send job_type
+        "job_type": "continuous",
+        "cmd": run_info_data["command"],
+        "name": component_name,
+        "imagename": image_name,
+    }
+    if health_check:
+        params["health_check"] = health_check.model_dump()
 
-    full_job = JobsNewContinuousJob(
-        cmd=run_info.command,
-        name=component_name,
-        imagename=image_name,
-        cpu=run_info.cpu,
-        emails=run_info.emails,
-        filelog=run_info.filelog,
-        filelog_stderr=run_info.filelog_stderr,
-        filelog_stdout=run_info.filelog_stdout,
-        health_check=health_check,
-        memory=run_info.memory,
-        mount=run_info.mount,
-        port=run_info.port,
-        replicas=run_info.replicas,
-    )
+    for field in [
+        "cpu",
+        "memory",
+        "filelog",
+        "filelog_stderr",
+        "filelog_stdout",
+        "replicas",
+        "mount",
+        "port",
+        "emails",
+    ]:
+        if field in run_info_data:
+            params[field] = run_info_data[field]
 
-    new_cont_job = JobsNewContinuousJob.model_validate(
-        full_job.model_dump(exclude_defaults=True, exclude_unset=True)
-    )
-    return new_cont_job
+    return JobsNewContinuousJob.model_validate(params)
 
 
 def _run_info_to_scheduled_job(
     component_name: str, run_info: ScheduledRunInfo, image_name: str
 ) -> AnyNewJob:
-    full_job = JobsNewScheduledJob(
-        cmd=run_info.command,
-        name=component_name,
-        imagename=image_name,
-        cpu=run_info.cpu,
-        emails=run_info.emails,
-        filelog=run_info.filelog,
-        filelog_stderr=run_info.filelog_stderr,
-        filelog_stdout=run_info.filelog_stdout,
-        memory=run_info.memory,
-        mount=run_info.mount,
-        retry=run_info.retry,
-        schedule=run_info.schedule,
-        timeout=run_info.timeout,
-    )
+    run_info_data = run_info.model_dump(exclude_unset=True)
+    params = {
+        # we always want to send job_type
+        "job_type": "scheduled",
+        "cmd": run_info_data["command"],
+        "name": component_name,
+        "imagename": image_name,
+        "schedule": run_info_data["schedule"],
+    }
+    for field in [
+        "cpu",
+        "memory",
+        "filelog",
+        "filelog_stderr",
+        "filelog_stdout",
+        "mount",
+        "emails",
+        "timeout",
+        "retry",
+    ]:
+        if field in run_info_data:
+            params[field] = run_info_data[field]
 
-    new_sched_job = JobsNewScheduledJob.model_validate(
-        full_job.model_dump(exclude_defaults=True, exclude_unset=True)
-    )
-    return new_sched_job
+    return JobsNewScheduledJob.model_validate(params)
 
 
 class ToolforgeRuntime(Runtime):

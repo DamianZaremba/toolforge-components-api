@@ -4,6 +4,7 @@ from typing import Any
 from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request
 
 from ..models.api_models import (
+    BETA_WARNING_MESSAGE,
     EXAMPLE_GENERATED_CONFIG,
     Deployment,
     DeploymentBuildInfo,
@@ -43,14 +44,17 @@ token_auth_router = APIRouter(
 )
 
 
-@header_auth_router.get("/{toolname}/config", response_model_exclude_defaults=True)
+@header_auth_router.get("/{toolname}/config", response_model_exclude_unset=True)
 def get_tool_config(
     toolname: str,
     storage: Storage = Depends(get_storage),
 ) -> ToolConfigResponse:
     """Retrieve the configuration for a specific tool."""
+    warning_messages: list[str] = [BETA_WARNING_MESSAGE]
     config = handlers.get_tool_config(toolname, storage)
-    return ToolConfigResponse(data=config, messages=ResponseMessages())
+    return ToolConfigResponse(
+        data=config, messages=ResponseMessages(warning=warning_messages)
+    )
 
 
 def _get_unknown_config_fields(
@@ -89,7 +93,7 @@ def _get_unknown_config_fields(
     return unknown_fields
 
 
-@header_auth_router.post("/{toolname}/config", response_model_exclude_defaults=True)
+@header_auth_router.post("/{toolname}/config", response_model_exclude_unset=True)
 async def update_tool_config(
     toolname: str,
     config: ToolConfig,
@@ -97,25 +101,27 @@ async def update_tool_config(
     storage: Storage = Depends(get_storage),
 ) -> ToolConfigResponse:
     """Update or create the configuration for a specific tool."""
-    messages = ResponseMessages(
-        info=[f"Configuration for {toolname} updated successfully."]
-    )
-    handlers.update_tool_config(toolname, config, storage)
+    warning_messages: list[str] = [BETA_WARNING_MESSAGE]
+    handlers.update_tool_config(toolname=toolname, config=config, storage=storage)
     # trigger a fetch from source_url if there was any
     updated_config = handlers.get_and_refetch_config_if_needed(
         toolname=toolname, storage=storage
     )
-    messages.warning.extend(
+    warning_messages.extend(
         f"Unknown field {field}, skipped"
         for field in _get_unknown_config_fields(
             user_passed_config=await request.json(),
             parsed_config=updated_config.model_dump(),
         )
     )
+    messages = ResponseMessages(
+        info=[f"Configuration for {toolname} updated successfully."],
+        warning=warning_messages,
+    )
     return ToolConfigResponse(data=updated_config, messages=messages)
 
 
-@header_auth_router.delete("/{toolname}/config", response_model_exclude_defaults=True)
+@header_auth_router.delete("/{toolname}/config", response_model_exclude_unset=True)
 def delete_tool_config(
     toolname: str,
     storage: Storage = Depends(get_storage),
@@ -126,11 +132,10 @@ def delete_tool_config(
 
 
 @header_auth_router.get(
-    "/{toolname}/config/generate", response_model_exclude_defaults=True
+    "/{toolname}/config/generate", response_model_exclude_unset=True
 )
 def generate_tool_config(
     toolname: str,
-    storage: Storage = Depends(get_storage),
     runtime: Runtime = Depends(get_runtime),
 ) -> ToolConfigResponse:
     """Generate the configuration for a specific tool from existing jobs if possible.
@@ -168,7 +173,9 @@ def get_tool_deploy_token(
     return DeployTokenResponse(data=token, messages=ResponseMessages())
 
 
-@header_auth_router.get("/{toolname}/deployment/latest")
+@header_auth_router.get(
+    "/{toolname}/deployment/latest", response_model_exclude_unset=True
+)
 def get_latest_deployment(
     toolname: str, storage: Storage = Depends(get_storage)
 ) -> ToolDeploymentResponse:
@@ -179,7 +186,9 @@ def get_latest_deployment(
     return ToolDeploymentResponse(data=latest_deployment, messages=ResponseMessages())
 
 
-@token_auth_router.get("/{toolname}/deployment/{deployment_id}")
+@token_auth_router.get(
+    "/{toolname}/deployment/{deployment_id}", response_model_exclude_unset=True
+)
 def get_tool_deployment(
     toolname: str,
     deployment_id: str,
@@ -192,7 +201,9 @@ def get_tool_deployment(
 
 
 @header_auth_router.put("/{toolname}/deployment/latest/cancel")
-@header_auth_router.put("/{toolname}/deployment/{deployment_id}/cancel")
+@header_auth_router.put(
+    "/{toolname}/deployment/{deployment_id}/cancel", response_model_exclude_unset=True
+)
 def cancel_tool_deployment(
     toolname: str,
     deployment_id: str,
@@ -229,7 +240,7 @@ def cancel_tool_deployment(
     )
 
 
-@header_auth_router.get("/{toolname}/deployment")
+@header_auth_router.get("/{toolname}/deployment", response_model_exclude_unset=True)
 def list_tool_deployments(
     toolname: str,
     storage: Storage = Depends(get_storage),
@@ -242,7 +253,7 @@ def list_tool_deployments(
     )
 
 
-@token_auth_router.post("/{toolname}/deployment")
+@token_auth_router.post("/{toolname}/deployment", response_model_exclude_unset=True)
 def create_tool_deployment(
     toolname: str,
     background_tasks: BackgroundTasks,
@@ -347,7 +358,9 @@ def delete_tool_deploy_token(
     )
 
 
-@header_auth_router.delete("/{toolname}/deployment/{deployment_id}")
+@header_auth_router.delete(
+    "/{toolname}/deployment/{deployment_id}", response_model_exclude_unset=True
+)
 def delete_tool_deployment(
     toolname: str, deployment_id: str, storage: Storage = Depends(get_storage)
 ) -> ToolDeploymentResponse:

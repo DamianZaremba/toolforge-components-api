@@ -47,7 +47,8 @@ def create_tool_config(
 ) -> ToolConfigResponse:
     tool_config = get_fake_tool_config()
     response = client.post(
-        f"/v1/tool/{tool_name}/config", content=tool_config.model_dump_json()
+        f"/v1/tool/{tool_name}/config",
+        content=tool_config.model_dump_json(exclude_unset=True),
     )
     assert response.status_code == status.HTTP_200_OK
     return ToolConfigResponse.model_validate(response.json())

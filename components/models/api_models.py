@@ -4,6 +4,7 @@ import string
 from enum import Enum
 from typing import (
     Annotated,
+    Any,
     ClassVar,
     Generic,
     Literal,
@@ -29,6 +30,14 @@ from components.gen.toolforge_models import (
     Mount,
 )
 
+# these placeholders are stripped away later with exclude_unset.
+# they are only used to ensure the config models don't force the users to provide values for non-mandatory fields,
+# and because we don't want to mark the fields as Optional because then user's can do field=null and we don't want that either.
+PLACEHOLDER_DEFAULT_INT = 1
+PLACEHOLDER_DEFAULT_STR = ""
+PLACEHOLDER_DEFAULT_URL = AnyHttpUrl("http://localhost/")
+PLACEHOLDER_DEFAULT_BOOL = False
+
 # TODO: add the others when we add support for them
 ComponentType: TypeAlias = Literal["continuous"] | Literal["scheduled"]
 T = TypeVar("T")
@@ -38,6 +47,11 @@ class AnyGitUrl(AnyUrl):
     """A type that will accept any http, https or git URL."""
 
     _constraints = UrlConstraints(allowed_schemes=["http", "https", "git"])
+
+
+def remove_default_from_schema(schema: dict[str, Any]) -> None:
+    """remove the placeholder 'default' keys we are adding to certain fields"""
+    schema.pop("default", None)
 
 
 class ConfigVersion(str, Enum):
@@ -53,7 +67,7 @@ class SourceBuildInfo(BaseModel):
             )
         ],
     )
-    # TODO: maybe make this optional?
+    # TODO: maybe we should provide a default?
     # we don't really need a ref as providing just repository should default to default ref no?
     ref: str = Field(
         description="Git ref to build from. This can be a tag, a branch name or a commit SHA.",
@@ -62,7 +76,8 @@ class SourceBuildInfo(BaseModel):
 
     use_latest_versions: bool = Field(
         description="If set, it will use the latest buildpacks and run images for this build. Helpful to always get the latest versions or test them before they become standard.",
-        default=False,
+        default=PLACEHOLDER_DEFAULT_BOOL,
+        json_schema_extra=remove_default_from_schema,
     )
 
 
@@ -84,36 +99,45 @@ class CommonRunInfoFields(BaseModel):
         ),
         examples=["bash -c 'while date; do sleep 10; done'"],
     )
-    cpu: str | None = Field(
-        default=None, description="Job CPU resource limit.", examples=["1"]
+    cpu: str = Field(
+        default=PLACEHOLDER_DEFAULT_STR,
+        description="Job CPU resource limit.",
+        examples=["1"],
+        json_schema_extra=remove_default_from_schema,
     )
-    emails: JobsEmailOption | None = Field(
-        default=None,
+    emails: JobsEmailOption = Field(
+        default=JobsEmailOption.none,
         description="Job emails setting.",
-        examples=["all"],
+        examples=[JobsEmailOption.none],
     )
-    filelog: bool | None = Field(
-        default=None,
+    filelog: bool = Field(
+        default=PLACEHOLDER_DEFAULT_BOOL,
         description="Whether this job uses filelog or not.",
         examples=[False],
+        json_schema_extra=remove_default_from_schema,
     )
-    filelog_stderr: str | None = Field(
-        default=None,
+    filelog_stderr: str = Field(
+        default=PLACEHOLDER_DEFAULT_STR,
         description="Path to the stderr file log.",
         examples=["logs/my-job.err"],
+        json_schema_extra=remove_default_from_schema,
     )
-    filelog_stdout: str | None = Field(
-        default=None,
+    filelog_stdout: str = Field(
+        default=PLACEHOLDER_DEFAULT_STR,
         description="Path to the stdout file log.",
         examples=["logs/my-job.out"],
+        json_schema_extra=remove_default_from_schema,
     )
-    memory: str | None = Field(
-        default=None, description="Job memory resource limit.", examples=["1G"]
+    memory: str = Field(
+        default=PLACEHOLDER_DEFAULT_STR,
+        description="Job memory resource limit.",
+        examples=["1G"],
+        json_schema_extra=remove_default_from_schema,
     )
-    mount: Mount | None = Field(
-        default=None,
+    mount: Mount = Field(
+        default=Mount.none,
         description="NFS mount configuration for the job.",
-        examples=["none", "all"],
+        examples=[Mount.none, Mount.all],
     )
 
 
@@ -121,32 +145,36 @@ class CommonRunInfoFields(BaseModel):
 # * Trimmed to be only the continuous side of it
 # * healthcheck are just the options, not the full objects
 class ContinuousRunInfo(CommonRunInfoFields):
-    port: int | None = Field(
-        default=None,
+    port: int = Field(
+        default=PLACEHOLDER_DEFAULT_INT,
         description=(
             "Port where the service listens on. Other components can then address this one with "
             "`http://<this_component_name>:<port>`"
         ),
         examples=[8080],
+        json_schema_extra=remove_default_from_schema,
     )
-    replicas: int | None = Field(
-        default=None,
+    replicas: int = Field(
+        default=PLACEHOLDER_DEFAULT_INT,
         description="Number of replicas to be used for the job. Configurable only when continuous is true.",
         examples=[1],
         ge=1,
+        json_schema_extra=remove_default_from_schema,
     )
-    health_check_script: str | None = Field(
-        default=None,
+    health_check_script: str = Field(
+        default=PLACEHOLDER_DEFAULT_STR,
         description=(
             "Script/command to run to check that the service is running correctly. This will run inside the same "
             "container as the service itself."
         ),
         examples=["test -e /tmp/everything_is_ok"],
+        json_schema_extra=remove_default_from_schema,
     )
-    health_check_http: str | None = Field(
-        default=None,
+    health_check_http: str = Field(
+        default=PLACEHOLDER_DEFAULT_STR,
         description="HTTP path to query for the status of the system. It expects an HTTP 200 OK response, anything else is interpreted as failure.",
         examples=["/healthz"],
+        json_schema_extra=remove_default_from_schema,
     )
 
     @model_validator(mode="after")
@@ -165,21 +193,23 @@ class ContinuousRunInfo(CommonRunInfoFields):
 
 class ScheduledRunInfo(CommonRunInfoFields):
     retry: int = Field(
-        default=0,
+        default=PLACEHOLDER_DEFAULT_INT,
         description="Job retry policy. Zero means don't retry at all (the default)",
         examples=[0],
         ge=0,
         le=5,
+        json_schema_extra=remove_default_from_schema,
     )
     schedule: str = Field(
         description="If the job is a cronjob, execution schedule.",
         examples=["@hourly", "*/15 * * * *"],
     )
-    timeout: int | None = Field(
-        default=None,
+    timeout: int = Field(
+        default=PLACEHOLDER_DEFAULT_INT,
         description="Maximum amount of seconds the job will be allowed to run before it is failed",
         examples=[120],
         ge=0,
+        json_schema_extra=remove_default_from_schema,
     )
 
 
@@ -208,12 +238,13 @@ class ToolConfig(BaseModel):
         default=ConfigVersion.V1_BETA1,
         json_schema_extra={"nullable": True},
     )
-    source_url: AnyHttpUrl | None = Field(
-        default=None,
+    source_url: AnyHttpUrl = Field(
+        default=PLACEHOLDER_DEFAULT_URL,
         description=(
             "If passed, it will ignore anything else and try to fetch the configuration from the given "
             "URL on every deploy."
         ),
+        json_schema_extra=remove_default_from_schema,
     )
     components: dict[str, ComponentInfo] = Field(
         ...,

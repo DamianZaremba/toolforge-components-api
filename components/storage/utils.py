@@ -13,9 +13,11 @@ logger = logging.getLogger(__name__)
 storage: Storage | None = None
 
 
-def get_storage(settings: Settings = Depends(get_settings)) -> Storage:
+def get_storage(
+    settings: Settings = Depends(get_settings), rebuild_storage: bool = False
+) -> Storage:
     global storage
-    if storage is None:
+    if storage is None or rebuild_storage:
         if settings.storage_type == "mock":
             logger.info("Returning mock storage")
             storage = MockStorage()

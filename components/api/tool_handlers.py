@@ -17,6 +17,7 @@ from ..gen.toolforge_models import (
     JobsScriptHealthCheck,
 )
 from ..models.api_models import (
+    PLACEHOLDER_DEFAULT_URL,
     AnyGitUrl,
     ComponentInfo,
     ConfigVersion,
@@ -46,7 +47,7 @@ AnyDefinedJob: TypeAlias = (
 def get_and_refetch_config_if_needed(toolname: str, storage: Storage) -> ToolConfig:
     logger.debug("Checking if I should update the config from source_url")
     config = get_tool_config(toolname=toolname, storage=storage)
-    if config.source_url:
+    if config.source_url != PLACEHOLDER_DEFAULT_URL:
         logger.info(f"Re-fetching config from source_url: {config.source_url}")
         config = _fetch_config_from_url(url=config.source_url)
         config = update_tool_config(toolname=toolname, config=config, storage=storage)
@@ -103,7 +104,7 @@ def update_tool_config(
     logger.info(f"Modifying config for tool: {toolname}")
     logger.debug(f"passed config: {config}")
     try:
-        storage.set_tool_config(toolname, config)
+        storage.set_tool_config(tool_name=toolname, config=config)
         logger.info(f"Config updated successfully for tool: {toolname}")
         logger.debug(f"New config {config}")
         return config

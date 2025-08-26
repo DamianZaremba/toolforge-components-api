@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Toolforge Components API
-  version: 0.1.2
+  version: 0.2.0
 servers:
 - url: http://127.0.0.1:8000
   description: Local direct development server.
@@ -54,6 +54,13 @@ paths:
         schema:
           type: string
           title: Toolname
+      - name: rebuild_storage
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Rebuild Storage
       responses:
         '200':
           description: Successful Response
@@ -82,6 +89,13 @@ paths:
         schema:
           type: string
           title: Toolname
+      - name: rebuild_storage
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Rebuild Storage
       requestBody:
         required: true
         content:
@@ -116,6 +130,13 @@ paths:
         schema:
           type: string
           title: Toolname
+      - name: rebuild_storage
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Rebuild Storage
       responses:
         '200':
           description: Successful Response
@@ -178,6 +199,13 @@ paths:
         schema:
           type: string
           title: Toolname
+      - name: rebuild_storage
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Rebuild Storage
       responses:
         '200':
           description: Successful Response
@@ -205,6 +233,13 @@ paths:
         schema:
           type: string
           title: Toolname
+      - name: rebuild_storage
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Rebuild Storage
       responses:
         '200':
           description: Successful Response
@@ -232,6 +267,13 @@ paths:
         schema:
           type: string
           title: Toolname
+      - name: rebuild_storage
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Rebuild Storage
       responses:
         '200':
           description: Successful Response
@@ -259,6 +301,13 @@ paths:
         schema:
           type: string
           title: Toolname
+      - name: rebuild_storage
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Rebuild Storage
       responses:
         '200':
           description: Successful Response
@@ -288,6 +337,13 @@ paths:
         schema:
           type: string
           title: Toolname
+      - name: rebuild_storage
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Rebuild Storage
       responses:
         '200':
           description: Successful Response
@@ -322,6 +378,13 @@ paths:
         schema:
           type: string
           title: Deployment Id
+      - name: rebuild_storage
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Rebuild Storage
       responses:
         '200':
           description: Successful Response
@@ -356,6 +419,13 @@ paths:
         schema:
           type: string
           title: Deployment Id
+      - name: rebuild_storage
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Rebuild Storage
       responses:
         '200':
           description: Successful Response
@@ -385,6 +455,13 @@ paths:
         schema:
           type: string
           title: Toolname
+      - name: rebuild_storage
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Rebuild Storage
       responses:
         '200':
           description: Successful Response
@@ -440,6 +517,13 @@ paths:
         description: By default an already running component is not restarted if there
           are no changes to the run parameters. To force a re-run regardless of the
           run parameters, use force-run
+      - name: rebuild_storage
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Rebuild Storage
       responses:
         '200':
           description: Successful Response
@@ -474,6 +558,13 @@ paths:
         schema:
           type: string
           title: Deployment Id
+      - name: rebuild_storage
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Rebuild Storage
       responses:
         '200':
           description: Successful Response
@@ -508,6 +599,13 @@ paths:
         schema:
           type: string
           title: Deployment Id
+      - name: rebuild_storage
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Rebuild Storage
       responses:
         '200':
           description: Successful Response
@@ -652,92 +750,72 @@ components:
           examples:
           - bash -c 'while date; do sleep 10; done'
         cpu:
-          anyOf:
-          - type: string
-          - type: 'null'
+          type: string
           title: Cpu
           description: Job CPU resource limit.
           examples:
           - '1'
         emails:
-          anyOf:
-          - $ref: '#/components/schemas/JobsEmailOption'
-          - type: 'null'
+          $ref: '#/components/schemas/JobsEmailOption'
           description: Job emails setting.
+          default: none
           examples:
-          - all
+          - none
         filelog:
-          anyOf:
-          - type: boolean
-          - type: 'null'
+          type: boolean
           title: Filelog
           description: Whether this job uses filelog or not.
           examples:
           - false
         filelog_stderr:
-          anyOf:
-          - type: string
-          - type: 'null'
+          type: string
           title: Filelog Stderr
           description: Path to the stderr file log.
           examples:
           - logs/my-job.err
         filelog_stdout:
-          anyOf:
-          - type: string
-          - type: 'null'
+          type: string
           title: Filelog Stdout
           description: Path to the stdout file log.
           examples:
           - logs/my-job.out
         memory:
-          anyOf:
-          - type: string
-          - type: 'null'
+          type: string
           title: Memory
           description: Job memory resource limit.
           examples:
           - 1G
         mount:
-          anyOf:
-          - $ref: '#/components/schemas/Mount'
-          - type: 'null'
+          $ref: '#/components/schemas/Mount'
           description: NFS mount configuration for the job.
+          default: none
           examples:
           - none
           - all
         port:
-          anyOf:
-          - type: integer
-          - type: 'null'
+          type: integer
           title: Port
           description: Port where the service listens on. Other components can then
             address this one with `http://<this_component_name>:<port>`
           examples:
           - 8080
         replicas:
-          anyOf:
-          - type: integer
-            minimum: 1.0
-          - type: 'null'
+          type: integer
+          minimum: 1.0
           title: Replicas
           description: Number of replicas to be used for the job. Configurable only
             when continuous is true.
           examples:
           - 1
         health_check_script:
-          anyOf:
-          - type: string
-          - type: 'null'
+          type: string
           title: Health Check Script
           description: Script/command to run to check that the service is running
             correctly. This will run inside the same container as the service itself.
           examples:
           - test -e /tmp/everything_is_ok
         health_check_http:
-          anyOf:
-          - type: string
-          - type: 'null'
+          type: string
           title: Health Check Http
           description: HTTP path to query for the status of the system. It expects
             an HTTP 200 OK response, anything else is interpreted as failure.
@@ -995,57 +1073,45 @@ components:
           examples:
           - bash -c 'while date; do sleep 10; done'
         cpu:
-          anyOf:
-          - type: string
-          - type: 'null'
+          type: string
           title: Cpu
           description: Job CPU resource limit.
           examples:
           - '1'
         emails:
-          anyOf:
-          - $ref: '#/components/schemas/JobsEmailOption'
-          - type: 'null'
+          $ref: '#/components/schemas/JobsEmailOption'
           description: Job emails setting.
+          default: none
           examples:
-          - all
+          - none
         filelog:
-          anyOf:
-          - type: boolean
-          - type: 'null'
+          type: boolean
           title: Filelog
           description: Whether this job uses filelog or not.
           examples:
           - false
         filelog_stderr:
-          anyOf:
-          - type: string
-          - type: 'null'
+          type: string
           title: Filelog Stderr
           description: Path to the stderr file log.
           examples:
           - logs/my-job.err
         filelog_stdout:
-          anyOf:
-          - type: string
-          - type: 'null'
+          type: string
           title: Filelog Stdout
           description: Path to the stdout file log.
           examples:
           - logs/my-job.out
         memory:
-          anyOf:
-          - type: string
-          - type: 'null'
+          type: string
           title: Memory
           description: Job memory resource limit.
           examples:
           - 1G
         mount:
-          anyOf:
-          - $ref: '#/components/schemas/Mount'
-          - type: 'null'
+          $ref: '#/components/schemas/Mount'
           description: NFS mount configuration for the job.
+          default: none
           examples:
           - none
           - all
@@ -1055,7 +1121,6 @@ components:
           minimum: 0.0
           title: Retry
           description: Job retry policy. Zero means don't retry at all (the default)
-          default: 0
           examples:
           - 0
         schedule:
@@ -1066,10 +1131,8 @@ components:
           - '@hourly'
           - '*/15 * * * *'
         timeout:
-          anyOf:
-          - type: integer
-            minimum: 0.0
-          - type: 'null'
+          type: integer
+          minimum: 0.0
           title: Timeout
           description: Maximum amount of seconds the job will be allowed to run before
             it is failed
@@ -1105,7 +1168,6 @@ components:
           description: If set, it will use the latest buildpacks and run images for
             this build. Helpful to always get the latest versions or test them before
             they become standard.
-          default: false
       type: object
       required:
       - repository
@@ -1136,11 +1198,9 @@ components:
           - v1beta1
           nullable: true
         source_url:
-          anyOf:
-          - type: string
-            minLength: 1
-            format: uri
-          - type: 'null'
+          type: string
+          minLength: 1
+          format: uri
           title: Source Url
           description: If passed, it will ignore anything else and try to fetch the
             configuration from the given URL on every deploy.
@@ -1171,11 +1231,9 @@ components:
           - v1beta1
           nullable: true
         source_url:
-          anyOf:
-          - type: string
-            minLength: 1
-            format: uri
-          - type: 'null'
+          type: string
+          minLength: 1
+          format: uri
           title: Source Url
           description: If passed, it will ignore anything else and try to fetch the
             configuration from the given URL on every deploy.

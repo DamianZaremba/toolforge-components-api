@@ -18,16 +18,9 @@
       "nullable": true
     },
     "source_url": {
-      "anyOf": [
-        {
-          "type": "string",
-          "minLength": 1,
-          "format": "uri"
-        },
-        {
-          "type": "null"
-        }
-      ],
+      "type": "string",
+      "minLength": 1,
+      "format": "uri",
       "title": "Source Url",
       "description": "If passed, it will ignore anything else and try to fetch the configuration from the given URL on every deploy."
     },
@@ -63,8 +56,7 @@
                       "use_latest_versions": {
                         "type": "boolean",
                         "title": "Use Latest Versions",
-                        "description": "If set, it will use the latest buildpacks and run images for this build. Helpful to always get the latest versions or test them before they become standard.",
-                        "default": false
+                        "description": "If set, it will use the latest buildpacks and run images for this build. Helpful to always get the latest versions or test them before they become standard."
                       }
                     },
                     "type": "object",
@@ -105,14 +97,7 @@
                     ]
                   },
                   "cpu": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ],
+                    "type": "string",
                     "title": "Cpu",
                     "description": "Job CPU resource limit.",
                     "examples": [
@@ -120,35 +105,17 @@
                     ]
                   },
                   "emails": {
-                    "anyOf": [
-                      {
-                        "type": "string",
-                        "enum": [
-                          "none",
-                          "all",
-                          "onfinish",
-                          "onfailure"
-                        ],
-                        "title": "JobsEmailOption"
-                      },
-                      {
-                        "type": "null"
-                      }
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "all",
+                      "onfinish",
+                      "onfailure"
                     ],
-                    "description": "Job emails setting.",
-                    "examples": [
-                      "all"
-                    ]
+                    "title": "JobsEmailOption"
                   },
                   "filelog": {
-                    "anyOf": [
-                      {
-                        "type": "boolean"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ],
+                    "type": "boolean",
                     "title": "Filelog",
                     "description": "Whether this job uses filelog or not.",
                     "examples": [
@@ -156,14 +123,7 @@
                     ]
                   },
                   "filelog_stderr": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ],
+                    "type": "string",
                     "title": "Filelog Stderr",
                     "description": "Path to the stderr file log.",
                     "examples": [
@@ -171,14 +131,7 @@
                     ]
                   },
                   "filelog_stdout": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ],
+                    "type": "string",
                     "title": "Filelog Stdout",
                     "description": "Path to the stdout file log.",
                     "examples": [
@@ -186,14 +139,7 @@
                     ]
                   },
                   "memory": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ],
+                    "type": "string",
                     "title": "Memory",
                     "description": "Job memory resource limit.",
                     "examples": [
@@ -201,34 +147,15 @@
                     ]
                   },
                   "mount": {
-                    "anyOf": [
-                      {
-                        "type": "string",
-                        "enum": [
-                          "all",
-                          "none"
-                        ],
-                        "title": "Mount"
-                      },
-                      {
-                        "type": "null"
-                      }
+                    "type": "string",
+                    "enum": [
+                      "all",
+                      "none"
                     ],
-                    "description": "NFS mount configuration for the job.",
-                    "examples": [
-                      "none",
-                      "all"
-                    ]
+                    "title": "Mount"
                   },
                   "port": {
-                    "anyOf": [
-                      {
-                        "type": "integer"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ],
+                    "type": "integer",
                     "title": "Port",
                     "description": "Port where the service listens on. Other components can then address this one with `http://<this_component_name>:<port>`",
                     "examples": [
@@ -236,15 +163,8 @@
                     ]
                   },
                   "replicas": {
-                    "anyOf": [
-                      {
-                        "type": "integer",
-                        "minimum": 1.0
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ],
+                    "type": "integer",
+                    "minimum": 1.0,
                     "title": "Replicas",
                     "description": "Number of replicas to be used for the job. Configurable only when continuous is true.",
                     "examples": [
@@ -252,14 +172,7 @@
                     ]
                   },
                   "health_check_script": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ],
+                    "type": "string",
                     "title": "Health Check Script",
                     "description": "Script/command to run to check that the service is running correctly. This will run inside the same container as the service itself.",
                     "examples": [
@@ -267,14 +180,7 @@
                     ]
                   },
                   "health_check_http": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ],
+                    "type": "string",
                     "title": "Health Check Http",
                     "description": "HTTP path to query for the status of the system. It expects an HTTP 200 OK response, anything else is interpreted as failure.",
                     "examples": [
@@ -339,8 +245,7 @@
                       "use_latest_versions": {
                         "type": "boolean",
                         "title": "Use Latest Versions",
-                        "description": "If set, it will use the latest buildpacks and run images for this build. Helpful to always get the latest versions or test them before they become standard.",
-                        "default": false
+                        "description": "If set, it will use the latest buildpacks and run images for this build. Helpful to always get the latest versions or test them before they become standard."
                       }
                     },
                     "type": "object",
@@ -381,14 +286,7 @@
                     ]
                   },
                   "cpu": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ],
+                    "type": "string",
                     "title": "Cpu",
                     "description": "Job CPU resource limit.",
                     "examples": [
@@ -396,35 +294,17 @@
                     ]
                   },
                   "emails": {
-                    "anyOf": [
-                      {
-                        "type": "string",
-                        "enum": [
-                          "none",
-                          "all",
-                          "onfinish",
-                          "onfailure"
-                        ],
-                        "title": "JobsEmailOption"
-                      },
-                      {
-                        "type": "null"
-                      }
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "all",
+                      "onfinish",
+                      "onfailure"
                     ],
-                    "description": "Job emails setting.",
-                    "examples": [
-                      "all"
-                    ]
+                    "title": "JobsEmailOption"
                   },
                   "filelog": {
-                    "anyOf": [
-                      {
-                        "type": "boolean"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ],
+                    "type": "boolean",
                     "title": "Filelog",
                     "description": "Whether this job uses filelog or not.",
                     "examples": [
@@ -432,14 +312,7 @@
                     ]
                   },
                   "filelog_stderr": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ],
+                    "type": "string",
                     "title": "Filelog Stderr",
                     "description": "Path to the stderr file log.",
                     "examples": [
@@ -447,14 +320,7 @@
                     ]
                   },
                   "filelog_stdout": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ],
+                    "type": "string",
                     "title": "Filelog Stdout",
                     "description": "Path to the stdout file log.",
                     "examples": [
@@ -462,14 +328,7 @@
                     ]
                   },
                   "memory": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ],
+                    "type": "string",
                     "title": "Memory",
                     "description": "Job memory resource limit.",
                     "examples": [
@@ -477,24 +336,12 @@
                     ]
                   },
                   "mount": {
-                    "anyOf": [
-                      {
-                        "type": "string",
-                        "enum": [
-                          "all",
-                          "none"
-                        ],
-                        "title": "Mount"
-                      },
-                      {
-                        "type": "null"
-                      }
+                    "type": "string",
+                    "enum": [
+                      "all",
+                      "none"
                     ],
-                    "description": "NFS mount configuration for the job.",
-                    "examples": [
-                      "none",
-                      "all"
-                    ]
+                    "title": "Mount"
                   },
                   "retry": {
                     "type": "integer",
@@ -502,7 +349,6 @@
                     "minimum": 0.0,
                     "title": "Retry",
                     "description": "Job retry policy. Zero means don't retry at all (the default)",
-                    "default": 0,
                     "examples": [
                       0
                     ]
@@ -517,15 +363,8 @@
                     ]
                   },
                   "timeout": {
-                    "anyOf": [
-                      {
-                        "type": "integer",
-                        "minimum": 0.0
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ],
+                    "type": "integer",
+                    "minimum": 0.0,
                     "title": "Timeout",
                     "description": "Maximum amount of seconds the job will be allowed to run before it is failed",
                     "examples": [
