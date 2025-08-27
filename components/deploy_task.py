@@ -296,7 +296,7 @@ def _start_builds(
             new_build_info = DeploymentBuildInfo(
                 build_id=DeploymentBuildInfo.NO_BUILD_NEEDED,
                 build_status=DeploymentBuildState.skipped,
-                build_long_status=f"Build from {component.build.reuse_from} will be used",
+                build_long_status=f"Component re-uses build from {component.build.reuse_from}",
             )
             logger.debug(f"Skipping reuse_from build for {component}")
         else:
