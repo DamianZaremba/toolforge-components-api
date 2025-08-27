@@ -1173,7 +1173,7 @@ class TestDoDeploy:
                     "child-component": DeploymentBuildInfo(
                         build_id="no-build-needed",
                         build_status=DeploymentBuildState.skipped,
-                        build_long_status="Build from my-component will be used",
+                        build_long_status="Component re-uses build from my-component",
                     ),
                 },
                 runs={
