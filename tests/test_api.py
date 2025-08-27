@@ -180,7 +180,7 @@ class TestUpdateToolConfig:
         )
         assert raw_response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
         assert (
-            "Missing components are referenced for re-use"
+            "Missing components referenced from reuse_from:"
             in raw_response.json()["messages"]["error"][0]
         )
 
