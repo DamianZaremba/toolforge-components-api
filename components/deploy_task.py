@@ -382,9 +382,14 @@ def _do_run(
             f"{tool_name}: deploying component {component_name}: {component_info}"
         )
         message = "Unknown error"
+        build_component = (
+            component_info.build.reuse_from
+            if isinstance(component_info.build, SourceBuildReference)
+            else component_name
+        )
         needs_rerun = (
             deployment.force_run
-            or deployment.builds[component_name].build_status
+            or deployment.builds[build_component].build_status
             == DeploymentBuildState.successful
         )
         try:
