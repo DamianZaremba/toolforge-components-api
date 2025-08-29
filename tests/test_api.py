@@ -180,7 +180,43 @@ class TestUpdateToolConfig:
         )
         assert raw_response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
         assert (
-            "Missing components referenced from reuse_from:"
+            "Missing components referenced from reuse_from: very-important"
+            in raw_response.json()["messages"]["error"][0]
+        )
+
+    def test_fails_with_non_authoritative_referenced_component(
+        self, authenticated_client: TestClient
+    ):
+        config_json = {
+            "components": {
+                "parent-component": {
+                    "build": {
+                        "ref": "main",
+                        "repository": "my-repo",
+                        "use_latest_versions": False,
+                    },
+                    "component_type": "continuous",
+                    "run": {"command": "my-command"},
+                },
+                "child-component": {
+                    "build": {"reuse_from": "parent-component"},
+                    "component_type": "continuous",
+                    "run": {"command": "child-command"},
+                },
+                "sub-child-component": {
+                    "build": {"reuse_from": "child-component"},
+                    "component_type": "continuous",
+                    "run": {"command": "child-command"},
+                },
+            },
+            "config_version": "v1beta1",
+        }
+        raw_response = authenticated_client.post(
+            "/v1/tool/test-tool-1/config", json=config_json
+        )
+        assert raw_response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert (
+            "Components used in reuse_from are not authoritative: child-component"
             in raw_response.json()["messages"]["error"][0]
         )
 

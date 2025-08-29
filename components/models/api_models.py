@@ -220,6 +220,17 @@ class ToolConfig(BaseModel):
                 f"Missing components referenced from reuse_from: {', '.join(missing_components)}"
             )
 
+        non_authoritative_components = {
+            component_name
+            for component_name, component_info in self.components.items()
+            if component_name in required_components
+            and isinstance(component_info.build, SourceBuildReference)
+        }
+        if non_authoritative_components:
+            raise ValueError(
+                f"Components used in reuse_from are not authoritative: {', '.join(non_authoritative_components)}"
+            )
+
         return self
 
 
