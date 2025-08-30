@@ -295,7 +295,6 @@ class TestDoDeploy:
         my_storage = MockStorage()
         my_tool_config = get_tool_config()
         my_deployment = get_deployment_from_tool_config(tool_config=my_tool_config)
-        my_deployment = get_deployment_from_tool_config(tool_config=my_tool_config)
         my_storage.create_deployment(tool_name="my-tool", deployment=my_deployment)
 
         toolforge_client_mock = MagicMock(spec=ToolforgeClient)
@@ -1116,6 +1115,93 @@ class TestDoDeploy:
         )
         toolforge_client_mock.delete.assert_called_with(
             "/jobs/v1/tool/my-tool/jobs/my-component", verify=True
+        )
+
+    def test_reruns_job_for_reused_components_when_build_changed(
+        self, monkeypatch: MonkeyPatch
+    ):
+        my_storage = MockStorage()
+        my_tool_config = ToolConfig(
+            config_version="v1beta1",
+            components={
+                "my-component": ContinuousComponentInfo(
+                    build=SourceBuildInfo(
+                        repository="my-repo",
+                        ref="main",
+                    ),
+                    run=ContinuousRunInfo(
+                        command="my-command",
+                    ),
+                ),
+                "first-component": ContinuousComponentInfo(
+                    build=SourceBuildReference(
+                        reuse_from="my-component",
+                    ),
+                    run=ContinuousRunInfo(
+                        command="my-second-command",
+                    ),
+                ),
+                "second-component": ContinuousComponentInfo(
+                    build=SourceBuildReference(
+                        reuse_from="my-component",
+                    ),
+                    run=ContinuousRunInfo(
+                        command="my-third-command",
+                    ),
+                ),
+            },
+        )
+        my_deployment = get_deployment_from_tool_config(tool_config=my_tool_config)
+        my_storage.create_deployment(tool_name="my-tool", deployment=my_deployment)
+
+        toolforge_client_mock = MagicMock(spec=ToolforgeClient)
+        monkeypatch.setattr(
+            "components.runtime.toolforge.get_toolforge_client",
+            lambda: toolforge_client_mock,
+        )
+        toolforge_client_mock.post.return_value = {"new_build": {"name": "my-build"}}
+
+        # This needs to be parseable in `_do_run` or we skip the restart logic block,
+        # which makes everything always created, making this test redundant.
+        def _mock_get_side_effect(path: str, *args, **kwargs):
+            # Jobs
+            if path == "/jobs/v1/tool/my-tool/jobs":
+                return {
+                    "jobs": [
+                        get_defined_job(name="my-component"),
+                        get_defined_job(name="first-component"),
+                        get_defined_job(name="second-component"),
+                    ]
+                }
+
+            # Build
+            return {"build": {"status": BuildsBuildStatus.BUILD_SUCCESS.value}}
+
+        toolforge_client_mock.get = _mock_get_side_effect
+
+        toolforge_client_mock.patch.return_value = JobsJobResponse(
+            job=get_defined_job(), messages=None
+        ).model_dump()
+
+        toolforge_client_mock.delete.return_value = JobsJobResponse(
+            job=get_defined_job(), messages=None
+        ).model_dump()
+
+        do_deploy(
+            deployment=my_deployment,
+            storage=my_storage,
+            tool_config=my_tool_config,
+            tool_name="my-tool",
+            runtime=get_runtime(settings=get_settings()),
+        )
+
+        toolforge_client_mock.delete.assert_has_calls(
+            [
+                call("/jobs/v1/tool/my-tool/jobs/my-component", verify=True),
+                call("/jobs/v1/tool/my-tool/jobs/first-component", verify=True),
+                call("/jobs/v1/tool/my-tool/jobs/second-component", verify=True),
+            ],
+            any_order=True,
         )
 
     def test_starts_build_and_reused_image_for_second_component(
