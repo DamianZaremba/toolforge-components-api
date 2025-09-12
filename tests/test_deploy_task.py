@@ -1,5 +1,8 @@
-import datetime
+import threading
+import time
+from datetime import datetime, timedelta
 from unittest.mock import MagicMock, call
+from uuid import uuid4
 
 import pytest
 import requests
@@ -36,6 +39,78 @@ from .testlibs import get_defined_job, get_deployment_from_tool_config, get_tool
 
 
 class TestDoDeploy:
+    def test_multiple_active_deployments_are_queued_and_run_properly(
+        self,
+        monkeypatch: MonkeyPatch,
+    ):
+        my_storage = MockStorage()
+        my_tool_config = get_tool_config()
+
+        deployment_1 = get_deployment_from_tool_config(
+            tool_config=my_tool_config,
+            deploy_id=str(uuid4()),
+            creation_time=datetime.now().strftime("%Y%m%d-%H%M%S"),
+            with_deployment_state=DeploymentState.running,
+        )
+        deployment_2 = get_deployment_from_tool_config(
+            tool_config=my_tool_config,
+            deploy_id=str(uuid4()),
+            creation_time=(datetime.now() + timedelta(hours=1)).strftime(
+                "%Y%m%d-%H%M%S"
+            ),
+            with_deployment_state=DeploymentState.pending,
+        )
+        my_storage.create_deployment(tool_name="my-tool", deployment=deployment_1)
+        my_storage.create_deployment(tool_name="my-tool", deployment=deployment_2)
+
+        toolforge_client_mock = MagicMock(spec=ToolforgeClient)
+        monkeypatch.setattr(
+            "components.runtime.toolforge.get_toolforge_client",
+            lambda: toolforge_client_mock,
+        )
+        toolforge_client_mock.post.return_value = {"new_build": {"name": "my-build"}}
+        toolforge_client_mock.get.return_value = {
+            "build": {"status": BuildsBuildStatus.BUILD_SUCCESS.value}
+        }
+        toolforge_client_mock.patch.return_value = JobsJobResponse(
+            job=get_defined_job(), messages=None
+        ).model_dump()
+
+        # Start deployment_2 in a separate thread (it should wait since deployment_1 is running)
+        thread = threading.Thread(
+            target=do_deploy,
+            kwargs={
+                "deployment": deployment_2,
+                "storage": my_storage,
+                "tool_config": my_tool_config,
+                "tool_name": "my-tool",
+                "runtime": get_runtime(settings=get_settings()),
+            },
+        )
+        thread.start()
+
+        # Give thread time to start and enter the waiting loop
+        time.sleep(1)
+
+        # verify that deployment_2 remains pending while deployment_1 is still running
+        deployment_2 == my_storage.get_deployment(
+            tool_name="my-tool", deployment_name=deployment_2.deploy_id
+        )
+
+        # mark deployment_1 as successful
+        deployment_1.status = DeploymentState.successful
+        my_storage.update_deployment(tool_name="my-tool", deployment=deployment_1)
+
+        # Wait for deployment_2 to complete with timeout
+        thread.join(timeout=30)
+        if thread.is_alive():
+            pytest.fail("Deployment 2 did not complete within timeout")
+
+        # verify that deployment_2 has run and is not marked successful
+        my_storage.get_deployment(
+            tool_name="my-tool", deployment_name=deployment_2.deploy_id
+        ).status = DeploymentState.successful
+
     def test_skip_build_if_no_change_in_ref_hash_and_existing_build(
         self,
         monkeypatch: MonkeyPatch,
@@ -466,7 +541,7 @@ class TestDoDeploy:
         ]
 
         with freeze_time(
-            datetime.datetime.now(),
+            datetime.now(),
             auto_tick_seconds=60 * 60 * 24,
             tick=True,
         ):
@@ -529,7 +604,7 @@ class TestDoDeploy:
         ]
 
         with freeze_time(
-            datetime.datetime.now(),
+            datetime.now(),
             auto_tick_seconds=60 * 60 * 24,
             tick=True,
         ):
