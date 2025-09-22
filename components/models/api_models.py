@@ -59,6 +59,44 @@ class ConfigVersion(str, Enum):
     V1_BETA1 = "v1beta1"
 
 
+class ConfigurationSourceUrl(BaseModel):
+    url: AnyHttpUrl = Field(
+        description=(
+            "URL to retrieve configuration from. "
+            "If passed, it will ignore anything else and try to fetch the configuration from the given "
+            "URL on every deploy."
+        ),
+        examples=[
+            "https://gitlab.wikimedia.org/toolforge-repos/sample-complex-app-backend/-/raw/main/toolforge.yaml"
+        ],
+    )
+
+
+class ConfigurationSourceRepo(BaseModel):
+    repository: AnyGitUrl = Field(
+        description=(
+            "URL of the git repository to retrieve configuration from. "
+            "If passed, it will ignore anything else and try to fetch the configuration from the given "
+            "URL on every deploy."
+        ),
+        examples=[
+            "https://gitlab.wikimedia.org/toolforge-repos/sample-complex-app-backend.git"
+        ],
+    )
+    ref: Annotated[
+        str,
+        Field(
+            description="Git ref to build from. This can be a tag, a branch name or a commit SHA.",
+            examples=["main", "v1.2.3", "35b594f5d452c288c4a15fe667a7dfb94a7e5489"],
+            title="Ref",
+        ),
+    ]
+    path: str = Field(
+        description="Path of the configuration file within the git branch.",
+        examples=["toolforge.yaml"],
+    )
+
+
 class SourceBuildInfo(BaseModel):
     repository: AnyGitUrl = Field(
         description="URL of the public git repository with the code to build.",
@@ -236,6 +274,7 @@ class ContinuousComponentInfo(BaseModel):
 
 
 ComponentInfo = ContinuousComponentInfo | ScheduledComponentInfo
+ConfigurationSource = ConfigurationSourceUrl | ConfigurationSourceRepo
 
 
 class ToolConfig(BaseModel):
@@ -247,8 +286,17 @@ class ToolConfig(BaseModel):
     source_url: AnyHttpUrl = Field(
         default=PLACEHOLDER_DEFAULT_URL,
         description=(
+            "** Deprecated **. "
             "If passed, it will ignore anything else and try to fetch the configuration from the given "
             "URL on every deploy."
+        ),
+        json_schema_extra=remove_default_from_schema,
+    )
+    source: ConfigurationSource = Field(
+        default=ConfigurationSourceUrl(url=PLACEHOLDER_DEFAULT_URL),
+        description=(
+            "If passed, it will ignore anything else and try to fetch the configuration from the given "
+            "source on every deploy."
         ),
         json_schema_extra=remove_default_from_schema,
     )
@@ -284,6 +332,12 @@ class ToolConfig(BaseModel):
                 "The following components reuse builds from components that also use reuse_from. They should "
                 f"point to the original components instead: {', '.join(non_authoritative_components)}"
             )
+
+        # Backwards compatibility until `source_url` is removed
+        # Convert `source_url: https://my.host` into `source: {url: https://my.host}`
+        if self.source_url and self.source_url != PLACEHOLDER_DEFAULT_URL:
+            self.source = ConfigurationSourceUrl(url=self.source_url)
+            self.source_url = PLACEHOLDER_DEFAULT_URL
 
         return self
 

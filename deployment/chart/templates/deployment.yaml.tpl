@@ -49,6 +49,8 @@ spec:
               readOnly: true
             - mountPath: /tmp/prometheus
               name: prometheus-multiproc-dir
+            - mountPath: /tmp/writable-tmp
+              name: writable-tmp-dir
         - name: nginx
           image: "{{ .Values.nginx.image.repository }}:{{ .Values.nginx.image.nginxTag }}"
           imagePullPolicy: Always
@@ -98,4 +100,6 @@ spec:
           secret:
             secretName: "{{ .Release.Name }}-certificate"
         - name: prometheus-multiproc-dir
+          emptyDir: {}
+        - name: writable-tmp-dir
           emptyDir: {}

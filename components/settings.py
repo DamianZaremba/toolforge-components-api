@@ -1,5 +1,6 @@
 import datetime
 import logging
+from pathlib import PosixPath
 from typing import Literal
 
 from pydantic import AnyHttpUrl
@@ -27,6 +28,7 @@ class Settings(BaseSettings):
     max_parallel_deployments: int = 1
     deployment_timeout: datetime.timedelta = datetime.timedelta(hours=1)
     user_agent: str = "Toolforge components-api"
+    temporary_writable_directory: PosixPath = PosixPath("/tmp/writable-tmp")
 
 
 def get_settings() -> Settings:

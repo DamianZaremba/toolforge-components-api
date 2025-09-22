@@ -70,11 +70,15 @@ def _get_unknown_config_fields(
             unknown_fields.append(f"{cur_path}{key}")
             continue
 
+        parsed_config_child = parsed_config.get(key)
+        if parsed_config_child is None:
+            continue
+
         if isinstance(value, dict):
             unknown_fields.extend(
                 _get_unknown_config_fields(
                     user_passed_config=value,
-                    parsed_config=parsed_config[key],
+                    parsed_config=parsed_config_child,
                     cur_path=f"{cur_path}{key}.",
                 )
             )
@@ -85,7 +89,7 @@ def _get_unknown_config_fields(
                     unknown_fields.extend(
                         _get_unknown_config_fields(
                             user_passed_config=elem,
-                            parsed_config=parsed_config[key][index],
+                            parsed_config=parsed_config_child[index],
                             cur_path=f"{cur_path}{key}[{index}].",
                         )
                     )
@@ -107,13 +111,20 @@ async def update_tool_config(
     updated_config = handlers.get_and_refetch_config_if_needed(
         toolname=toolname, storage=storage
     )
+
+    user_passed_config = await request.json()
     warning_messages.extend(
         f"Unknown field {field}, skipped"
         for field in _get_unknown_config_fields(
-            user_passed_config=await request.json(),
+            user_passed_config=user_passed_config,
             parsed_config=updated_config.model_dump(),
         )
     )
+    if source_url := user_passed_config.get("source_url"):
+        warning_messages.append(
+            f"`source_url: '{source_url}'` is deprecated, "
+            f"replace with `source: {{ url: '{source_url}' }}`"
+        )
     messages = ResponseMessages(
         info=[f"Configuration for {toolname} updated successfully."],
         warning=warning_messages,
