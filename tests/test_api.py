@@ -216,9 +216,9 @@ class TestUpdateToolConfig:
         )
         assert raw_response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
         assert (
-            "Components used in reuse_from are not authoritative: child-component"
-            in raw_response.json()["messages"]["error"][0]
-        )
+            "The following components reuse builds from components that also use reuse_from. They should point to "
+            "the original components instead: child-component"
+        ) in raw_response.json()["messages"]["error"][0]
 
 
 class TestGetToolConfig:

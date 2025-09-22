@@ -228,7 +228,8 @@ class ToolConfig(BaseModel):
         }
         if non_authoritative_components:
             raise ValueError(
-                f"Components used in reuse_from are not authoritative: {', '.join(non_authoritative_components)}"
+                "The following components reuse builds from components that also use reuse_from. They should "
+                f"point to the original components instead: {', '.join(non_authoritative_components)}"
             )
 
         return self
