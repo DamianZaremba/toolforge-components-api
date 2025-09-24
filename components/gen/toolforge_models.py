@@ -884,6 +884,7 @@ class JobsJobResponse(BaseModel):
     job: Optional[
         Union[JobsDefinedOneOffJob, JobsDefinedScheduledJob, JobsDefinedContinuousJob]
     ] = None
+    job_changed: bool = False
     messages: Optional[JobsResponseMessages] = None
 
 

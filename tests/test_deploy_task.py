@@ -99,7 +99,7 @@ class TestDoDeploy:
                 runs={
                     "my-component": DeploymentRunInfo(
                         run_status=DeploymentRunState.successful,
-                        run_long_status="[info] (created continuous job my-job-name)",
+                        run_long_status="job my-component is already up to date, [info](created continuous job my-job-name)",
                     )
                 },
                 tool_config=get_tool_config(),
@@ -179,6 +179,7 @@ class TestDoDeploy:
             messages=JobsResponseMessages(
                 error=None, info=["created continuous job my-job-name"], warning=None
             ),
+            job_changed=True,
         ).model_dump()
         toolforge_client_mock.delete.return_value = JobsResponseMessages().model_dump()
 
@@ -196,7 +197,7 @@ class TestDoDeploy:
                 runs={
                     "my-component": DeploymentRunInfo(
                         run_status=DeploymentRunState.successful,
-                        run_long_status="[info] (created continuous job my-job-name)",
+                        run_long_status="created or updated job my-component, [info](created continuous job my-job-name)",
                     )
                 },
                 tool_config=get_tool_config(),
@@ -253,6 +254,7 @@ class TestDoDeploy:
             messages=JobsResponseMessages(
                 error=None, info=["created continuous job my-job-name"], warning=None
             ),
+            job_changed=True,
         ).model_dump()
 
         expected_deployments = [
@@ -269,7 +271,7 @@ class TestDoDeploy:
                 runs={
                     "my-component": DeploymentRunInfo(
                         run_status=DeploymentRunState.successful,
-                        run_long_status="[info] (created continuous job my-job-name)",
+                        run_long_status="created or updated job my-component, [info](created continuous job my-job-name)",
                     )
                 },
                 tool_config=get_tool_config(),
@@ -317,6 +319,7 @@ class TestDoDeploy:
             messages=JobsResponseMessages(
                 error=None, info=["created continuous job my-job-name"], warning=None
             ),
+            job_changed=True,
         ).model_dump()
 
         expected_deployments = [
@@ -333,7 +336,7 @@ class TestDoDeploy:
                 runs={
                     "my-component": DeploymentRunInfo(
                         run_status=DeploymentRunState.successful,
-                        run_long_status="[info] (created continuous job my-job-name)",
+                        run_long_status="created or updated job my-component, [info](created continuous job my-job-name)",
                     )
                 },
                 tool_config=get_tool_config(),
@@ -936,7 +939,7 @@ class TestDoDeploy:
                 runs={
                     "my-component": DeploymentRunInfo(
                         run_status=DeploymentRunState.successful,
-                        run_long_status="[info] (created continuous job my-job-name)",
+                        run_long_status="restarted job my-component, [info](created continuous job my-job-name)",
                     )
                 },
                 tool_config=get_tool_config(),
@@ -970,8 +973,8 @@ class TestDoDeploy:
             },
             verify=True,
         )
-        toolforge_client_mock.delete.assert_called_with(
-            "/jobs/v1/tool/my-tool/jobs/my-component", verify=True
+        toolforge_client_mock.post.assert_called_with(
+            "/jobs/v1/tool/my-tool/jobs/my-component/restart/", verify=True
         )
 
     def test_reruns_job_even_if_config_did_not_change_and_force_run_not_passed_if_build_ran(
@@ -1016,7 +1019,7 @@ class TestDoDeploy:
                 runs={
                     "my-component": DeploymentRunInfo(
                         run_status=DeploymentRunState.successful,
-                        run_long_status="[info] (created continuous job my-job-name)",
+                        run_long_status="restarted job my-component, [info](created continuous job my-job-name)",
                     )
                 },
                 tool_config=get_tool_config(),
@@ -1050,8 +1053,8 @@ class TestDoDeploy:
             },
             verify=True,
         )
-        toolforge_client_mock.delete.assert_called_with(
-            "/jobs/v1/tool/my-tool/jobs/my-component", verify=True
+        toolforge_client_mock.post.assert_called_with(
+            "/jobs/v1/tool/my-tool/jobs/my-component/restart/", verify=True
         )
 
     def test_reruns_job_for_reused_components_when_build_changed(
@@ -1128,11 +1131,15 @@ class TestDoDeploy:
             runtime=get_runtime(settings=get_settings()),
         )
 
-        toolforge_client_mock.delete.assert_has_calls(
+        toolforge_client_mock.post.assert_has_calls(
             [
-                call("/jobs/v1/tool/my-tool/jobs/my-component", verify=True),
-                call("/jobs/v1/tool/my-tool/jobs/first-component", verify=True),
-                call("/jobs/v1/tool/my-tool/jobs/second-component", verify=True),
+                call("/jobs/v1/tool/my-tool/jobs/my-component/restart/", verify=True),
+                call(
+                    "/jobs/v1/tool/my-tool/jobs/first-component/restart/", verify=True
+                ),
+                call(
+                    "/jobs/v1/tool/my-tool/jobs/second-component/restart/", verify=True
+                ),
             ],
             any_order=True,
         )
@@ -1179,6 +1186,7 @@ class TestDoDeploy:
             messages=JobsResponseMessages(
                 error=None, info=["created continuous job my-job-name"], warning=None
             ),
+            job_changed=True,
         ).model_dump()
 
         expected_deployments = [
@@ -1200,11 +1208,11 @@ class TestDoDeploy:
                 runs={
                     "my-component": DeploymentRunInfo(
                         run_status=DeploymentRunState.successful,
-                        run_long_status="[info] (created continuous job my-job-name)",
+                        run_long_status="created or updated job my-component, [info](created continuous job my-job-name)",
                     ),
                     "child-component": DeploymentRunInfo(
                         run_status=DeploymentRunState.successful,
-                        run_long_status="[info] (created continuous job my-job-name)",
+                        run_long_status="created or updated job child-component, [info](created continuous job my-job-name)",
                     ),
                 },
                 tool_config=my_tool_config,

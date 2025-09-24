@@ -1,7 +1,7 @@
 import datetime
 import subprocess
 from logging import getLogger
-from typing import TypeAlias
+from typing import Optional, TypeAlias
 
 from fastapi import status
 from requests import HTTPError
@@ -19,6 +19,7 @@ from ..gen.toolforge_models import (
     JobsNewContinuousJob,
     JobsNewOneOffJob,
     JobsNewScheduledJob,
+    JobsResponseMessages,
     JobsScriptHealthCheck,
 )
 from ..models.api_models import (
@@ -356,11 +357,22 @@ class ToolforgeRuntime(Runtime):
             build_long_status="Not started yet",
         )
 
+    def _format_status_messages(
+        self, base_message: str, api_messages: Optional[JobsResponseMessages]
+    ) -> str:
+        message = base_message
+        if api_messages:
+            for level, level_messages in api_messages:
+                if level_messages:
+                    message += f", [{level}]({', '.join(level_messages)})"
+        return message
+
     def run_continuous_job(
         self,
         tool_name: str,
         component_name: str,
         component_info: ComponentInfo,
+        force_restart: bool,
     ) -> str:
         if not isinstance(component_info.run, ContinuousRunInfo):
             raise ValueError(
@@ -404,15 +416,28 @@ class ToolforgeRuntime(Runtime):
             )
         )
         logger.debug(f"Deployed continuous job {component_name}: {create_response}")
-        if not create_response.messages:
-            return f"unable to get job info, response from jobs api {create_response}"
+        if create_response.job_changed:
+            # TODO: check if the job is actually running ok
+            return self._format_status_messages(
+                f"created or updated job {component_name}", create_response.messages
+            )
+
+        elif force_restart:
+            logger.debug(
+                f"Explicitly restarting continuous job {component_name} as the configuration did not change"
+            )
+            toolforge_client.post(
+                f"/jobs/v1/tool/{tool_name}/jobs/{component_name}/restart/",
+                verify=settings.verify_toolforge_api_cert,
+            )
+            return self._format_status_messages(
+                f"restarted job {component_name}", create_response.messages
+            )
 
         else:
-            message = ""
-            for level, messages in create_response.messages:
-                if messages:
-                    message += f"[{level}] ({', '.join(messages)})"
-            return message
+            return self._format_status_messages(
+                f"job {component_name} is already up to date", create_response.messages
+            )
 
     def run_scheduled_job(
         self,
@@ -456,15 +481,14 @@ class ToolforgeRuntime(Runtime):
             )
         )
         logger.debug(f"Deployed scheduled job {component_name}: {create_response}")
-        if not create_response.messages:
-            return f"unable to get job info, response from jobs api {create_response}"
-
+        if create_response.job_changed:
+            return self._format_status_messages(
+                f"created or updated job {component_name}", create_response.messages
+            )
         else:
-            message = ""
-            for level, messages in create_response.messages:
-                if messages:
-                    message += f"[{level}] ({', '.join(messages)})"
-            return message
+            return self._format_status_messages(
+                f"job {component_name} is already up to date", create_response.messages
+            )
 
     def delete_job_if_exists(
         self,

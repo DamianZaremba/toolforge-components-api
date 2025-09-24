@@ -425,21 +425,13 @@ def _do_run(
             == DeploymentBuildState.successful
         )
         try:
-            if needs_rerun:
-                # TODO: we might want to implement a more 'graceful' way of restarting a continuous job than deleting
-                # and creating, to allow for example not needing te recreate the k8s service underneath forcing
-                # a restart of any other jobs that might be using this one by name internally
-                message = _retry_http_failures(runtime.delete_job_if_exists)(
-                    tool_name=tool_name,
-                    component_name=component_name,
-                )
-
             match component_info:
                 case ContinuousComponentInfo():
                     message = _retry_http_failures(runtime.run_continuous_job)(
                         tool_name=tool_name,
                         component_info=component_info,
                         component_name=component_name,
+                        force_restart=needs_rerun,
                     )
                 case ScheduledComponentInfo():
                     message = _retry_http_failures(runtime.run_scheduled_job)(

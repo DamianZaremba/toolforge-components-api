@@ -48,6 +48,7 @@ class Runtime(ABC):
         tool_name: str,
         component_name: str,
         component_info: ComponentInfo,
+        force_restart: bool,
     ) -> str:
         pass
 
