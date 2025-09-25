@@ -444,14 +444,16 @@ def _do_run(
             )
             raise RunFailed(f"Failed run for component {component_name}: {message}")
 
-        deployment.status = DeploymentState.successful
-        deployment.long_status = f"Finished at {datetime.now()}"
         # TODO: check if the components are actually running ok
         run_info = DeploymentRunInfo(
             run_status=DeploymentRunState.successful, run_long_status=message
         )
         deployment.runs[component_name] = run_info
         _update_deployment(storage=storage, tool_name=tool_name, deployment=deployment)
+
+    deployment.status = DeploymentState.successful
+    deployment.long_status = f"Finished at {datetime.now()}"
+    _update_deployment(storage=storage, tool_name=tool_name, deployment=deployment)
 
 
 @handle_deployment_exception
