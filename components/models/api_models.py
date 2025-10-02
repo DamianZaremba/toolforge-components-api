@@ -28,6 +28,7 @@ from pydantic import (
 from components.gen.toolforge_models import (
     JobsEmailOption,
     Mount,
+    PortProtocol,
 )
 
 # these placeholders are stripped away later with exclude_unset.
@@ -154,6 +155,11 @@ class ContinuousRunInfo(CommonRunInfoFields):
         examples=[8080],
         json_schema_extra=remove_default_from_schema,
     )
+    port_protocol: PortProtocol = Field(
+        default=PortProtocol.tcp,
+        description="Protocol to use while exposing port for the job.",
+        examples=["tcp"],
+    )
     replicas: int = Field(
         default=PLACEHOLDER_DEFAULT_INT,
         description="Number of replicas to be used for the job. Configurable only when continuous is true.",
@@ -184,10 +190,10 @@ class ContinuousRunInfo(CommonRunInfoFields):
                 "Cannot specify both health_check_script and health_check_http"
             )
 
-        if self.health_check_http and not self.port:
-            raise ValueError(
-                "You have to specify a port when specifying a health_check_http"
-            )
+        if self.health_check_http and (
+            not self.port or self.port_protocol == PortProtocol.udp
+        ):
+            raise ValueError("A tcp port must be set for health_check_http")
         return self
 
 
@@ -417,6 +423,9 @@ EXAMPLE_GENERATED_CONFIG = ToolConfig(
                 command="bash -c 'while true; do echo hello world from component1; sleep 10; done'",
                 health_check_http="/healthz",
                 port=8080,
+                port_protocol=PortProtocol.tcp,
+                cpu="500m",
+                memory="256Mi",
                 mount=Mount.none,
             ),
         ),

@@ -157,6 +157,7 @@ def _get_run_for_job(job: AnyDefinedJob) -> ScheduledRunInfo | ContinuousRunInfo
     # we need to strip launcher because jobs adds it automatically but then does not remove it when getting the job
     command = job.cmd.split("launcher ", 1)[-1]
     params = {"command": command}
+    set_fields = job.model_dump(exclude_unset=True)
 
     if isinstance(job, JobsDefinedContinuousJob) and job.health_check:
         match job.health_check:
@@ -174,19 +175,23 @@ def _get_run_for_job(job: AnyDefinedJob) -> ScheduledRunInfo | ContinuousRunInfo
         "memory",
         "mount",
         "port",
+        "port_protocol",
         "replicas",
         "schedule",
         "retry",
         "timeout",
     ]:
-        value = getattr(job, param_name, None)
-        if value is not None:
-            params[param_name] = value
+        if param_name in set_fields:
+            params[param_name] = set_fields[param_name]
 
     if isinstance(job, JobsDefinedContinuousJob):
-        return ContinuousRunInfo.model_validate(params)
-
-    return ScheduledRunInfo.model_validate(params)
+        run_info: ContinuousRunInfo | ScheduledRunInfo = (
+            ContinuousRunInfo.model_validate(params)
+        )
+    else:
+        run_info = ScheduledRunInfo.model_validate(params)
+    logger.debug(f"Generated run info {run_info} from job {job}")
+    return run_info
 
 
 def _get_component_for_job(

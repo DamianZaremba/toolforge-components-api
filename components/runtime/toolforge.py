@@ -183,6 +183,7 @@ def _run_info_to_continuous_job(
         "replicas",
         "mount",
         "port",
+        "port_protocol",
         "emails",
     ]:
         if field in run_info_data:

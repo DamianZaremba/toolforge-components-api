@@ -162,6 +162,14 @@
                       8080
                     ]
                   },
+                  "port_protocol": {
+                    "type": "string",
+                    "enum": [
+                      "tcp",
+                      "udp"
+                    ],
+                    "title": "PortProtocol"
+                  },
                   "replicas": {
                     "type": "integer",
                     "minimum": 1.0,

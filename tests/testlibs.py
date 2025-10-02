@@ -1,5 +1,6 @@
 from components.gen.toolforge_models import JobsDefinedContinuousJob, JobType5
 from components.models.api_models import (
+    AnyGitUrl,
     ContinuousComponentInfo,
     ContinuousRunInfo,
     Deployment,
@@ -63,7 +64,9 @@ def get_tool_config(**overrides) -> ToolConfig:
         components={
             "my-component": ContinuousComponentInfo(
                 build=SourceBuildInfo(
-                    repository="https://gitlab-example.wikimedia.org/my-repo.git",
+                    repository=AnyGitUrl(
+                        "https://gitlab-example.wikimedia.org/my-repo.git"
+                    ),
                     ref="main",
                 ),
                 run=ContinuousRunInfo(
@@ -86,4 +89,4 @@ def get_defined_job(**overrides) -> JobsDefinedContinuousJob:
         name="my-job-name",
     )
     params.update(overrides)
-    return JobsDefinedContinuousJob(**params)
+    return JobsDefinedContinuousJob.model_validate(params)

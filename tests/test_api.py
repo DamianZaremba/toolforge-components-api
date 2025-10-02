@@ -1061,6 +1061,7 @@ class TestGenerateConfig:
                 name="job2",
                 health_check=JobsHttpHealthCheck(path="/healthz", type="http"),
                 port=1234,
+                port_protocol="tcp",
                 image="job2-image",
             ),
         ]
@@ -1102,7 +1103,10 @@ class TestGenerateConfig:
                             repository=AnyGitUrl("https://some.source/url"), ref="HEAD"
                         ),
                         run=ContinuousRunInfo(
-                            command=jobs[0].cmd, health_check_http="/healthz", port=1234
+                            command=jobs[0].cmd,
+                            health_check_http="/healthz",
+                            port=1234,
+                            port_protocol="tcp",
                         ),
                     ),
                 }

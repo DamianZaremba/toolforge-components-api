@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Toolforge Components API
-  version: 0.2.0
+  version: 0.3.0
 servers:
 - url: http://127.0.0.1:8000
   description: Local direct development server.
@@ -799,6 +799,12 @@ components:
             address this one with `http://<this_component_name>:<port>`
           examples:
           - 8080
+        port_protocol:
+          $ref: '#/components/schemas/PortProtocol'
+          description: Protocol to use while exposing port for the job.
+          default: tcp
+          examples:
+          - tcp
         replicas:
           type: integer
           minimum: 1.0
@@ -996,6 +1002,12 @@ components:
       - all
       - none
       title: Mount
+    PortProtocol:
+      type: string
+      enum:
+      - tcp
+      - udp
+      title: PortProtocol
     ResponseMessages:
       properties:
         info:
