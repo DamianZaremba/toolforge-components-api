@@ -3,10 +3,10 @@ from copy import deepcopy
 from datetime import datetime
 from functools import partial, wraps
 from logging import getLogger
-from typing import Protocol
+from typing import Any, Protocol
 
 from fastapi import HTTPException, status
-from requests import HTTPError
+from requests import HTTPError, ReadTimeout
 
 from .exceptions import BuildFailed, DeployCancelled, RunFailed
 from .models.api_models import (
@@ -119,6 +119,38 @@ def handle_deployment_exception(
             deployment=deployment,
             raise_if_cancelled=False,
         )
+
+    return _inner
+
+
+def _retry_http_failures(func: Any) -> Any:
+    @wraps(func)
+    def _inner(*args: Any, **kwargs: Any) -> Any:
+        retries = 0
+        current_delay = 1
+        last_exception: Exception = RuntimeError(
+            "ran out of attempts with unknown exception"
+        )
+        while retries < 5:
+            try:
+                return func(*args, **kwargs)
+            except ReadTimeout as ex:
+                # Re-try the function
+                logger.warning(f"Got ReadTimeout, executing re-try: {ex}")
+                last_exception = ex
+
+                retries += 1
+                time.sleep(current_delay)
+                current_delay *= 2
+            except Exception:
+                # Raise un-handled exception
+                raise
+
+        # If we dropped out here, then we ran out of retries
+        logger.exception(
+            "Failed to successfully re-try http failures", exc_info=last_exception
+        )
+        raise last_exception
 
     return _inner
 
@@ -397,20 +429,20 @@ def _do_run(
                 # TODO: we might want to implement a more 'graceful' way of restarting a continuous job than deleting
                 # and creating, to allow for example not needing te recreate the k8s service underneath forcing
                 # a restart of any other jobs that might be using this one by name internally
-                message = runtime.delete_job_if_exists(
+                message = _retry_http_failures(runtime.delete_job_if_exists)(
                     tool_name=tool_name,
                     component_name=component_name,
                 )
 
             match component_info:
                 case ContinuousComponentInfo():
-                    message = runtime.run_continuous_job(
+                    message = _retry_http_failures(runtime.run_continuous_job)(
                         tool_name=tool_name,
                         component_info=component_info,
                         component_name=component_name,
                     )
                 case ScheduledComponentInfo():
-                    message = runtime.run_scheduled_job(
+                    message = _retry_http_failures(runtime.run_scheduled_job)(
                         tool_name=tool_name,
                         component_info=component_info,
                         component_name=component_name,

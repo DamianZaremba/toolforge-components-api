@@ -6,9 +6,10 @@ import requests
 from fastapi import status
 from freezegun import freeze_time
 from pytest import MonkeyPatch
+from requests import ReadTimeout
 from toolforge_weld.api_client import ToolforgeClient
 
-from components.deploy_task import do_deploy
+from components.deploy_task import _retry_http_failures, do_deploy
 from components.gen.toolforge_models import (
     BuildsBuildStatus,
     JobsJobListResponse,
@@ -1318,3 +1319,27 @@ class TestDoDeploy:
             ],
             any_order=True,
         )
+
+
+class TestExceptionRetry:
+    def test_raises_on_non_http_error(self):
+        def _func():
+            raise ValueError("the unicorns are busy")
+
+        with pytest.raises(ValueError):
+            _retry_http_failures(_func)()
+
+    def test_returns_on_success(self):
+        def _func():
+            return "Pink Pony Club"
+
+        _retry_http_failures(_func)()
+
+    def test_raises_after_retries(self):
+        def _func():
+            raise ReadTimeout("the unicorns are busy")
+
+        with pytest.raises(ReadTimeout) as exc_info:
+            _retry_http_failures(_func)()
+
+        assert isinstance(exc_info.value, ReadTimeout)
