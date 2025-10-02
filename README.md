@@ -44,7 +44,7 @@ yaml-language-server, you have to add this line to the top:
 To regenerate the toolforge models you can just run:
 
 ```shell
-dcaro@lima-kilo$ poetry run datamodel-codegen --url https://api.svc.toolforge.org/openapi.json --output components/gen/toolforge_models.py
+dcaro@lima-kilo$ poetry run datamodel-codegen --url https://api.svc.toolforge.org/openapi.json --output components/gen/toolforge_models.py --output-model-type pydantic_v2.BaseModel --use-annotated
 ```
 
 ### Using the kubernetes storage connecting directly to lima-kilo
@@ -82,26 +82,31 @@ dcaro@mylaptop$ env KUBECONFIG=~/.kube/lima-kilo-config STORAGE_TYPE=kubernetes 
 
 ### Deploying into lima-kimo
 
-To support running functional tests, it is useful to be able to change the deployed image inside lima-kilo.
+To support running functional tests, it is useful to be able to change the
+deployed image inside lima-kilo.
 
-* Build the components-api container image
+- Build the components-api container image
+
 ```
 lima-kilo:~$ git clone https://gitlab.wikimedia.org/repos/cloud/toolforge/components-api
 lima-kilo:~$ cd components-api
 lima-kilo:~/components-api$ docker buildx build --target image -f .pipeline/blubber.yaml -t tools-harbor.wmcloud.org/toolforge/components-api:dev .
 ```
 
-* Load the built container image
+- Load the built container image
+
 ```
 lima-kilo:~/components-api$ kind load docker-image tools-harbor.wmcloud.org/toolforge/components-api:dev -n toolforge
 ```
 
-* Deploy to restart the service
+- Deploy to restart the service
+
 ```
 lima-kilo:~/components-api$ ./deploy.sh local
 ```
 
-* The API should now be accessible
+- The API should now be accessible
+
 ```
 lima-kilo:~/components-api$ kubectl -n components-api get pods
 NAME                              READY   STATUS    RESTARTS   AGE

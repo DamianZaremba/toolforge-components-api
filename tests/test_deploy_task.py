@@ -606,8 +606,8 @@ class TestDoDeploy:
         toolforge_client_mock.patch.assert_called_with(
             "/jobs/v1/tool/my-tool/jobs/",
             json={
+                "job_type": "continuous",
                 "cmd": "my-command",
-                "continuous": True,
                 "name": "my-component",
                 "imagename": "tool-my-tool/my-component:latest",
             },
@@ -708,8 +708,8 @@ class TestDoDeploy:
         toolforge_client_mock.patch.assert_called_once_with(
             "/jobs/v1/tool/my-tool/jobs/",
             json={
+                "job_type": "continuous",
                 "cmd": "my-command",
-                "continuous": True,
                 "name": "failed-component",
                 "imagename": "tool-my-tool/failed-component:latest",
             },
@@ -860,8 +860,8 @@ class TestDoDeploy:
         toolforge_client_mock.patch.assert_called_once_with(
             "/jobs/v1/tool/my-tool/jobs/",
             json={
+                "job_type": "continuous",
                 "cmd": "my-command",
-                "continuous": True,
                 "name": "my-component",
                 "imagename": "tool-my-tool/my-component:latest",
             },
@@ -932,8 +932,8 @@ class TestDoDeploy:
         toolforge_client_mock.patch.assert_called_once_with(
             "/jobs/v1/tool/my-tool/jobs/",
             json={
+                "job_type": "continuous",
                 "cmd": "my-command",
-                "continuous": True,
                 "name": "my-component",
                 "imagename": "tool-my-tool/my-component:latest",
             },
@@ -1026,8 +1026,8 @@ class TestDoDeploy:
         toolforge_client_mock.patch.assert_called_with(
             "/jobs/v1/tool/my-tool/jobs/",
             json={
+                "job_type": "continuous",
                 "cmd": "my-command",
-                "continuous": True,
                 "name": "my-component",
                 "imagename": "tool-my-tool/my-component:latest",
             },
@@ -1106,8 +1106,8 @@ class TestDoDeploy:
         toolforge_client_mock.patch.assert_called_with(
             "/jobs/v1/tool/my-tool/jobs/",
             json={
+                "job_type": "continuous",
                 "cmd": "my-command",
-                "continuous": True,
                 "name": "my-component",
                 "imagename": "tool-my-tool/my-component:latest",
             },
@@ -1298,8 +1298,8 @@ class TestDoDeploy:
                 call(
                     "/jobs/v1/tool/my-tool/jobs/",
                     json={
+                        "job_type": "continuous",
                         "cmd": "my-command",
-                        "continuous": True,
                         "name": "my-component",
                         "imagename": "tool-my-tool/my-component:latest",
                     },
@@ -1308,8 +1308,8 @@ class TestDoDeploy:
                 call(
                     "/jobs/v1/tool/my-tool/jobs/",
                     json={
+                        "job_type": "continuous",
                         "cmd": "my-second-command",
-                        "continuous": True,
                         "name": "child-component",
                         "imagename": "tool-my-tool/my-component:latest",
                     },

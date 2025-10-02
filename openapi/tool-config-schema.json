@@ -129,7 +129,7 @@
                           "onfinish",
                           "onfailure"
                         ],
-                        "title": "Emails"
+                        "title": "JobsEmailOption"
                       },
                       {
                         "type": "null"
@@ -405,7 +405,7 @@
                           "onfinish",
                           "onfailure"
                         ],
-                        "title": "Emails"
+                        "title": "JobsEmailOption"
                       },
                       {
                         "type": "null"
@@ -497,18 +497,12 @@
                     ]
                   },
                   "retry": {
-                    "anyOf": [
-                      {
-                        "type": "integer",
-                        "maximum": 5.0,
-                        "minimum": 0.0
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ],
+                    "type": "integer",
+                    "maximum": 5.0,
+                    "minimum": 0.0,
                     "title": "Retry",
                     "description": "Job retry policy. Zero means don't retry at all (the default)",
+                    "default": 0,
                     "examples": [
                       0
                     ]

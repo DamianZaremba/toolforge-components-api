@@ -1,6 +1,7 @@
 import datetime
 import subprocess
 from logging import getLogger
+from typing import TypeAlias
 
 from fastapi import status
 from requests import HTTPError
@@ -12,11 +13,12 @@ from ..gen.toolforge_models import (
     BuildsBuildParameters,
     BuildsBuildStatus,
     BuildsListResponse,
-    JobsDefinedJob,
     JobsHttpHealthCheck,
     JobsJobListResponse,
     JobsJobResponse,
-    JobsNewJob,
+    JobsNewContinuousJob,
+    JobsNewOneOffJob,
+    JobsNewScheduledJob,
     JobsScriptHealthCheck,
 )
 from ..models.api_models import (
@@ -29,9 +31,12 @@ from ..models.api_models import (
     SourceBuildReference,
 )
 from ..settings import get_settings
-from .base import Runtime
+from .base import AnyDefinedJob, Runtime
 
 logger = getLogger(__name__)
+
+
+AnyNewJob: TypeAlias = JobsNewContinuousJob | JobsNewOneOffJob | JobsNewScheduledJob
 
 
 def _resolve_ref(build_info: SourceBuildInfo) -> str:
@@ -145,7 +150,7 @@ def _get_component_image_name(
 
 def _run_info_to_continuous_job(
     component_name: str, run_info: ContinuousRunInfo, image_name: str
-) -> JobsNewJob:
+) -> AnyNewJob:
     # TODO: the generator seems to make every parameter mandatory :/, try to fix that somehow
 
     health_check: JobsHttpHealthCheck | JobsScriptHealthCheck | None = None
@@ -157,11 +162,10 @@ def _run_info_to_continuous_job(
             script=run_info.health_check_script,
         )
 
-    return JobsNewJob(
+    full_job = JobsNewContinuousJob(
         cmd=run_info.command,
         name=component_name,
         imagename=image_name,
-        continuous=True,
         cpu=run_info.cpu,
         emails=run_info.emails,
         filelog=run_info.filelog,
@@ -172,34 +176,37 @@ def _run_info_to_continuous_job(
         mount=run_info.mount,
         port=run_info.port,
         replicas=run_info.replicas,
-        retry=None,
-        schedule=None,
-        timeout=None,
     )
+
+    new_cont_job = JobsNewContinuousJob.model_validate(
+        full_job.model_dump(exclude_defaults=True, exclude_unset=True)
+    )
+    return new_cont_job
 
 
 def _run_info_to_scheduled_job(
     component_name: str, run_info: ScheduledRunInfo, image_name: str
-) -> JobsNewJob:
-    return JobsNewJob(
+) -> AnyNewJob:
+    full_job = JobsNewScheduledJob(
         cmd=run_info.command,
         name=component_name,
         imagename=image_name,
-        continuous=False,
         cpu=run_info.cpu,
         emails=run_info.emails,
         filelog=run_info.filelog,
         filelog_stderr=run_info.filelog_stderr,
         filelog_stdout=run_info.filelog_stdout,
-        health_check=None,
         memory=run_info.memory,
         mount=run_info.mount,
-        port=None,
-        replicas=None,
         retry=run_info.retry,
         schedule=run_info.schedule,
         timeout=run_info.timeout,
     )
+
+    new_sched_job = JobsNewScheduledJob.model_validate(
+        full_job.model_dump(exclude_defaults=True, exclude_unset=True)
+    )
+    return new_sched_job
 
 
 class ToolforgeRuntime(Runtime):
@@ -331,7 +338,7 @@ class ToolforgeRuntime(Runtime):
         )
         response = toolforge_client.post(
             f"/builds/v1/tool/{tool_name}/builds",
-            json=build_data.model_dump(),
+            json=build_data.model_dump(exclude_unset=True),
             verify=get_settings().verify_toolforge_api_cert,
         )
 
@@ -372,12 +379,19 @@ class ToolforgeRuntime(Runtime):
             run_info=component_info.run,
             image_name=image_name,
         )
-        logger.debug(f"Sending job info {new_job}")
+
+        # always send job_type
+        new_job.model_fields_set.add("job_type")
+        json_data = new_job.model_dump(
+            mode="json",
+            exclude_unset=True,
+        )
+        logger.debug(f"Sending job info {json_data} to jobs-api")
         # Using patch here does an upsert
         create_response = JobsJobResponse.model_validate(
             toolforge_client.patch(
                 f"/jobs/v1/tool/{tool_name}/jobs/",
-                json=new_job.model_dump(mode="json", exclude_none=True),
+                json=json_data,
                 verify=settings.verify_toolforge_api_cert,
             )
         )
@@ -427,12 +441,13 @@ class ToolforgeRuntime(Runtime):
             run_info=component_info.run,
             image_name=image_name,
         )
-        logger.debug(f"Sending job info {new_job}")
+        json_data = new_job.model_dump(mode="json", exclude_unset=True)
+        logger.debug(f"Sending job info {json_data} to jobs-api")
         # Using patch here does an upsert
         create_response = JobsJobResponse.model_validate(
             toolforge_client.patch(
                 f"/jobs/v1/tool/{tool_name}/jobs/",
-                json=new_job.model_dump(mode="json", exclude_none=True),
+                json=json_data,
                 verify=settings.verify_toolforge_api_cert,
             )
         )
@@ -491,7 +506,7 @@ class ToolforgeRuntime(Runtime):
                 message += f"[{level}] ({', '.join(messages)})"
         return message
 
-    def get_jobs(self, tool_name: str) -> list[JobsDefinedJob]:
+    def get_jobs(self, tool_name: str) -> list[AnyDefinedJob]:
         toolforge_client = get_toolforge_client()
         raw_response = toolforge_client.get(
             f"/jobs/v1/tool/{tool_name}/jobs",

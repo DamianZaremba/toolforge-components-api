@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from typing import TypeAlias
 
 import requests
 import yaml
@@ -9,7 +10,9 @@ from pydantic import AnyHttpUrl
 from ..deploy_task import do_deploy
 from ..gen.toolforge_models import (
     BuildsBuild,
-    JobsDefinedJob,
+    JobsDefinedContinuousJob,
+    JobsDefinedOneOffJob,
+    JobsDefinedScheduledJob,
     JobsHttpHealthCheck,
     JobsScriptHealthCheck,
 )
@@ -33,6 +36,11 @@ from ..storage import Storage
 from ..storage.exceptions import NotFoundInStorage
 
 logger = logging.getLogger(__name__)
+
+
+AnyDefinedJob: TypeAlias = (
+    JobsDefinedContinuousJob | JobsDefinedOneOffJob | JobsDefinedScheduledJob
+)
 
 
 def get_and_refetch_config_if_needed(toolname: str, storage: Storage) -> ToolConfig:
@@ -121,13 +129,17 @@ def delete_tool_config(toolname: str, storage: Storage) -> ToolConfig:
 
 
 def _get_build_for_job(
-    job: JobsDefinedJob, existing_builds: list[BuildsBuild]
+    job: AnyDefinedJob, existing_builds: list[BuildsBuild]
 ) -> SourceBuildInfo | None:
     for build in existing_builds:
         if not build.destination_image:
             return None
         # ugly matching, but good enough
-        if build.destination_image.endswith(job.image):
+        if (
+            build.destination_image
+            and job.image
+            and build.destination_image.endswith(job.image)
+        ):
             if not build.parameters or not build.parameters.source_url:
                 return None
 
@@ -140,12 +152,12 @@ def _get_build_for_job(
     return None
 
 
-def _get_run_for_job(job: JobsDefinedJob) -> ScheduledRunInfo | ContinuousRunInfo:
+def _get_run_for_job(job: AnyDefinedJob) -> ScheduledRunInfo | ContinuousRunInfo:
     # we need to strip launcher because jobs adds it automatically but then does not remove it when getting the job
     command = job.cmd.split("launcher ", 1)[-1]
     params = {"command": command}
 
-    if job.health_check:
+    if isinstance(job, JobsDefinedContinuousJob) and job.health_check:
         match job.health_check:
             case JobsHttpHealthCheck():
                 params["health_check_http"] = job.health_check.path
@@ -170,15 +182,25 @@ def _get_run_for_job(job: JobsDefinedJob) -> ScheduledRunInfo | ContinuousRunInf
         if value is not None:
             params[param_name] = value
 
-    if job.continuous:
+    if isinstance(job, JobsDefinedContinuousJob):
         return ContinuousRunInfo.model_validate(params)
 
     return ScheduledRunInfo.model_validate(params)
 
 
 def _get_component_for_job(
-    job: JobsDefinedJob, existing_builds: list[BuildsBuild]
+    job: AnyDefinedJob, existing_builds: list[BuildsBuild]
 ) -> tuple[ComponentInfo | None, str]:
+    match job:
+        case JobsDefinedScheduledJob() | JobsDefinedContinuousJob():
+            pass
+        case _:
+            logger.debug(f"unknown job type {job}")
+            return (
+                None,
+                f"Job {job.name} is not a continuous or scheduled job, it's not supported yet, skipping",
+            )
+
     build = _get_build_for_job(job=job, existing_builds=existing_builds)
     if not build:
         return (
@@ -192,12 +214,6 @@ def _get_component_for_job(
             return ScheduledComponentInfo(build=build, run=run), ""
         case ContinuousRunInfo():
             return ContinuousComponentInfo(build=build, run=run), ""
-        case _:
-            logger.debug(f"unknown run type {run}")
-            return (
-                None,
-                f"Job {job.name} is not a continuous or scheduled job, it's not supported yet, skipping",
-            )
 
 
 def generate_tool_config(

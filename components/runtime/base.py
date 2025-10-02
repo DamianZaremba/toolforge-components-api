@@ -1,7 +1,13 @@
 import logging
 from abc import ABC, abstractmethod
+from typing import TypeAlias
 
-from ..gen.toolforge_models import BuildsBuild, JobsDefinedJob
+from ..gen.toolforge_models import (
+    BuildsBuild,
+    JobsDefinedContinuousJob,
+    JobsDefinedOneOffJob,
+    JobsDefinedScheduledJob,
+)
 from ..models.api_models import (
     ComponentInfo,
     DeploymentBuildInfo,
@@ -10,6 +16,11 @@ from ..models.api_models import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+AnyDefinedJob: TypeAlias = (
+    JobsDefinedOneOffJob | JobsDefinedScheduledJob | JobsDefinedContinuousJob
+)
 
 
 class Runtime(ABC):
@@ -58,7 +69,7 @@ class Runtime(ABC):
         pass
 
     @abstractmethod
-    def get_jobs(self, tool_name: str) -> list[JobsDefinedJob]:
+    def get_jobs(self, tool_name: str) -> list[AnyDefinedJob]:
         pass
 
     @abstractmethod

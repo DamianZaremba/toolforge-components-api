@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "components"
-version = "0.1.1"
+version = "0.1.2"
 description = "Toolforge Components API"
 authors = ["Your Name <you@example.com>"]
 license = "AGPL-3.0-or-later"
@@ -23,7 +23,7 @@ mypy-extensions = "^1.0.0"
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.1"
 pre-commit = "^3.7.1"
-datamodel-code-generator = {extras = ["http"], version = "^0.26.1"}
+datamodel-code-generator = {version = ">=0.34", extras = ["http"]}
 pytest-asyncio = "^0.25.3"
 freezegun = "^1.5.1"
 types-requests = "^2.32.4.20250611"

@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Toolforge Components API
-  version: 0.1.1
+  version: 0.1.2
 servers:
 - url: http://127.0.0.1:8000
   description: Local direct development server.
@@ -661,7 +661,7 @@ components:
           - '1'
         emails:
           anyOf:
-          - $ref: '#/components/schemas/Emails'
+          - $ref: '#/components/schemas/JobsEmailOption'
           - type: 'null'
           description: Job emails setting.
           examples:
@@ -883,14 +883,6 @@ components:
       - cancelling
       - cancelled
       title: DeploymentState
-    Emails:
-      type: string
-      enum:
-      - none
-      - all
-      - onfinish
-      - onfailure
-      title: Emails
     HTTPValidationError:
       properties:
         detail:
@@ -912,6 +904,14 @@ components:
       required:
       - status
       title: HealthState
+    JobsEmailOption:
+      type: string
+      enum:
+      - none
+      - all
+      - onfinish
+      - onfailure
+      title: JobsEmailOption
     Mount:
       type: string
       enum:
@@ -1004,7 +1004,7 @@ components:
           - '1'
         emails:
           anyOf:
-          - $ref: '#/components/schemas/Emails'
+          - $ref: '#/components/schemas/JobsEmailOption'
           - type: 'null'
           description: Job emails setting.
           examples:
@@ -1050,13 +1050,12 @@ components:
           - none
           - all
         retry:
-          anyOf:
-          - type: integer
-            maximum: 5.0
-            minimum: 0.0
-          - type: 'null'
+          type: integer
+          maximum: 5.0
+          minimum: 0.0
           title: Retry
           description: Job retry policy. Zero means don't retry at all (the default)
+          default: 0
           examples:
           - 0
         schedule:

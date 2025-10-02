@@ -1,4 +1,4 @@
-from components.gen.toolforge_models import JobsDefinedJob
+from components.gen.toolforge_models import JobsDefinedContinuousJob, JobType5
 from components.models.api_models import (
     ContinuousComponentInfo,
     ContinuousRunInfo,
@@ -76,30 +76,14 @@ def get_tool_config(**overrides) -> ToolConfig:
     return ToolConfig(**params)  # type: ignore
 
 
-def get_defined_job(**overrides) -> JobsDefinedJob:
+def get_defined_job(**overrides) -> JobsDefinedContinuousJob:
     params = dict(
+        job_type=JobType5.continuous,
         cmd="my cmd",
-        continuous=True,
-        cpu=None,
-        emails=None,
-        filelog=None,
-        filelog_stderr=None,
-        filelog_stdout=None,
-        health_check=None,
-        memory=None,
         image="my-image",
         imagename="my-imagename",
         image_state="",
-        mount=None,
         name="my-job-name",
-        port=None,
-        replicas=None,
-        retry=None,
-        schedule=None,
-        schedule_actual=None,
-        status_long="",
-        status_short="",
-        timeout=None,
     )
     params.update(overrides)
-    return JobsDefinedJob(**params)
+    return JobsDefinedContinuousJob(**params)

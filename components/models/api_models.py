@@ -25,7 +25,7 @@ from pydantic import (
 )
 
 from components.gen.toolforge_models import (
-    Emails,
+    JobsEmailOption,
     Mount,
 )
 
@@ -87,7 +87,7 @@ class CommonRunInfoFields(BaseModel):
     cpu: str | None = Field(
         default=None, description="Job CPU resource limit.", examples=["1"]
     )
-    emails: Emails | None = Field(
+    emails: JobsEmailOption | None = Field(
         default=None,
         description="Job emails setting.",
         examples=["all"],
@@ -164,8 +164,8 @@ class ContinuousRunInfo(CommonRunInfoFields):
 
 
 class ScheduledRunInfo(CommonRunInfoFields):
-    retry: int | None = Field(
-        default=None,
+    retry: int = Field(
+        default=0,
         description="Job retry policy. Zero means don't retry at all (the default)",
         examples=[0],
         ge=0,
@@ -402,7 +402,7 @@ EXAMPLE_GENERATED_CONFIG = ToolConfig(
                 health_check_script="test -e /tmp/everything_ok",
                 cpu="500m",
                 memory="256Mi",
-                emails=Emails.onfailure,
+                emails=JobsEmailOption.onfailure,
                 filelog=False,
                 replicas=2,
                 mount=Mount.all,
@@ -417,7 +417,7 @@ EXAMPLE_GENERATED_CONFIG = ToolConfig(
                 command="echo 'I run every day, and if I take more than 180s I get killed'",
                 cpu="1",
                 memory="512Mi",
-                emails=Emails.onfinish,
+                emails=JobsEmailOption.onfinish,
                 filelog=False,
                 timeout=180,
                 mount=Mount.all,

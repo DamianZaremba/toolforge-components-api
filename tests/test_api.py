@@ -316,8 +316,8 @@ class TestCreateDeployment:
         fake_toolforge_client.patch.assert_called_once_with(
             "/jobs/v1/tool/test-tool-1/jobs/",
             json={
+                "job_type": "continuous",
                 "cmd": "some command",
-                "continuous": True,
                 "cpu": "0.5",
                 "filelog": False,
                 "health_check": {"path": "/health", "type": "http"},
@@ -386,8 +386,8 @@ class TestCreateDeployment:
         fake_toolforge_client.patch.assert_called_once_with(
             "/jobs/v1/tool/test-tool-1/jobs/",
             json={
+                "job_type": "continuous",
                 "cmd": "some command",
-                "continuous": True,
                 "cpu": "0.5",
                 "filelog": False,
                 "health_check": {"path": "/health", "type": "http"},
@@ -456,8 +456,8 @@ class TestCreateDeployment:
         fake_toolforge_client.patch.assert_called_once_with(
             "/jobs/v1/tool/test-tool-1/jobs/",
             json={
+                "job_type": "continuous",
                 "cmd": "some command",
-                "continuous": True,
                 "cpu": "0.5",
                 "filelog": False,
                 "health_check": {"path": "/health", "type": "http"},
@@ -916,8 +916,8 @@ class TestBuildComponents:
         fake_toolforge_client.patch.assert_called_once_with(
             "/jobs/v1/tool/test-tool-1/jobs/",
             json={
+                "job_type": "continuous",
                 "cmd": "some command",
-                "continuous": True,
                 "cpu": "0.5",
                 "filelog": False,
                 "health_check": {"path": "/health", "type": "http"},
