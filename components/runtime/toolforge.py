@@ -496,6 +496,7 @@ class ToolforgeRuntime(Runtime):
         raw_response = toolforge_client.get(
             f"/jobs/v1/tool/{tool_name}/jobs",
             verify=get_settings().verify_toolforge_api_cert,
+            params={"include_unset": False},
         )
         parsed_response = JobsJobListResponse.model_validate(raw_response)
         return parsed_response.jobs or []
