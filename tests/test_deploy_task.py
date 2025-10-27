@@ -80,7 +80,9 @@ class TestDoDeploy:
             "new_build": {"name": "my-component"}
         }
         toolforge_client_mock.patch.return_value = JobsJobResponse(
-            job=get_defined_job(), messages=None
+            messages=JobsResponseMessages(
+                error=None, info=["created continuous job my-job-name"], warning=None
+            ),
         ).model_dump()
 
         expected_deployments = [
@@ -97,7 +99,7 @@ class TestDoDeploy:
                 runs={
                     "my-component": DeploymentRunInfo(
                         run_status=DeploymentRunState.successful,
-                        run_long_status="created continuous job my-job-name",
+                        run_long_status="[info] (created continuous job my-job-name)",
                     )
                 },
                 tool_config=get_tool_config(),
@@ -174,7 +176,9 @@ class TestDoDeploy:
             "new_build": {"name": "my-component"}
         }
         toolforge_client_mock.patch.return_value = JobsJobResponse(
-            job=get_defined_job(), messages=None
+            messages=JobsResponseMessages(
+                error=None, info=["created continuous job my-job-name"], warning=None
+            ),
         ).model_dump()
         toolforge_client_mock.delete.return_value = JobsResponseMessages().model_dump()
 
@@ -192,7 +196,7 @@ class TestDoDeploy:
                 runs={
                     "my-component": DeploymentRunInfo(
                         run_status=DeploymentRunState.successful,
-                        run_long_status="created continuous job my-job-name",
+                        run_long_status="[info] (created continuous job my-job-name)",
                     )
                 },
                 tool_config=get_tool_config(),
@@ -246,7 +250,9 @@ class TestDoDeploy:
             "build": {"status": BuildsBuildStatus.BUILD_SUCCESS}
         }
         toolforge_client_mock.patch.return_value = JobsJobResponse(
-            job=get_defined_job(), messages=None
+            messages=JobsResponseMessages(
+                error=None, info=["created continuous job my-job-name"], warning=None
+            ),
         ).model_dump()
 
         expected_deployments = [
@@ -263,7 +269,7 @@ class TestDoDeploy:
                 runs={
                     "my-component": DeploymentRunInfo(
                         run_status=DeploymentRunState.successful,
-                        run_long_status="created continuous job my-job-name",
+                        run_long_status="[info] (created continuous job my-job-name)",
                     )
                 },
                 tool_config=get_tool_config(),
@@ -308,7 +314,9 @@ class TestDoDeploy:
             "build": {"status": BuildsBuildStatus.BUILD_SUCCESS.value}
         }
         toolforge_client_mock.patch.return_value = JobsJobResponse(
-            job=get_defined_job(), messages=None
+            messages=JobsResponseMessages(
+                error=None, info=["created continuous job my-job-name"], warning=None
+            ),
         ).model_dump()
 
         expected_deployments = [
@@ -325,7 +333,7 @@ class TestDoDeploy:
                 runs={
                     "my-component": DeploymentRunInfo(
                         run_status=DeploymentRunState.successful,
-                        run_long_status="created continuous job my-job-name",
+                        run_long_status="[info] (created continuous job my-job-name)",
                     )
                 },
                 tool_config=get_tool_config(),
@@ -869,78 +877,6 @@ class TestDoDeploy:
             verify=True,
         )
 
-    def test_parses_jobs_api_http_error_messages_when_run_works_but_no_job_name_returned(
-        self, monkeypatch: MonkeyPatch
-    ):
-        my_storage = MockStorage()
-        my_tool_config = get_tool_config()
-        my_deployment = get_deployment_from_tool_config(tool_config=my_tool_config)
-        my_storage.create_deployment(tool_name="my-tool", deployment=my_deployment)
-
-        toolforge_client_mock = MagicMock(spec=ToolforgeClient)
-        monkeypatch.setattr(
-            "components.runtime.toolforge.get_toolforge_client",
-            lambda: toolforge_client_mock,
-        )
-        toolforge_client_mock.post.return_value = {"new_build": {"name": "my-build"}}
-        toolforge_client_mock.get.return_value = {
-            "build": {"status": BuildsBuildStatus.BUILD_SUCCESS}
-        }
-        toolforge_client_mock.patch.return_value = JobsJobResponse(
-            job=None,
-            messages=JobsResponseMessages(
-                error=None, info=["Job component1 is already up to date"], warning=None
-            ),
-        ).model_dump()
-
-        expected_deployments = [
-            Deployment(
-                deploy_id="my-deploy-id",
-                creation_time="2021-06-01T00:00:00",
-                builds={
-                    "my-component": DeploymentBuildInfo(
-                        build_id="my-build",
-                        build_status=DeploymentBuildState.successful,
-                        build_long_status="You can see the logs with `toolforge build logs my-build`",
-                    ),
-                },
-                runs={
-                    "my-component": DeploymentRunInfo(
-                        run_status=DeploymentRunState.successful,
-                        run_long_status="[info] (Job component1 is already up to date)",
-                    ),
-                },
-                tool_config=get_tool_config(),
-                status=DeploymentState.successful,
-                long_status="I will not be checked",
-            )
-        ]
-
-        do_deploy(
-            deployment=my_deployment,
-            storage=my_storage,
-            tool_config=my_tool_config,
-            tool_name="my-tool",
-            runtime=get_runtime(settings=get_settings()),
-        )
-
-        gotten_deployments = my_storage.list_deployments(tool_name="my-tool")
-
-        # make sure that we have some deployments
-        assert gotten_deployments
-        expected_deployments[0].long_status = gotten_deployments[0].long_status
-        assert gotten_deployments == expected_deployments
-        toolforge_client_mock.patch.assert_called_once_with(
-            "/jobs/v1/tool/my-tool/jobs/",
-            json={
-                "job_type": "continuous",
-                "cmd": "my-command",
-                "name": "my-component",
-                "imagename": "tool-my-tool/my-component:latest",
-            },
-            verify=True,
-        )
-
     def test_reruns_job_even_if_config_did_not_change_and_build_skipped_if_force_run_passed(
         self, monkeypatch: MonkeyPatch
     ):
@@ -979,12 +915,12 @@ class TestDoDeploy:
             },
             JobsJobListResponse(jobs=[get_defined_job(name="my-component")]),
         ]
-        toolforge_client_mock.delete.return_value = {
-            "messages": {"info": [], "warning": [], "error": []}
-        }
+        toolforge_client_mock.delete.return_value = JobsJobResponse().model_dump()
         toolforge_client_mock.patch.return_value = JobsJobResponse(
-            job=get_defined_job(name="my-component")
-        )
+            messages=JobsResponseMessages(
+                error=None, info=["created continuous job my-job-name"], warning=None
+            )
+        ).model_dump()
 
         expected_deployments = [
             Deployment(
@@ -1000,7 +936,7 @@ class TestDoDeploy:
                 runs={
                     "my-component": DeploymentRunInfo(
                         run_status=DeploymentRunState.successful,
-                        run_long_status="created continuous job my-component",
+                        run_long_status="[info] (created continuous job my-job-name)",
                     )
                 },
                 tool_config=get_tool_config(),
@@ -1059,12 +995,12 @@ class TestDoDeploy:
             {"build": {"status": BuildsBuildStatus.BUILD_SUCCESS}},
             JobsJobListResponse(jobs=[get_defined_job(name="my-component")]),
         ]
-        toolforge_client_mock.delete.return_value = {
-            "messages": {"info": [], "warning": [], "error": []}
-        }
+        toolforge_client_mock.delete.return_value = JobsJobResponse().model_dump()
         toolforge_client_mock.patch.return_value = JobsJobResponse(
-            job=get_defined_job(name="my-component")
-        )
+            messages=JobsResponseMessages(
+                error=None, info=["created continuous job my-job-name"], warning=None
+            )
+        ).model_dump()
 
         expected_deployments = [
             Deployment(
@@ -1080,7 +1016,7 @@ class TestDoDeploy:
                 runs={
                     "my-component": DeploymentRunInfo(
                         run_status=DeploymentRunState.successful,
-                        run_long_status="created continuous job my-component",
+                        run_long_status="[info] (created continuous job my-job-name)",
                     )
                 },
                 tool_config=get_tool_config(),
@@ -1180,13 +1116,9 @@ class TestDoDeploy:
 
         toolforge_client_mock.get = _mock_get_side_effect
 
-        toolforge_client_mock.patch.return_value = JobsJobResponse(
-            job=get_defined_job(), messages=None
-        ).model_dump()
+        toolforge_client_mock.patch.return_value = JobsJobResponse().model_dump()
 
-        toolforge_client_mock.delete.return_value = JobsJobResponse(
-            job=get_defined_job(), messages=None
-        ).model_dump()
+        toolforge_client_mock.delete.return_value = JobsJobResponse().model_dump()
 
         do_deploy(
             deployment=my_deployment,
@@ -1244,7 +1176,9 @@ class TestDoDeploy:
             "build": {"status": BuildsBuildStatus.BUILD_SUCCESS.value}
         }
         toolforge_client_mock.patch.return_value = JobsJobResponse(
-            job=get_defined_job(), messages=None
+            messages=JobsResponseMessages(
+                error=None, info=["created continuous job my-job-name"], warning=None
+            ),
         ).model_dump()
 
         expected_deployments = [
@@ -1266,11 +1200,11 @@ class TestDoDeploy:
                 runs={
                     "my-component": DeploymentRunInfo(
                         run_status=DeploymentRunState.successful,
-                        run_long_status="created continuous job my-job-name",
+                        run_long_status="[info] (created continuous job my-job-name)",
                     ),
                     "child-component": DeploymentRunInfo(
                         run_status=DeploymentRunState.successful,
-                        run_long_status="created continuous job my-job-name",
+                        run_long_status="[info] (created continuous job my-job-name)",
                     ),
                 },
                 tool_config=my_tool_config,

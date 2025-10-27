@@ -404,11 +404,7 @@ class ToolforgeRuntime(Runtime):
             )
         )
         logger.debug(f"Deployed continuous job {component_name}: {create_response}")
-        # TODO: check if the job is actually running ok
-        if create_response.job:
-            return f"created continuous job {create_response.job.name}"
-
-        elif not create_response.messages:
+        if not create_response.messages:
             return f"unable to get job info, response from jobs api {create_response}"
 
         else:
@@ -460,11 +456,7 @@ class ToolforgeRuntime(Runtime):
             )
         )
         logger.debug(f"Deployed scheduled job {component_name}: {create_response}")
-        # TODO: check if the job is actually running ok
-        if create_response.job:
-            return f"created scheduled job {create_response.job.name}"
-
-        elif not create_response.messages:
+        if not create_response.messages:
             return f"unable to get job info, response from jobs api {create_response}"
 
         else:

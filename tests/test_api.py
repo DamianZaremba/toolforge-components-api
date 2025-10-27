@@ -345,9 +345,7 @@ class TestCreateDeployment:
         fake_toolforge_client.get.return_value = {
             "build": {"status": BuildsBuildStatus.BUILD_SUCCESS.value}
         }
-        fake_toolforge_client.patch.return_value = JobsJobResponse(
-            job=get_defined_job(), messages=None
-        ).model_dump()
+        fake_toolforge_client.patch.return_value = JobsJobResponse().model_dump()
         tool_config = get_fake_tool_config()
         monkeypatch.setattr(
             k8s_storage, "get_tool_config", lambda *args, **kwargs: tool_config
@@ -382,9 +380,7 @@ class TestCreateDeployment:
         fake_toolforge_client.get.return_value = {
             "build": {"status": BuildsBuildStatus.BUILD_SUCCESS.value}
         }
-        fake_toolforge_client.patch.return_value = JobsJobResponse(
-            job=get_defined_job(), messages=None
-        ).model_dump()
+        fake_toolforge_client.patch.return_value = JobsJobResponse().model_dump()
 
         response = authenticated_client.post("/v1/tool/test-tool-1/deployment")
         assert response.status_code == status.HTTP_200_OK
@@ -451,9 +447,7 @@ class TestCreateDeployment:
         fake_toolforge_client.get.return_value = {
             "build": {"status": BuildsBuildStatus.BUILD_SUCCESS.value}
         }
-        fake_toolforge_client.patch.return_value = JobsJobResponse(
-            job=get_defined_job(), messages=None
-        ).model_dump()
+        fake_toolforge_client.patch.return_value = JobsJobResponse().model_dump()
         unauthed_client = TestClient(app)
 
         response = unauthed_client.post(
@@ -516,9 +510,7 @@ class TestCreateDeployment:
         fake_toolforge_client.get.return_value = {
             "build": {"status": BuildsBuildStatus.BUILD_SUCCESS.value}
         }
-        fake_toolforge_client.patch.return_value = JobsJobResponse(
-            job=get_defined_job(), messages=None
-        ).model_dump()
+        fake_toolforge_client.patch.return_value = JobsJobResponse().model_dump()
         my_tool_config = get_fake_tool_config(
             build={
                 "repository": "https://gitlab-example.wikimedia.org/some-repo.git",
@@ -642,9 +634,7 @@ class TestCreateDeployment:
         fake_toolforge_client.get.return_value = {
             "build": {"status": BuildsBuildStatus.BUILD_SUCCESS.value}
         }
-        fake_toolforge_client.patch.return_value = JobsJobResponse(
-            job=get_defined_job(), messages=None
-        ).model_dump()
+        fake_toolforge_client.patch.return_value = JobsJobResponse().model_dump()
         my_tool_config = get_fake_tool_config(
             source_url="http://idontexist.local/myconfig",
             build={
@@ -894,9 +884,7 @@ class TestListDeployments:
         fake_toolforge_client.get.return_value = {
             "build": {"status": BuildsBuildStatus.BUILD_SUCCESS.value}
         }
-        fake_toolforge_client.patch.return_value = JobsJobResponse(
-            job=get_defined_job(), messages=None
-        ).model_dump()
+        fake_toolforge_client.patch.return_value = JobsJobResponse().model_dump()
         deployment_response = create_tool_deployment(authenticated_client)
         expected_deployment = deployment_response.data
         expected_deployment.status = DeploymentState.successful
@@ -993,9 +981,7 @@ class TestBuildComponents:
         )
         response.raise_for_status()
 
-        fake_toolforge_client.patch.return_value = JobsJobResponse(
-            job=get_defined_job(), messages=None
-        ).model_dump()
+        fake_toolforge_client.patch.return_value = JobsJobResponse().model_dump()
         response = authenticated_client.post("/v1/tool/test-tool-1/deployment")
         response.raise_for_status()
 
