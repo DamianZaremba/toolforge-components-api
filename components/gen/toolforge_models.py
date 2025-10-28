@@ -881,6 +881,9 @@ class JobsJobListResponse(BaseModel):
 
 
 class JobsJobResponse(BaseModel):
+    job: Optional[
+        Union[JobsDefinedOneOffJob, JobsDefinedScheduledJob, JobsDefinedContinuousJob]
+    ] = None
     messages: Optional[JobsResponseMessages] = None
 
 
