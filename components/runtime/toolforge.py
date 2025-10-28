@@ -1,7 +1,7 @@
 import datetime
 import subprocess
 from logging import getLogger
-from typing import Optional, TypeAlias
+from typing import TypeAlias
 
 from fastapi import status
 from requests import HTTPError
@@ -358,7 +358,7 @@ class ToolforgeRuntime(Runtime):
         )
 
     def _format_status_messages(
-        self, base_message: str, api_messages: Optional[JobsResponseMessages]
+        self, base_message: str, api_messages: JobsResponseMessages | None
     ) -> str:
         message = base_message
         if api_messages:
