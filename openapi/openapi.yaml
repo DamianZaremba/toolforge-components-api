@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Toolforge Components API
-  version: 0.3.0
+  version: 0.3.1
 servers:
 - url: http://127.0.0.1:8000
   description: Local direct development server.
@@ -899,6 +899,13 @@ components:
           title: Build Id
         build_status:
           $ref: '#/components/schemas/DeploymentBuildState'
+        build_image:
+          anyOf:
+          - type: string
+          - type: string
+            const: no-image-yet
+          title: Build Image
+          default: no-image-yet
         build_long_status:
           type: string
           title: Build Long Status

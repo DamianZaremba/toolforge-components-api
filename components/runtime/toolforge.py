@@ -29,7 +29,6 @@ from ..models.api_models import (
     DeploymentBuildState,
     ScheduledRunInfo,
     SourceBuildInfo,
-    SourceBuildReference,
 )
 from ..settings import get_settings
 from .base import AnyDefinedJob, Runtime
@@ -128,23 +127,6 @@ def _check_for_matching_build(
     return None
 
 
-def _get_component_image_name(
-    component_info: ComponentInfo, component_name: str
-) -> str:
-    # TODO: use the actual build logs/info to get the image name once we trigger builds
-    # The tag and the prefix are currently added by builds-api during build
-    match component_info.build:
-        case SourceBuildInfo():
-            logger.debug(f"Got source build type: {component_info}")
-            return f"{component_name}"
-        case SourceBuildReference():
-            logger.debug(f"Got source build reference: {component_info}")
-            return f"{component_info.build.reuse_from}"
-
-    logger.error(f"Unsupported build information: {component_info.build}")
-    raise Exception(f"unsupported build information: {component_info.build}")
-
-
 def _run_info_to_continuous_job(
     component_name: str, run_info: ContinuousRunInfo, image_name: str
 ) -> AnyNewJob:
@@ -219,9 +201,9 @@ def _run_info_to_scheduled_job(
 
 
 class ToolforgeRuntime(Runtime):
-    def get_build_statuses(
+    def get_build_info(
         self, build: DeploymentBuildInfo, tool_name: str
-    ) -> tuple[DeploymentBuildState, str]:
+    ) -> DeploymentBuildInfo:
         toolforge_client = get_toolforge_client()
         response = None
         unknown_error_message = ""
@@ -236,9 +218,10 @@ class ToolforgeRuntime(Runtime):
                     f"Got 404 trying to fetch build status for tool {tool_name}, "
                     f"build_id {build.build_id}, maybe someone deleted the build?"
                 )
-                return (
-                    DeploymentBuildState.failed,
-                    f"build {build.build_id} not found, maybe it was deleted?",
+                return DeploymentBuildInfo(
+                    build_id=build.build_id,
+                    build_status=DeploymentBuildState.failed,
+                    build_long_status=f"build {build.build_id} not found, maybe it was deleted?",
                 )
 
             logger.exception(
@@ -259,19 +242,20 @@ class ToolforgeRuntime(Runtime):
                 f"Got error trying to fetch build status for tool {tool_name}, "
                 f"build_id {build.build_id}: \n{unknown_error_message}"
             )
-            return (
-                DeploymentBuildState.unknown,
-                unknown_error_message or "got empty response",
+            return DeploymentBuildInfo(
+                build_id=build.build_id,
+                build_status=DeploymentBuildState.unknown,
+                build_long_status=unknown_error_message or "got empty response",
             )
 
         response_status = BuildsBuildStatus(response["build"]["status"])
         if response_status == BuildsBuildStatus.BUILD_RUNNING:
-            return (
+            deployment_build_state, build_long_status = (
                 DeploymentBuildState.running,
                 f"You can see the logs with `toolforge build logs {build.build_id}`",
             )
         elif response_status == BuildsBuildStatus.BUILD_SUCCESS:
-            return (
+            deployment_build_state, build_long_status = (
                 DeploymentBuildState.successful,
                 f"You can see the logs with `toolforge build logs {build.build_id}`",
             )
@@ -280,14 +264,23 @@ class ToolforgeRuntime(Runtime):
             BuildsBuildStatus.BUILD_CANCELLED,
             BuildsBuildStatus.BUILD_TIMEOUT,
         ):
-            return (
+            deployment_build_state, build_long_status = (
                 DeploymentBuildState.failed,
                 f"You can see the logs with `toolforge build logs {build.build_id}`",
             )
+        else:
+            deployment_build_state, build_long_status = (
+                DeploymentBuildState.unknown,
+                f"You can see the logs with `toolforge build logs {build.build_id}`",
+            )
 
-        return (
-            DeploymentBuildState.unknown,
-            f"You can see the logs with `toolforge build logs {build.build_id}`",
+        return DeploymentBuildInfo(
+            build_id=build.build_id,
+            build_status=deployment_build_state,
+            build_image=response["build"].get(
+                "destination_image", DeploymentBuildInfo.NO_IMAGE_YET
+            ),
+            build_long_status=build_long_status,
         )
 
     def start_build(
@@ -313,10 +306,15 @@ class ToolforgeRuntime(Runtime):
                 )
                 if not matching_build.build_id:
                     raise Exception(f"Unexpected build without id: {matching_build}")
+                if not matching_build.destination_image:
+                    raise Exception(
+                        f"Unexpected build without destination image: {matching_build}"
+                    )
                 return DeploymentBuildInfo(
                     build_id=matching_build.build_id,
                     build_status=DeploymentBuildState.skipped,
                     build_long_status="Reusing existing build",
+                    build_image=matching_build.destination_image,
                 )
 
             if matching_build and matching_build.status in (
@@ -338,10 +336,7 @@ class ToolforgeRuntime(Runtime):
         build_data = BuildsBuildParameters(
             ref=build.ref,
             source_url=build.repository.encoded_string(),
-            image_name=_get_component_image_name(
-                component_info=component_info,
-                component_name=component_name,
-            ),
+            image_name=component_name,
             envvars={},
             use_latest_versions=build.use_latest_versions,
         )
@@ -373,20 +368,12 @@ class ToolforgeRuntime(Runtime):
         component_name: str,
         component_info: ComponentInfo,
         force_restart: bool,
+        image_name: str,
     ) -> str:
         if not isinstance(component_info.run, ContinuousRunInfo):
             raise ValueError(
                 f"Invalid run info passed, it's not a ContinuousRunInfo: {component_info.run}"
             )
-        # TODO: manage the tag in a nicer way overall
-        image_name = (
-            f"tool-{tool_name}/"
-            + _get_component_image_name(
-                component_info=component_info,
-                component_name=component_name,
-            )
-            + ":latest"
-        )
         settings = get_settings()
         toolforge_client = get_toolforge_client()
 
@@ -444,20 +431,12 @@ class ToolforgeRuntime(Runtime):
         tool_name: str,
         component_name: str,
         component_info: ComponentInfo,
+        image_name: str,
     ) -> str:
         if not isinstance(component_info.run, ScheduledRunInfo):
             raise ValueError(
                 f"Invalid run info passed, it's not a ScheduledRunInfo: {component_info.run}"
             )
-        # TODO: manage the tag in a nicer way overall
-        image_name = (
-            f"tool-{tool_name}/"
-            + _get_component_image_name(
-                component_info=component_info,
-                component_name=component_name,
-            )
-            + ":latest"
-        )
         settings = get_settings()
         toolforge_client = get_toolforge_client()
 

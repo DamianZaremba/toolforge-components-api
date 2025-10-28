@@ -11,7 +11,6 @@ from ..gen.toolforge_models import (
 from ..models.api_models import (
     ComponentInfo,
     DeploymentBuildInfo,
-    DeploymentBuildState,
     SourceBuildInfo,
 )
 
@@ -36,10 +35,9 @@ class Runtime(ABC):
         pass
 
     @abstractmethod
-    def get_build_statuses(
+    def get_build_info(
         self, build: DeploymentBuildInfo, tool_name: str
-    ) -> tuple[DeploymentBuildState, str]:
-        """Returns the current state, and a string representing the long status in human-readable form."""
+    ) -> DeploymentBuildInfo:
         pass
 
     @abstractmethod
@@ -49,6 +47,7 @@ class Runtime(ABC):
         component_name: str,
         component_info: ComponentInfo,
         force_restart: bool,
+        image_name: str,
     ) -> str:
         pass
 
@@ -58,6 +57,7 @@ class Runtime(ABC):
         tool_name: str,
         component_name: str,
         component_info: ComponentInfo,
+        image_name: str,
     ) -> str:
         pass
 

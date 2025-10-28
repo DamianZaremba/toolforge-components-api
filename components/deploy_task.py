@@ -215,13 +215,8 @@ def _wait_for_builds(
         to_delete = []
         for component_name, build in pending_builds.items():
             prev_build_status = builds[component_name].build_status
-            build_status, build_long_status = runtime.get_build_statuses(
+            builds[component_name] = runtime.get_build_info(
                 build=build, tool_name=tool_name
-            )
-            builds[component_name] = DeploymentBuildInfo(
-                build_id=build.build_id,
-                build_status=build_status,
-                build_long_status=build_long_status,
             )
             # This saves some storage saving if the build status didn't change
             if prev_build_status != builds[component_name].build_status:
@@ -432,12 +427,14 @@ def _do_run(
                         component_info=component_info,
                         component_name=component_name,
                         force_restart=needs_rerun,
+                        image_name=deployment.builds[build_component].build_image,
                     )
                 case ScheduledComponentInfo():
                     message = _retry_http_failures(runtime.run_scheduled_job)(
                         tool_name=tool_name,
                         component_info=component_info,
                         component_name=component_name,
+                        image_name=deployment.builds[build_component].build_image,
                     )
             has_error = False
 

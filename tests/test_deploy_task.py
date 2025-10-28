@@ -74,7 +74,12 @@ class TestDoDeploy:
                     }
                 ]
             },
-            {"build": {"status": BuildsBuildStatus.BUILD_SUCCESS}},
+            {
+                "build": {
+                    "status": BuildsBuildStatus.BUILD_SUCCESS.value,
+                    "destination_image": "my-tool/my-component:latest",
+                }
+            },
         ]
         toolforge_client_mock.post.return_value = {
             "new_build": {"name": "my-component"}
@@ -94,6 +99,7 @@ class TestDoDeploy:
                         build_id=existing_build_id,
                         build_status=DeploymentBuildState.skipped,
                         build_long_status="Reusing existing build",
+                        build_image="my-tool/my-component:latest",
                     )
                 },
                 runs={
@@ -169,7 +175,12 @@ class TestDoDeploy:
                     }
                 ]
             },
-            {"build": {"status": BuildsBuildStatus.BUILD_SUCCESS}},
+            {
+                "build": {
+                    "status": BuildsBuildStatus.BUILD_SUCCESS.value,
+                    "destination_image": "my-tool/my-component:latest",
+                }
+            },
             JobsJobListResponse(jobs=[]).model_dump(),
         ]
         toolforge_client_mock.post.return_value = {
@@ -192,6 +203,7 @@ class TestDoDeploy:
                         build_id=existing_build_id,
                         build_status=DeploymentBuildState.successful,
                         build_long_status="You can see the logs with `toolforge build logs random_existing_build_id`",
+                        build_image="my-tool/my-component:latest",
                     )
                 },
                 runs={
@@ -248,7 +260,10 @@ class TestDoDeploy:
             "new_build": {"name": "new_build_name"}
         }
         toolforge_client_mock.get.return_value = {
-            "build": {"status": BuildsBuildStatus.BUILD_SUCCESS}
+            "build": {
+                "status": BuildsBuildStatus.BUILD_SUCCESS.value,
+                "destination_image": "tool-test-tool-1/component1:latest",
+            }
         }
         toolforge_client_mock.patch.return_value = JobsJobResponse(
             messages=JobsResponseMessages(
@@ -266,6 +281,7 @@ class TestDoDeploy:
                         build_id="new_build_name",
                         build_status=DeploymentBuildState.successful,
                         build_long_status="You can see the logs with `toolforge build logs new_build_name`",
+                        build_image="tool-test-tool-1/component1:latest",
                     )
                 },
                 runs={
@@ -313,7 +329,10 @@ class TestDoDeploy:
         )
         toolforge_client_mock.post.return_value = {"new_build": {"name": "my-build"}}
         toolforge_client_mock.get.return_value = {
-            "build": {"status": BuildsBuildStatus.BUILD_SUCCESS.value}
+            "build": {
+                "status": BuildsBuildStatus.BUILD_SUCCESS.value,
+                "destination_image": "tool-my-tool/my-component:latest",
+            }
         }
         toolforge_client_mock.patch.return_value = JobsJobResponse(
             messages=JobsResponseMessages(
@@ -331,6 +350,7 @@ class TestDoDeploy:
                         build_id="my-build",
                         build_status=DeploymentBuildState.successful,
                         build_long_status="You can see the logs with `toolforge build logs my-build`",
+                        build_image="tool-my-tool/my-component:latest",
                     )
                 },
                 runs={
@@ -514,7 +534,10 @@ class TestDoDeploy:
         )
         toolforge_client_mock.post.return_value = {"new_build": {"name": "my-build"}}
         toolforge_client_mock.get.return_value = {
-            "build": {"status": BuildsBuildStatus.BUILD_SUCCESS.value}
+            "build": {
+                "status": BuildsBuildStatus.BUILD_SUCCESS.value,
+                "destination_image": "tool-test-tool-1/component1:latest",
+            }
         }
 
         expected_deployments = [
@@ -574,7 +597,10 @@ class TestDoDeploy:
         )
         toolforge_client_mock.post.return_value = {"new_build": {"name": "my-build"}}
         toolforge_client_mock.get.return_value = {
-            "build": {"status": BuildsBuildStatus.BUILD_SUCCESS}
+            "build": {
+                "status": BuildsBuildStatus.BUILD_SUCCESS.value,
+                "destination_image": "tool-my-tool/my-component:latest",
+            }
         }
         toolforge_client_mock.patch.side_effect = Exception("Ayayayay!")
 
@@ -587,6 +613,7 @@ class TestDoDeploy:
                         build_id="my-build",
                         build_status=DeploymentBuildState.successful,
                         build_long_status="You can see the logs with `toolforge build logs my-build`",
+                        build_image="tool-my-tool/my-component:latest",
                     )
                 },
                 runs={
@@ -663,7 +690,10 @@ class TestDoDeploy:
         )
         toolforge_client_mock.post.return_value = {"new_build": {"name": "my-build"}}
         toolforge_client_mock.get.return_value = {
-            "build": {"status": BuildsBuildStatus.BUILD_SUCCESS}
+            "build": {
+                "status": BuildsBuildStatus.BUILD_SUCCESS.value,
+                "destination_image": "tool-my-tool/failed-component:latest",
+            }
         }
         toolforge_client_mock.patch.side_effect = [
             Exception("Ayayayay!"),
@@ -679,11 +709,13 @@ class TestDoDeploy:
                         build_id="my-build",
                         build_status=DeploymentBuildState.successful,
                         build_long_status="You can see the logs with `toolforge build logs my-build`",
+                        build_image="tool-my-tool/failed-component:latest",
                     ),
                     "successful-component": DeploymentBuildInfo(
                         build_id="my-build",
                         build_status=DeploymentBuildState.successful,
                         build_long_status="You can see the logs with `toolforge build logs my-build`",
+                        build_image="tool-my-tool/failed-component:latest",
                     ),
                 },
                 runs={
@@ -812,7 +844,10 @@ class TestDoDeploy:
         )
         toolforge_client_mock.post.return_value = {"new_build": {"name": "my-build"}}
         toolforge_client_mock.get.return_value = {
-            "build": {"status": BuildsBuildStatus.BUILD_SUCCESS}
+            "build": {
+                "status": BuildsBuildStatus.BUILD_SUCCESS.value,
+                "destination_image": "tool-my-tool/my-component:latest",
+            }
         }
         # Fake a bad request error from jobs-api
         http_error = requests.exceptions.HTTPError(
@@ -841,6 +876,7 @@ class TestDoDeploy:
                         build_id="my-build",
                         build_status=DeploymentBuildState.successful,
                         build_long_status="You can see the logs with `toolforge build logs my-build`",
+                        build_image="tool-my-tool/my-component:latest",
                     ),
                 },
                 runs={
@@ -907,7 +943,7 @@ class TestDoDeploy:
                         "build_id": "existing-build-id",
                         "name": "my-component",
                         "resolved_ref": "same-ref-as-build",
-                        "destination_image": "my-tool/my-component:latest",
+                        "destination_image": "tool-my-tool/my-component:latest",
                         "status": BuildsBuildStatus.BUILD_SUCCESS.value,
                         "parameters": {
                             "image_name": "my-component",
@@ -934,6 +970,7 @@ class TestDoDeploy:
                         build_id="existing-build-id",
                         build_status=DeploymentBuildState.skipped,
                         build_long_status="Reusing existing build",
+                        build_image="tool-my-tool/my-component:latest",
                     )
                 },
                 runs={
@@ -994,8 +1031,18 @@ class TestDoDeploy:
         )
         toolforge_client_mock.post.return_value = {"new_build": {"name": "my-build"}}
         toolforge_client_mock.get.side_effect = [
-            {"build": {"status": BuildsBuildStatus.BUILD_SUCCESS}},
-            {"build": {"status": BuildsBuildStatus.BUILD_SUCCESS}},
+            {
+                "build": {
+                    "status": BuildsBuildStatus.BUILD_SUCCESS.value,
+                    "destination_image": "tool-my-tool/my-component:latest",
+                }
+            },
+            {
+                "build": {
+                    "status": BuildsBuildStatus.BUILD_SUCCESS.value,
+                    "destination_image": "tool-my-tool/my-component:latest",
+                }
+            },
             JobsJobListResponse(jobs=[get_defined_job(name="my-component")]),
         ]
         toolforge_client_mock.delete.return_value = JobsJobResponse().model_dump()
@@ -1014,6 +1061,7 @@ class TestDoDeploy:
                         build_id="my-build",
                         build_status=DeploymentBuildState.successful,
                         build_long_status="You can see the logs with `toolforge build logs my-build`",
+                        build_image="tool-my-tool/my-component:latest",
                     )
                 },
                 runs={
@@ -1115,7 +1163,12 @@ class TestDoDeploy:
                 }
 
             # Build
-            return {"build": {"status": BuildsBuildStatus.BUILD_SUCCESS.value}}
+            return {
+                "build": {
+                    "status": BuildsBuildStatus.BUILD_SUCCESS.value,
+                    "destination_image": "tool-test-tool-1/component1:latest",
+                }
+            }
 
         toolforge_client_mock.get = _mock_get_side_effect
 
@@ -1180,7 +1233,10 @@ class TestDoDeploy:
         )
         toolforge_client_mock.post.return_value = {"new_build": {"name": "my-build"}}
         toolforge_client_mock.get.return_value = {
-            "build": {"status": BuildsBuildStatus.BUILD_SUCCESS.value}
+            "build": {
+                "status": BuildsBuildStatus.BUILD_SUCCESS.value,
+                "destination_image": "tool-my-tool/my-component:latest",
+            }
         }
         toolforge_client_mock.patch.return_value = JobsJobResponse(
             messages=JobsResponseMessages(
@@ -1198,6 +1254,7 @@ class TestDoDeploy:
                         build_id="my-build",
                         build_status=DeploymentBuildState.successful,
                         build_long_status="You can see the logs with `toolforge build logs my-build`",
+                        build_image="tool-my-tool/my-component:latest",
                     ),
                     "child-component": DeploymentBuildInfo(
                         build_id="no-build-needed",
