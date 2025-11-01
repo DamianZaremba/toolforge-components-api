@@ -3,7 +3,7 @@ default_language_version:
 
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.13.2
+    rev: v0.14.3
     hooks:
       - id: ruff
         args: [--fix]
@@ -57,6 +57,6 @@ repos:
 
   # has to run after exporting the openapi spec
   - repo: https://gitlab.wikimedia.org/repos/cloud/cicd/gitlab-ci
-    rev: c8124a71f14bba4d761e43d7ccf9ed6a0edf17a7
+    rev: 264ee9ffb7011b6fee18667a00be03f3f2c8d148
     hooks:
       - id: check-openapi-version-bump
