@@ -1,4 +1,6 @@
 import json
+import subprocess
+from pathlib import PosixPath
 from unittest.mock import ANY, MagicMock
 from uuid import UUID
 
@@ -146,11 +148,42 @@ class TestUpdateToolConfig:
         ) == expected_tool_config.model_dump(exclude_unset=True)
         assert gotten_response.messages == expected_messages
 
+    def test_returns_warning_with_deprecated_source_url_field(
+        self, authenticated_client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ):
+        component_config = json.loads(get_fake_tool_config().model_dump_json())
+        component_config["source_url"] = "http://123.abc"
+
+        monkeypatch.setattr(
+            requests,
+            "get",
+            MagicMock(return_value=MagicMock(text=yaml.safe_dump(component_config))),
+        )
+
+        raw_response = authenticated_client.post(
+            "/v1/tool/test-tool-1/config", json=component_config
+        )
+
+        expected_tool_config = get_fake_tool_config(source={"url": "http://123.abc"})
+
+        expected_messages = ResponseMessages(
+            warning=[
+                "You are using a beta feature of Toolforge.",
+                "`source_url: 'http://123.abc'` is deprecated, replace with `source: { url: 'http://123.abc' }`",
+            ],
+            info=["Configuration for test-tool-1 updated successfully."],
+        )
+
+        assert raw_response.status_code == status.HTTP_200_OK
+        gotten_response = ToolConfigResponse.model_validate(raw_response.json())
+        assert gotten_response.data == expected_tool_config
+        assert gotten_response.messages == expected_messages
+
     def test_fetches_config_when_source_url_passed(
         self, authenticated_client: TestClient, monkeypatch: pytest.MonkeyPatch
     ):
         expected_tool_config = get_fake_tool_config(
-            source_url="http://idontexist.local/myconfig"
+            source={"url": "http://idontexist.local/myconfig"}
         )
 
         expected_messages = ResponseMessages(
@@ -661,6 +694,61 @@ class TestCreateDeployment:
         response.raise_for_status()
 
         get_mock.assert_called_once()
+
+    def test_fetches_config_when_source_repo_passed(
+        self,
+        authenticated_client: TestClient,
+        monkeypatch: pytest.MonkeyPatch,
+        fake_toolforge_client: MagicMock,
+    ):
+        # This is global...
+        settings = get_settings()
+
+        # Container gets a very specific path as the root fs is read only, we need that path to exist in the test env
+        # Rather than start creating random things, just use the 'normal' path
+        settings.temporary_writable_directory = PosixPath("/tmp")
+
+        fake_toolforge_client.post.return_value = {
+            "new_build": {"name": "new-build-id"}
+        }
+        fake_toolforge_client.get.return_value = {
+            "build": {"status": BuildsBuildStatus.BUILD_SUCCESS.value}
+        }
+        fake_toolforge_client.patch.return_value = JobsJobResponse(
+            job=get_defined_job(), messages=None
+        ).model_dump()
+        my_tool_config = get_fake_tool_config(
+            source={
+                "repository": "https://gitlab-example.wikimedia.org/some-repo.git",
+                "ref": "main",
+                "path": "toolforge.yaml",
+            },
+            build={
+                "repository": "https://gitlab-example.wikimedia.org/some-repo.git",
+                "ref": "some_ref",
+            },
+        )
+
+        subprocess_mock = MagicMock()
+        subprocess_mock.return_value = subprocess.CompletedProcess(
+            args=[],
+            returncode=0,
+            stdout=yaml.safe_dump(json.loads(my_tool_config.model_dump_json())),
+            stderr="",
+        )
+        monkeypatch.setattr(subprocess, "run", subprocess_mock)
+
+        response = authenticated_client.post(
+            "/v1/tool/test-tool-1/config", content=my_tool_config.model_dump_json()
+        )
+        response.raise_for_status()
+        subprocess_mock.assert_called()
+        subprocess_mock.reset_mock()
+
+        response = authenticated_client.post("/v1/tool/test-tool-1/deployment")
+        response.raise_for_status()
+
+        subprocess_mock.assert_called()
 
 
 class TestDeleteDeployment:
