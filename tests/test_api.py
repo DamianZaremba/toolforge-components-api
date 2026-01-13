@@ -343,7 +343,10 @@ class TestCreateDeployment:
             "new_build": {"name": "new-build-id"}
         }
         fake_toolforge_client.get.return_value = {
-            "build": {"status": BuildsBuildStatus.BUILD_SUCCESS.value}
+            "build": {
+                "status": BuildsBuildStatus.BUILD_SUCCESS.value,
+                "destination_image": "tool-test-tool-1/component1:latest@sha256:abc123",
+            }
         }
         fake_toolforge_client.patch.return_value = JobsJobResponse().model_dump()
         tool_config = get_fake_tool_config()
@@ -378,7 +381,10 @@ class TestCreateDeployment:
             "new_build": {"name": "new-build-id"}
         }
         fake_toolforge_client.get.return_value = {
-            "build": {"status": BuildsBuildStatus.BUILD_SUCCESS.value}
+            "build": {
+                "status": BuildsBuildStatus.BUILD_SUCCESS.value,
+                "destination_image": "tool-test-tool-1/component1:latest@sha256:abc123",
+            }
         }
         fake_toolforge_client.patch.return_value = JobsJobResponse().model_dump()
 
@@ -392,6 +398,9 @@ class TestCreateDeployment:
             "component1"
         ].build_status = DeploymentBuildState.successful
         expected_deployment.data.builds["component1"].build_id = "new-build-id"
+        expected_deployment.data.builds[
+            "component1"
+        ].build_image = "tool-test-tool-1/component1:latest@sha256:abc123"
         expected_deployment.data.builds[
             "component1"
         ].build_long_status = (
@@ -421,7 +430,7 @@ class TestCreateDeployment:
                 "cpu": "0.5",
                 "filelog": False,
                 "health_check": {"path": "/health", "type": "http"},
-                "imagename": "tool-test-tool-1/component1:latest",
+                "imagename": "tool-test-tool-1/component1:latest@sha256:abc123",
                 "memory": "256Mi",
                 "name": "component1",
                 "port": 8080,
@@ -445,7 +454,10 @@ class TestCreateDeployment:
             "new_build": {"name": "new-build-id"}
         }
         fake_toolforge_client.get.return_value = {
-            "build": {"status": BuildsBuildStatus.BUILD_SUCCESS.value}
+            "build": {
+                "status": BuildsBuildStatus.BUILD_SUCCESS.value,
+                "destination_image": "tool-test-tool-1/component1:latest",
+            }
         }
         fake_toolforge_client.patch.return_value = JobsJobResponse().model_dump()
         unauthed_client = TestClient(app)
@@ -462,6 +474,9 @@ class TestCreateDeployment:
             "component1"
         ].build_status = DeploymentBuildState.successful
         expected_deployment.data.builds["component1"].build_id = "new-build-id"
+        expected_deployment.data.builds[
+            "component1"
+        ].build_image = "tool-test-tool-1/component1:latest"
         expected_deployment.data.builds[
             "component1"
         ].build_long_status = (
@@ -508,7 +523,10 @@ class TestCreateDeployment:
             "new_build": {"name": "new-build-id"}
         }
         fake_toolforge_client.get.return_value = {
-            "build": {"status": BuildsBuildStatus.BUILD_SUCCESS.value}
+            "build": {
+                "status": BuildsBuildStatus.BUILD_SUCCESS.value,
+                "destination_image": "tool-test-tool-1/component1:latest",
+            }
         }
         fake_toolforge_client.patch.return_value = JobsJobResponse().model_dump()
         my_tool_config = get_fake_tool_config(
@@ -533,6 +551,9 @@ class TestCreateDeployment:
             "component1"
         ].build_status = DeploymentBuildState.successful
         expected_deployment.data.builds["component1"].build_id = "new-build-id"
+        expected_deployment.data.builds[
+            "component1"
+        ].build_image = "tool-test-tool-1/component1:latest"
         expected_deployment.data.builds[
             "component1"
         ].build_long_status = (
@@ -632,7 +653,10 @@ class TestCreateDeployment:
             "new_build": {"name": "new-build-id"}
         }
         fake_toolforge_client.get.return_value = {
-            "build": {"status": BuildsBuildStatus.BUILD_SUCCESS.value}
+            "build": {
+                "status": BuildsBuildStatus.BUILD_SUCCESS.value,
+                "destination_image": "tool-test-tool-1/component1:latest",
+            }
         }
         fake_toolforge_client.patch.return_value = JobsJobResponse().model_dump()
         my_tool_config = get_fake_tool_config(
@@ -882,7 +906,10 @@ class TestListDeployments:
             "new_build": {"name": "new-build-id"}
         }
         fake_toolforge_client.get.return_value = {
-            "build": {"status": BuildsBuildStatus.BUILD_SUCCESS.value}
+            "build": {
+                "status": BuildsBuildStatus.BUILD_SUCCESS.value,
+                "destination_image": "tool-test-tool-1/component1:latest",
+            }
         }
         fake_toolforge_client.patch.return_value = JobsJobResponse().model_dump()
         deployment_response = create_tool_deployment(authenticated_client)
@@ -893,6 +920,9 @@ class TestListDeployments:
             "component1"
         ].build_status = DeploymentBuildState.successful
         expected_deployment.builds["component1"].build_id = "new-build-id"
+        expected_deployment.builds[
+            "component1"
+        ].build_image = "tool-test-tool-1/component1:latest"
         expected_deployment.builds[
             "component1"
         ].build_long_status = (
@@ -968,7 +998,12 @@ class TestBuildComponents:
         fake_toolforge_client.post.return_value = {
             "new_build": {"name": "new-build-id"}
         }
-        fake_toolforge_client.get.return_value = {"build": {"status": "BUILD_SUCCESS"}}
+        fake_toolforge_client.get.return_value = {
+            "build": {
+                "status": BuildsBuildStatus.BUILD_SUCCESS.value,
+                "destination_image": "tool-test-tool-1/component1:latest",
+            }
+        }
         my_tool_config = get_fake_tool_config(
             build={
                 "repository": "https://gitlab-example.wikimedia.org/some-repo.git",
@@ -992,6 +1027,9 @@ class TestBuildComponents:
             "component1"
         ].build_status = DeploymentBuildState.successful
         expected_deployment.data.builds["component1"].build_id = "new-build-id"
+        expected_deployment.data.builds[
+            "component1"
+        ].build_image = "tool-test-tool-1/component1:latest"
         expected_deployment.data.builds[
             "component1"
         ].build_long_status = (
