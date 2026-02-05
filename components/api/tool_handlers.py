@@ -1,11 +1,13 @@
 import logging
+import subprocess
 from datetime import datetime
+from tempfile import TemporaryDirectory
 from typing import TypeAlias
 
 import requests
 import yaml
 from fastapi import BackgroundTasks, HTTPException, status
-from pydantic import AnyHttpUrl
+from pydantic import AnyHttpUrl, ValidationError
 
 from ..deploy_task import do_deploy
 from ..gen.toolforge_models import (
@@ -20,6 +22,8 @@ from ..models.api_models import (
     PLACEHOLDER_DEFAULT_URL,
     AnyGitUrl,
     ComponentInfo,
+    ConfigurationSourceRepo,
+    ConfigurationSourceUrl,
     ConfigVersion,
     ContinuousComponentInfo,
     ContinuousRunInfo,
@@ -45,17 +49,32 @@ AnyDefinedJob: TypeAlias = (
 
 
 def get_and_refetch_config_if_needed(toolname: str, storage: Storage) -> ToolConfig:
-    logger.debug("Checking if I should update the config from source_url")
+    logger.debug("Checking if I should update the config from a source")
     config = get_tool_config(toolname=toolname, storage=storage)
-    if config.source_url != PLACEHOLDER_DEFAULT_URL:
-        logger.info(f"Re-fetching config from source_url: {config.source_url}")
-        config = _fetch_config_from_url(url=config.source_url)
-        config = update_tool_config(toolname=toolname, config=config, storage=storage)
-        logger.info("Config re-updated from source_url")
-        logger.debug(f"New config: {config}")
-    else:
-        logger.debug(f"No refetching of the config needed: {config}")
+    if config.source != ConfigurationSourceUrl(url=PLACEHOLDER_DEFAULT_URL):
+        if isinstance(config.source, ConfigurationSourceUrl):
+            logger.info(f"Re-fetching config from source_url: {config.source.url}")
+            remote_config = _fetch_config_from_url(url=config.source.url)
 
+        elif isinstance(config.source, ConfigurationSourceRepo):
+            logger.info(
+                f"Re-fetching config from source_repo: {config.source.repository}"
+            )
+            remote_config = _fetch_config_from_git(
+                url=config.source.repository.encoded_string(),
+                ref=config.source.ref,
+                path=config.source.path,
+            )
+
+        else:
+            raise ValueError(f"Unknown source type: {config.source}")
+
+        if remote_config != config:
+            # save the updated-config, so GET /{toolname}/config` matches the below
+            update_tool_config(toolname, remote_config, storage)
+        return remote_config
+
+    logger.debug(f"No re-fetching of the config needed: {config}")
     return config
 
 
@@ -94,7 +113,130 @@ def _fetch_config_from_url(url: AnyHttpUrl) -> ToolConfig:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Unable to retrive config from source url {url}: {error}",
         ) from error
+    return config
 
+
+def _download_file_from_git(repo_url: str, path: str, ref: str | None = None) -> str:
+    logger.debug(
+        f"Reading path '{path}' from ref '{ref}' in git repository '{repo_url}'"
+    )
+    with TemporaryDirectory(dir=get_settings().temporary_writable_directory) as tmpdir:
+        # Create a bare repo
+        result = subprocess.run(
+            ["git", "init", "--bare"],
+            cwd=tmpdir,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            logger.error(f"Failed to create bare repository. Error: {result.stderr}")
+            raise ValueError("git failed to create a bare repository")
+
+        # Add the upstream
+        result = subprocess.run(
+            ["git", "remote", "add", "origin", repo_url],
+            cwd=tmpdir,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            logger.error(
+                f"Failed to add a remote for '{repo_url}'. Error: {result.stderr}"
+            )
+            raise ValueError(f"git failed to add a remote for '{repo_url}'")
+
+        # Fetch the remote refs, either the specific one we are looking for (if specified) or all
+        fetch_command = ["git", "fetch", "--depth=1", "origin"]
+        if ref:
+            fetch_command.append(ref)
+        result = subprocess.run(
+            fetch_command, cwd=tmpdir, capture_output=True, text=True
+        )
+        if result.returncode != 0:
+            logger.error(
+                f"Failed to fetch ref '{ref}' from the remote '{repo_url}'. Error: {result.stderr}"
+            )
+            raise ValueError(
+                f"git failed to fetch refs from the specified remote '{repo_url}'"
+            )
+
+        # If the ref was not specified, then resolve it
+        if not ref:
+            result = subprocess.run(
+                ["git", "remote", "set-head", "origin", "--auto"],
+                cwd=tmpdir,
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode != 0:
+                logger.error(
+                    f"Failed to set the remote HEAD for "
+                    f"'{repo_url}'. Error: {result.stderr}"
+                )
+                raise ValueError(
+                    f"git failed to resolve the remote HEAD for '{repo_url}'"
+                )
+
+            result = subprocess.run(
+                ["git", "symbolic-ref", "refs/remotes/origin/HEAD"],
+                cwd=tmpdir,
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode != 0:
+                logger.error(
+                    f"Failed to get the symbolic ref for '{repo_url}'. Error: {result.stderr}"
+                )
+                raise ValueError(
+                    f"git failed to resolve the symbolic reference to the remote HEAD for '{repo_url}'"
+                )
+
+            ref = result.stdout.removeprefix("refs/remotes/origin/").strip()
+            logger.debug(
+                f"Resolved the remote ref as '{ref}' for the remote '{repo_url}'"
+            )
+
+        # Dump the object
+        remote_ref = f"origin/{ref}"
+        result = subprocess.run(
+            ["git", "show", f"{remote_ref}:{path}"],
+            cwd=tmpdir,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            logger.error(
+                f"Failed to show path '{path}' under ref '{remote_ref}' for the remote '{repo_url}'. Error: {result.stderr}"
+            )
+            raise ValueError(
+                f"git failed to show '{path}' for ref '{remote_ref}' in remote '{repo_url}'"
+            )
+
+        raw_config = result.stdout
+        logger.debug(
+            f"Retrieved '{path}' @ '{ref}' from the remote '{repo_url}':\n{raw_config}"
+        )
+        return raw_config
+
+
+def _fetch_config_from_git(url: str, ref: str, path: str) -> ToolConfig:
+    try:
+        raw_config = _download_file_from_git(url, path, ref)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unable to retrieve config from source repository: {e}",
+        ) from e
+
+    try:
+        config = ToolConfig.model_validate(yaml.safe_load(raw_config))
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Could not load configuration: {e}",
+        ) from e
+
+    logger.debug(f"parsed config from git ({url}): {config}")
     return config
 
 

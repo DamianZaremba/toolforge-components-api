@@ -696,6 +696,55 @@ components:
       required:
       - data
       title: ApiResponse[ToolConfig]
+    ConfigurationSourceRepo:
+      properties:
+        repository:
+          type: string
+          minLength: 1
+          format: uri
+          title: Repository
+          description: URL of the git repository to retrieve configuration from. If
+            passed, it will ignore anything else and try to fetch the configuration
+            from the given URL on every deploy.
+          examples:
+          - https://gitlab.wikimedia.org/toolforge-repos/sample-complex-app-backend.git
+        ref:
+          type: string
+          title: Ref
+          description: Git ref to build from. This can be a tag, a branch name or
+            a commit SHA.
+          examples:
+          - main
+          - v1.2.3
+          - 35b594f5d452c288c4a15fe667a7dfb94a7e5489
+        path:
+          type: string
+          title: Path
+          description: Path of the configuration file within the git branch.
+          examples:
+          - toolforge.yaml
+      type: object
+      required:
+      - repository
+      - ref
+      - path
+      title: ConfigurationSourceRepo
+    ConfigurationSourceUrl:
+      properties:
+        url:
+          type: string
+          minLength: 1
+          format: uri
+          title: Url
+          description: URL to retrieve configuration from. If passed, it will ignore
+            anything else and try to fetch the configuration from the given URL on
+            every deploy.
+          examples:
+          - https://gitlab.wikimedia.org/toolforge-repos/sample-complex-app-backend/-/raw/main/toolforge.yaml
+      type: object
+      required:
+      - url
+      title: ConfigurationSourceUrl
     ContinuousComponentInfo-Input:
       properties:
         build:
@@ -1221,8 +1270,15 @@ components:
           minLength: 1
           format: uri
           title: Source Url
+          description: '** Deprecated **. If passed, it will ignore anything else
+            and try to fetch the configuration from the given URL on every deploy.'
+        source:
+          anyOf:
+          - $ref: '#/components/schemas/ConfigurationSourceUrl'
+          - $ref: '#/components/schemas/ConfigurationSourceRepo'
+          title: Source
           description: If passed, it will ignore anything else and try to fetch the
-            configuration from the given URL on every deploy.
+            configuration from the given source on every deploy.
         components:
           additionalProperties:
             anyOf:
@@ -1254,8 +1310,15 @@ components:
           minLength: 1
           format: uri
           title: Source Url
+          description: '** Deprecated **. If passed, it will ignore anything else
+            and try to fetch the configuration from the given URL on every deploy.'
+        source:
+          anyOf:
+          - $ref: '#/components/schemas/ConfigurationSourceUrl'
+          - $ref: '#/components/schemas/ConfigurationSourceRepo'
+          title: Source
           description: If passed, it will ignore anything else and try to fetch the
-            configuration from the given URL on every deploy.
+            configuration from the given source on every deploy.
         components:
           additionalProperties:
             anyOf:
