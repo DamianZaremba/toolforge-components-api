@@ -26,6 +26,7 @@ from .models.api_models import (
 from .runtime.base import Runtime
 from .settings import get_settings
 from .storage.base import Storage
+from .storage.exceptions import NotFoundInStorage
 
 logger = getLogger(__name__)
 
@@ -44,6 +45,35 @@ class DoDeployFuncType(Protocol):
 
 class UpdateBuildInfoFuncType(Protocol):
     def __call__(self, *, build_info: dict[str, DeploymentBuildInfo]) -> None: ...
+
+
+def _get_next_deployment_to_run(storage: Storage, tool_name: str) -> Deployment | None:
+    settings = get_settings()
+    try:
+        all_deployments = sorted(
+            storage.list_deployments(tool_name=tool_name),
+            key=lambda dep: dep.creation_time,
+        )
+        running_deployments = [
+            deployment
+            for deployment in all_deployments
+            if deployment.status is DeploymentState.running
+        ]
+        pending_deployments = [
+            deployment
+            for deployment in all_deployments
+            if deployment.status is DeploymentState.pending
+        ]
+        if (
+            len(running_deployments) >= settings.max_running_deployments
+            or not pending_deployments
+        ):
+            return None
+        return pending_deployments[0]
+
+    except NotFoundInStorage:
+        pass
+    return None
 
 
 def _raise_if_cancelled(storage: Storage, tool_name: str, deployment_id: str) -> None:
@@ -486,8 +516,23 @@ def do_deploy(
     storage: Storage,
     runtime: Runtime,
 ) -> None:
-    logger.info(f"Starting deployment for tool {tool_name}")
+    next_deployment_to_run = _get_next_deployment_to_run(
+        storage=storage, tool_name=tool_name
+    )
+    logger.debug(f"next deployment to run: {next_deployment_to_run}")
+    while (
+        not next_deployment_to_run
+        or next_deployment_to_run.deploy_id != deployment.deploy_id
+    ):
+        logger.info(
+            f"waiting to start deployment '{deployment.deploy_id}' for tool {tool_name}..."
+        )
+        time.sleep(5)
+        next_deployment_to_run = _get_next_deployment_to_run(
+            storage=storage, tool_name=tool_name
+        )
 
+    logger.info(f"Starting deployment '{deployment.deploy_id}' for tool {tool_name}")
     deployment.status = DeploymentState.running
     deployment.long_status = f"Started at {datetime.now()}"
     _update_deployment(storage=storage, tool_name=tool_name, deployment=deployment)

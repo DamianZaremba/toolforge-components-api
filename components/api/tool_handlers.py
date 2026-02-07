@@ -344,9 +344,9 @@ def list_tool_deployments(tool_name: str, storage: Storage) -> list[Deployment]:
         )
 
 
-def _check_parallel_deployment_limit(storage: Storage, tool_name: str) -> None:
+def _check_active_deployments_limit(storage: Storage, tool_name: str) -> None:
     settings = get_settings()
-    logger.debug(f"Checking active deployment limit for {tool_name}.")
+    logger.debug(f"Checking active deployments limit for {tool_name}.")
     try:
         all_deployments = storage.list_deployments(tool_name=tool_name)
         active_deployments = [
@@ -354,17 +354,16 @@ def _check_parallel_deployment_limit(storage: Storage, tool_name: str) -> None:
             for deployment in all_deployments
             if deployment.status in (DeploymentState.running, DeploymentState.pending)
         ]
-        if len(active_deployments) >= settings.max_parallel_deployments:
+        if len(active_deployments) >= settings.max_active_deployments:
             logger.debug(
-                f"Tool {tool_name} has reach it's active deployment limit {settings.max_parallel_deployments}, "
+                f"Tool {tool_name} has reach it's active deployment limit {settings.max_active_deployments}, "
                 "preventing a new deployment"
             )
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                # TODO: once we can cancel deployments, add a note here to cancel some also
                 detail=(
-                    f"There's already {len(active_deployments)} running, the limit is "
-                    f"{settings.max_parallel_deployments}. Wait for it to finish for now."
+                    f"There's already {len(active_deployments)}, the limit is "
+                    f"{settings.max_active_deployments}. Wait for some deployments to finish. You can also cancel some deployments"
                 ),
             )
     except NotFoundInStorage:
@@ -382,11 +381,10 @@ def create_tool_deployment(
     runtime: Runtime,
     background_tasks: BackgroundTasks,
 ) -> Deployment:
-    logger.info(f"Creating deployment for tool: {tool_name}")
-    _check_parallel_deployment_limit(storage=storage, tool_name=tool_name)
-
+    _check_active_deployments_limit(storage=storage, tool_name=tool_name)
     tool_config = get_tool_config(toolname=tool_name, storage=storage)
 
+    logger.info(f"Creating deployment for tool: {tool_name}")
     try:
         storage.create_deployment(tool_name=tool_name, deployment=deployment)
         logger.info(f"Created deployment {deployment} for tool {tool_name}")

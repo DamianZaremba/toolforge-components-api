@@ -609,7 +609,7 @@ class TestCreateDeployment:
         )
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    def test_returns_conflict_when_trying_to_run_many_deployments_in_parallel(
+    def test_returns_conflict_when_trying_to_create_many_active_deployments(
         self,
         authenticated_client: TestClient,
         fake_toolforge_client: MagicMock,
@@ -634,7 +634,7 @@ class TestCreateDeployment:
         # returns keeping the deployment pending
         monkeypatch.setattr(BackgroundTasks, "add_task", MagicMock())
         response.raise_for_status()
-        for _ in range(settings.max_parallel_deployments):
+        for _ in range(settings.max_active_deployments):
             response = authenticated_client.post("/v1/tool/test-tool-1/deployment")
             response.raise_for_status()
 
@@ -1278,7 +1278,7 @@ class TestCancelDeployment:
             DeploymentState.timed_out,
         ],
     )
-    def test_returns_conflict_if_deployment_not_running(
+    def test_deployment_cancel_returns_conflict_if_deployment_not_running(
         self, authenticated_client: TestClient, deployment_status: DeploymentState
     ):
         create_tool_config(authenticated_client)
