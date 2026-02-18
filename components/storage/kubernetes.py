@@ -242,7 +242,7 @@ class KubernetesStorage(Storage):
 
         def elapsed(datestamp: str) -> datetime.timedelta:
             return datetime.datetime.now() - datetime.datetime.strptime(
-                datestamp, "%Y%m%d-%H%M%S"
+                datestamp, "%Y-%m-%dT%H:%M:%SZ"
             )
 
         to_time_out = [

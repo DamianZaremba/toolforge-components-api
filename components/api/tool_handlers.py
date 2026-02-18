@@ -321,7 +321,8 @@ def cancel_tool_deployment(
 def get_latest_deployment(tool_name: str, storage: Storage) -> Deployment:
     deployments = list_tool_deployments(tool_name=tool_name, storage=storage)
     sorted_deployments = sorted(
-        deployments, key=lambda d: datetime.strptime(d.creation_time, "%Y%m%d-%H%M%S")
+        deployments,
+        key=lambda d: datetime.strptime(d.creation_time, "%Y-%m-%dT%H:%M:%SZ"),
     )
     return sorted_deployments[-1]
 

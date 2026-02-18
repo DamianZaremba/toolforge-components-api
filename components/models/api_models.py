@@ -357,8 +357,10 @@ class Deployment(BaseModel):
         force_build: bool = False,
         force_run: bool = False,
     ) -> "Deployment":
-        cur_timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y%m%d-%H%M%S")
-        new_id = f"{cur_timestamp}-"
+        cur_timestamp = datetime.datetime.now(tz=datetime.UTC).strftime(
+            "%Y-%m-%dT%H:%M:%SZ"
+        )
+        new_id = f"{datetime.datetime.now(tz=datetime.UTC).strftime('%Y%m%d-%H%M%S')}-"
         # We rely on random having enough entropy and having little requests per second requests to not collide.
         random_suffix = "".join(
             random.choices(string.ascii_lowercase + string.digits, k=10)
