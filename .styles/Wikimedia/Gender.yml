@@ -1,0 +1,14 @@
+extends: existence
+message: "Use a gender-neutral word instead of '%s'."
+link: https://www.mediawiki.org/wiki/Documentation/Tools/Linting/Linter_rule_reference#Wikimedia.Gender
+level: suggestion
+ignorecase: true
+tokens:
+  - he/she
+  - s/he
+  - he
+  - she
+  - him
+  - her
+  - his
+  - hers

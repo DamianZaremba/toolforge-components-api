@@ -60,3 +60,13 @@ repos:
     rev: 8482c68abdd8c45cfd8307b3dfc480844db6d9ad
     hooks:
       - id: check-openapi-version-bump
+
+  - repo: https://github.com/errata-ai/vale
+    rev: 16d3a7f
+    hooks:
+      - id: vale
+        name: vale sync
+        pass_filenames: false
+        args: [sync]
+      - id: vale
+        args: [--output=line, --minAlertLevel=error]

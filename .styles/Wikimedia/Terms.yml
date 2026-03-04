@@ -1,0 +1,16 @@
+extends: substitution
+message: "Use '%s' instead of '%s'."
+link: https://www.mediawiki.org/wiki/Documentation/Tools/Linting/Linter_rule_reference#Wikimedia.Terms
+level: warning
+scope: paragraph
+ignorecase: false
+swap:
+  (?:\s)mediawiki(?:[ ,;:]|\.[^o]|\.$|$): MediaWiki
+  (?:\s)wikimedia: Wikimedia
+  (?:\s)wikipedia: Wikipedia
+  (?:\s)wikipedias: Wikipedias
+  (?:\s)wikitech(?:[ ,;:]|\.[^w]|\.$|$): Wikitech
+  Mediawiki: MediaWiki
+  WikiMedia: Wikimedia
+  WikiPedia: Wikipedia
+  WikiTech: Wikitech
