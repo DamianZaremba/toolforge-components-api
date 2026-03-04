@@ -1,0 +1,7 @@
+extends: substitution
+message: "Use '%s' instead of '%s'."
+link: https://www.mediawiki.org/wiki/Documentation/Tools/Linting/Linter_rule_reference#Wikimedia.Ampersands
+nonword: true
+level: suggestion
+swap:
+  '&': and
