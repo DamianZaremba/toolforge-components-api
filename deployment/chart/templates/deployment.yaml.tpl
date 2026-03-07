@@ -36,8 +36,10 @@ spec:
               value: "{{ .Values.config.max_deployments_retained }}"
             - name: "BUILD_TIMEOUT_SECONDS"
               value: "{{ .Values.config.build_timeout_seconds }}"
-            - name: "MAX_PARALLEL_DEPLOYMENTS"
-              value: "{{ .Values.config.max_parallel_deployments }}"
+            - name: "MAX_ACTIVE_DEPLOYMENTS"
+              value: "{{ .Values.config.max_active_deployments }}"
+            - name: "MAX_RUNNING_DEPLOYMENTS"
+              value: "{{ .Values.config.max_running_deployments }}"
             - name: "PROMETHEUS_MULTIPROC_DIR"
               value: "/tmp/prometheus"
           resources: {{- toYaml .Values.resources | nindent 12 }}
