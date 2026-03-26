@@ -114,10 +114,10 @@ class TestTimeoutOldDeployments:
     def test_times_out_old_deployment_but_not_new(self, storage_k8s_cli: MagicMock):
         storage = KubernetesStorage()
         old_deployment = get_deployment_from_tool_config(
-            tool_config=get_tool_config(), creation_time="20210601-000000"
+            tool_config=get_tool_config(), creation_time="2021-06-01T00:00:00Z"
         )
         new_deployment = get_deployment_from_tool_config(
-            tool_config=get_tool_config(), creation_time="20550602-000000"
+            tool_config=get_tool_config(), creation_time="2055-06-02T00:00:00Z"
         )
         storage._list_deployments = MagicMock(spec=storage._list_deployments)
         storage._list_deployments.return_value = [old_deployment, new_deployment]
@@ -137,7 +137,7 @@ class TestTimeoutOldDeployments:
         cur_date = datetime.datetime.now()
         old_deployment = get_deployment_from_tool_config(
             tool_config=get_tool_config(),
-            creation_time=cur_date.strftime("%Y%m%d-%H%M%S"),
+            creation_time=cur_date.strftime("%Y-%m-%dT%H:%M:%SZ"),
         )
         storage._list_deployments = MagicMock(spec=storage._list_deployments)
         storage._list_deployments.return_value = [old_deployment]
@@ -166,7 +166,7 @@ class TestTimeoutOldDeployments:
         deployment_to_time_out = get_deployment_from_tool_config(
             tool_config=get_tool_config(),
             with_deployment_state=deployment_state,
-            creation_time="20210601-000000",
+            creation_time="2021-06-01T00:00:00Z",
         )
         storage._list_deployments = MagicMock(spec=storage._list_deployments)
         storage._list_deployments.return_value = [deployment_to_time_out]
@@ -193,7 +193,7 @@ class TestTimeoutOldDeployments:
         deployment_to_ignore = get_deployment_from_tool_config(
             tool_config=get_tool_config(),
             with_deployment_state=deployment_state,
-            creation_time="20210601-000000",
+            creation_time="2021-06-01T00:00:00Z",
         )
         storage._list_deployments = MagicMock(spec=storage._list_deployments)
         storage._list_deployments.return_value = [deployment_to_ignore]
