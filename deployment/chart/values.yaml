@@ -2,7 +2,7 @@ replicas: 2
 
 image:
   # name and tag are currently used by CI
-  name: tools-harbor.wmcloud.org/toolforge/components-api
+  name: toolsbeta-harbor.wmcloud.org/toolforge/components-api
   # Override if needed for development purposes
   tag: OVERWRITTEN_BY_CI
   pullPolicy: IfNotPresent

@@ -81,6 +81,12 @@ class SourceBuildInfo(BaseModel):
         json_schema_extra=remove_default_from_schema,
     )
 
+    use_deprecated_versions: bool = Field(
+        description="If set, it will use the deprecated buildpacks and run images for this build. Helpful while migrating to the newer buildpacks.",
+        default=PLACEHOLDER_DEFAULT_BOOL,
+        json_schema_extra=remove_default_from_schema,
+    )
+
 
 class SourceBuildReference(BaseModel):
     reuse_from: str = Field(

@@ -21,6 +21,7 @@ from ..gen.toolforge_models import (
     JobsNewScheduledJob,
     JobsResponseMessages,
     JobsScriptHealthCheck,
+    JobsUpdateResponse,
 )
 from ..models.api_models import (
     ComponentInfo,
@@ -108,15 +109,28 @@ def _check_for_matching_build(
             break
 
     if not matching_build:
+        logger.debug("Found no matching build")
         return None
 
-    if not matching_build.parameters and build_info.use_latest_versions:
+    logger.debug(
+        f"Found maybe matching build:\nmaybe:{matching_build}\noriginal:{build_info}"
+    )
+    if not matching_build.parameters and (
+        build_info.use_latest_versions or build_info.use_deprecated_versions
+    ):
+        logger.debug(
+            "Did not find matching build (no params set, and use_*_versions needed)"
+        )
         return None
+
     elif matching_build.parameters:
         if (
             matching_build.parameters.use_latest_versions
             != build_info.use_latest_versions
+            or matching_build.parameters.use_deprecated_versions
+            != build_info.use_deprecated_versions
         ):
+            logger.debug("Did not find matching build (bad use_*_versions)")
             return None
 
     build_info_ref = _resolve_ref(build_info)
@@ -124,6 +138,7 @@ def _check_for_matching_build(
         logger.debug(f"Gotten matching build: {matching_build.model_dump()}")
         return matching_build
 
+    logger.debug("Did not find matching build (bad ref)")
     return None
 
 
@@ -136,7 +151,7 @@ def _run_info_to_continuous_job(
     health_check: JobsHttpHealthCheck | JobsScriptHealthCheck | None = None
     if run_info_data.get("health_check_http", None):
         health_check = JobsHttpHealthCheck(
-            type="http", path=run_info_data["health_check_http"]
+            type="path", path=run_info_data["health_check_http"]
         )
     elif run_info_data.get("health_check_script", None):
         health_check = JobsScriptHealthCheck(
@@ -339,6 +354,7 @@ class ToolforgeRuntime(Runtime):
             image_name=component_name,
             envvars={},
             use_latest_versions=build.use_latest_versions,
+            use_deprecated_versions=build.use_deprecated_versions,
         )
         response = toolforge_client.post(
             f"/builds/v1/tool/{tool_name}/builds",
@@ -395,7 +411,7 @@ class ToolforgeRuntime(Runtime):
         )
         logger.debug(f"Sending job info {json_data} to jobs-api")
         # Using patch here does an upsert
-        create_response = JobsJobResponse.model_validate(
+        create_response = JobsUpdateResponse.model_validate(
             toolforge_client.patch(
                 f"/jobs/v1/tool/{tool_name}/jobs/",
                 json=json_data,
@@ -452,7 +468,7 @@ class ToolforgeRuntime(Runtime):
         json_data = new_job.model_dump(mode="json", exclude_unset=True)
         logger.debug(f"Sending job info {json_data} to jobs-api")
         # Using patch here does an upsert
-        create_response = JobsJobResponse.model_validate(
+        create_response = JobsUpdateResponse.model_validate(
             toolforge_client.patch(
                 f"/jobs/v1/tool/{tool_name}/jobs/",
                 json=json_data,

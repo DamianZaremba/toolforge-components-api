@@ -57,6 +57,11 @@
                         "type": "boolean",
                         "title": "Use Latest Versions",
                         "description": "If set, it will use the latest buildpacks and run images for this build. Helpful to always get the latest versions or test them before they become standard."
+                      },
+                      "use_deprecated_versions": {
+                        "type": "boolean",
+                        "title": "Use Deprecated Versions",
+                        "description": "If set, it will use the deprecated buildpacks and run images for this build. Helpful while migrating to the newer buildpacks."
                       }
                     },
                     "type": "object",
@@ -254,6 +259,11 @@
                         "type": "boolean",
                         "title": "Use Latest Versions",
                         "description": "If set, it will use the latest buildpacks and run images for this build. Helpful to always get the latest versions or test them before they become standard."
+                      },
+                      "use_deprecated_versions": {
+                        "type": "boolean",
+                        "title": "Use Deprecated Versions",
+                        "description": "If set, it will use the deprecated buildpacks and run images for this build. Helpful while migrating to the newer buildpacks."
                       }
                     },
                     "type": "object",
