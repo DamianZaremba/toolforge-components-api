@@ -8,6 +8,7 @@ releases:
     values:
       - replicas: 1
         image:
+          name: toolsbeta-harbor.wmcloud.org/toolforge/components-api
           tag: dev
           pullPolicy: Never
         config:
