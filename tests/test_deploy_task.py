@@ -15,6 +15,7 @@ from components.gen.toolforge_models import (
     JobsJobListResponse,
     JobsJobResponse,
     JobsResponseMessages,
+    JobsUpdateResponse,
 )
 from components.models.api_models import (
     ContinuousComponentInfo,
@@ -84,7 +85,7 @@ class TestDoDeploy:
         toolforge_client_mock.post.return_value = {
             "new_build": {"name": "my-component"}
         }
-        toolforge_client_mock.patch.return_value = JobsJobResponse(
+        toolforge_client_mock.patch.return_value = JobsUpdateResponse(
             messages=JobsResponseMessages(
                 error=None, info=["created continuous job my-job-name"], warning=None
             ),
@@ -186,7 +187,7 @@ class TestDoDeploy:
         toolforge_client_mock.post.return_value = {
             "new_build": {"name": "my-component"}
         }
-        toolforge_client_mock.patch.return_value = JobsJobResponse(
+        toolforge_client_mock.patch.return_value = JobsUpdateResponse(
             messages=JobsResponseMessages(
                 error=None, info=["created continuous job my-job-name"], warning=None
             ),
@@ -265,7 +266,7 @@ class TestDoDeploy:
                 "destination_image": "tool-test-tool-1/component1:latest",
             }
         }
-        toolforge_client_mock.patch.return_value = JobsJobResponse(
+        toolforge_client_mock.patch.return_value = JobsUpdateResponse(
             messages=JobsResponseMessages(
                 error=None, info=["created continuous job my-job-name"], warning=None
             ),
@@ -334,7 +335,7 @@ class TestDoDeploy:
                 "destination_image": "tool-my-tool/my-component:latest",
             }
         }
-        toolforge_client_mock.patch.return_value = JobsJobResponse(
+        toolforge_client_mock.patch.return_value = JobsUpdateResponse(
             messages=JobsResponseMessages(
                 error=None, info=["created continuous job my-job-name"], warning=None
             ),
@@ -955,7 +956,7 @@ class TestDoDeploy:
             JobsJobListResponse(jobs=[get_defined_job(name="my-component")]),
         ]
         toolforge_client_mock.delete.return_value = JobsJobResponse().model_dump()
-        toolforge_client_mock.patch.return_value = JobsJobResponse(
+        toolforge_client_mock.patch.return_value = JobsUpdateResponse(
             messages=JobsResponseMessages(
                 error=None, info=["created continuous job my-job-name"], warning=None
             )
@@ -1046,7 +1047,7 @@ class TestDoDeploy:
             JobsJobListResponse(jobs=[get_defined_job(name="my-component")]),
         ]
         toolforge_client_mock.delete.return_value = JobsJobResponse().model_dump()
-        toolforge_client_mock.patch.return_value = JobsJobResponse(
+        toolforge_client_mock.patch.return_value = JobsUpdateResponse(
             messages=JobsResponseMessages(
                 error=None, info=["created continuous job my-job-name"], warning=None
             )
@@ -1172,7 +1173,7 @@ class TestDoDeploy:
 
         toolforge_client_mock.get = _mock_get_side_effect
 
-        toolforge_client_mock.patch.return_value = JobsJobResponse().model_dump()
+        toolforge_client_mock.patch.return_value = JobsUpdateResponse().model_dump()
 
         toolforge_client_mock.delete.return_value = JobsJobResponse().model_dump()
 
@@ -1238,7 +1239,7 @@ class TestDoDeploy:
                 "destination_image": "tool-my-tool/my-component:latest",
             }
         }
-        toolforge_client_mock.patch.return_value = JobsJobResponse(
+        toolforge_client_mock.patch.return_value = JobsUpdateResponse(
             messages=JobsResponseMessages(
                 error=None, info=["created continuous job my-job-name"], warning=None
             ),

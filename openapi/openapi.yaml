@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Toolforge Components API
-  version: 0.3.1
+  version: 0.4.0
 servers:
 - url: http://127.0.0.1:8000
   description: Local direct development server.
@@ -1187,6 +1187,11 @@ components:
           description: If set, it will use the latest buildpacks and run images for
             this build. Helpful to always get the latest versions or test them before
             they become standard.
+        use_deprecated_versions:
+          type: boolean
+          title: Use Deprecated Versions
+          description: If set, it will use the deprecated buildpacks and run images
+            for this build. Helpful while migrating to the newer buildpacks.
       type: object
       required:
       - repository
