@@ -151,7 +151,7 @@ def _run_info_to_continuous_job(
     health_check: JobsHttpHealthCheck | JobsScriptHealthCheck | None = None
     if run_info_data.get("health_check_http", None):
         health_check = JobsHttpHealthCheck(
-            type="path", path=run_info_data["health_check_http"]
+            type="http", path=run_info_data["health_check_http"]
         )
     elif run_info_data.get("health_check_script", None):
         health_check = JobsScriptHealthCheck(
