@@ -2,6 +2,7 @@
 # standard deploy.sh for applications using Helmfile
 set -eu
 
+# TODO: remove this file, no longer used for any reason.
 # explicitly find and specify path to helmfile to allow invoking
 # this script without having to cd to the deployment directory
 BASE_DIR=$(dirname "$(realpath -s "$0")")
