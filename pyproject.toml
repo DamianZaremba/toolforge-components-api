@@ -7,11 +7,11 @@ license = "AGPL-3.0-or-later"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.11"
-fastapi = "^0.111.1"
+python = "^3.13"
+fastapi = "^0.116.1"
 pydantic-settings = "^2.3.4"
 toml = "^0.10.2"
-kubernetes = "^31.0.0"
+kubernetes = "^34.1.0"
 pyyaml = "^6.0.2"
 toolforge-weld = "^1.6.4"
 pytest-cov = "^6.0.0"
@@ -30,6 +30,7 @@ types-requests = "^2.32.4.20250611"
 types-toml = "^0.10.8.20240310"
 jsonref = "^1.1.0"
 types-pyyaml = "^6.0.12.20250516"
+uvicorn = "^0.46.0"
 
 [tool.ruff.lint]
 # add isort
