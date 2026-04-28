@@ -7,7 +7,7 @@ from pathlib import Path
 import jsonref  # type: ignore
 import yaml
 
-TOOL_CONFIG_PATH = ["components", "schemas", "ToolConfig-Input"]
+TOOL_CONFIG_PATH = ["components", "schemas", "ToolConfig"]
 CURDIR = Path(__file__).parent
 
 

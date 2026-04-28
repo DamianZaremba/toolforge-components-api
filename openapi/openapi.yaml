@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Toolforge Components API
-  version: 0.4.0
+  version: 0.4.1
 servers:
 - url: http://127.0.0.1:8000
   description: Local direct development server.
@@ -101,7 +101,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ToolConfig-Input'
+              $ref: '#/components/schemas/ToolConfig'
       responses:
         '200':
           description: Successful Response
@@ -684,7 +684,7 @@ components:
     ApiResponse_ToolConfig_:
       properties:
         data:
-          $ref: '#/components/schemas/ToolConfig-Output'
+          $ref: '#/components/schemas/ToolConfig'
         messages:
           $ref: '#/components/schemas/ResponseMessages'
           default:
@@ -696,29 +696,7 @@ components:
       required:
       - data
       title: ApiResponse[ToolConfig]
-    ContinuousComponentInfo-Input:
-      properties:
-        build:
-          anyOf:
-          - $ref: '#/components/schemas/SourceBuildInfo'
-          - $ref: '#/components/schemas/SourceBuildReference'
-          title: Build
-        run:
-          $ref: '#/components/schemas/ContinuousRunInfo'
-        component_type:
-          anyOf:
-          - type: string
-            const: continuous
-          - type: string
-            const: scheduled
-          title: Component Type
-          default: continuous
-      type: object
-      required:
-      - build
-      - run
-      title: ContinuousComponentInfo
-    ContinuousComponentInfo-Output:
+    ContinuousComponentInfo:
       properties:
         build:
           anyOf:
@@ -863,7 +841,7 @@ components:
           title: Runs
         tool_config:
           anyOf:
-          - $ref: '#/components/schemas/ToolConfig-Output'
+          - $ref: '#/components/schemas/ToolConfig'
           - type: 'null'
         status:
           $ref: '#/components/schemas/DeploymentState'
@@ -1038,29 +1016,7 @@ components:
           default: []
       type: object
       title: ResponseMessages
-    ScheduledComponentInfo-Input:
-      properties:
-        build:
-          anyOf:
-          - $ref: '#/components/schemas/SourceBuildInfo'
-          - $ref: '#/components/schemas/SourceBuildReference'
-          title: Build
-        run:
-          $ref: '#/components/schemas/ScheduledRunInfo'
-        component_type:
-          anyOf:
-          - type: string
-            const: continuous
-          - type: string
-            const: scheduled
-          title: Component Type
-          default: scheduled
-      type: object
-      required:
-      - build
-      - run
-      title: ScheduledComponentInfo
-    ScheduledComponentInfo-Output:
+    ScheduledComponentInfo:
       properties:
         build:
           anyOf:
@@ -1209,7 +1165,7 @@ components:
       required:
       - reuse_from
       title: SourceBuildReference
-    ToolConfig-Input:
+    ToolConfig:
       properties:
         config_version:
           anyOf:
@@ -1231,41 +1187,8 @@ components:
         components:
           additionalProperties:
             anyOf:
-            - $ref: '#/components/schemas/ContinuousComponentInfo-Input'
-            - $ref: '#/components/schemas/ScheduledComponentInfo-Input'
-          type: object
-          minProperties: 1
-          title: Components
-          description: List of components to run. Each component matches a continuous
-            job, scheduled job, one-off job or webservice.
-      type: object
-      required:
-      - components
-      title: ToolConfig
-    ToolConfig-Output:
-      properties:
-        config_version:
-          anyOf:
-          - type: string
-            const: v1beta1
-          - type: 'null'
-          title: Config Version
-          default: v1beta1
-          examples:
-          - v1beta1
-          nullable: true
-        source_url:
-          type: string
-          minLength: 1
-          format: uri
-          title: Source Url
-          description: If passed, it will ignore anything else and try to fetch the
-            configuration from the given URL on every deploy.
-        components:
-          additionalProperties:
-            anyOf:
-            - $ref: '#/components/schemas/ContinuousComponentInfo-Output'
-            - $ref: '#/components/schemas/ScheduledComponentInfo-Output'
+            - $ref: '#/components/schemas/ContinuousComponentInfo'
+            - $ref: '#/components/schemas/ScheduledComponentInfo'
           type: object
           minProperties: 1
           title: Components
