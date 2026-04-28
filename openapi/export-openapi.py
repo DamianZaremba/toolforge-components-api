@@ -15,7 +15,7 @@ from uvicorn.importer import import_from_string  # type: ignore
 script_dir = os.path.dirname(os.path.abspath(__file__))
 default_output_path = Path(script_dir) / "openapi.yaml"
 default_config_output_path = Path(script_dir) / "tool-config-schema.json"
-tool_config_path = ["components", "schemas", "ToolConfig-Input"]
+tool_config_path = ["components", "schemas", "ToolConfig"]
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
