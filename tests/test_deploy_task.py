@@ -6,7 +6,7 @@ import requests
 from fastapi import status
 from freezegun import freeze_time
 from pytest import MonkeyPatch
-from requests import ReadTimeout
+from requests import HTTPError, ReadTimeout, Response
 from toolforge_weld.api_client import ToolforgeClient
 
 from components.deploy_task import _retry_http_failures, do_deploy
@@ -517,6 +517,72 @@ class TestDoDeploy:
         assert gotten_deployments
         expected_deployments[0].long_status = gotten_deployments[0].long_status
         assert gotten_deployments == expected_deployments
+        toolforge_client_mock.patch.assert_not_called()
+
+    def test_fails_deployment_if_build_times_out_waiting_for_build_queue(
+        self,
+        monkeypatch: MonkeyPatch,
+    ):
+        my_storage = MockStorage()
+        my_tool_config = get_tool_config()
+        my_deployment = get_deployment_from_tool_config(tool_config=my_tool_config)
+        my_storage.create_deployment(tool_name="my-tool", deployment=my_deployment)
+
+        toolforge_client_mock = MagicMock(spec=ToolforgeClient)
+        monkeypatch.setattr(
+            "components.runtime.toolforge.get_toolforge_client",
+            lambda: toolforge_client_mock,
+        )
+        response = Response()
+        response.status_code = status.HTTP_409_CONFLICT
+        toolforge_client_mock.post.side_effect = HTTPError(response=response)
+
+        expected_deployments = [
+            Deployment(
+                deploy_id="my-deploy-id",
+                creation_time="2021-06-01T00:00:00",
+                builds={
+                    "my-component": DeploymentBuildInfo(
+                        build_id="my-build",
+                        build_status=DeploymentBuildState.pending,
+                        # 4 days here because the tick increases the time every time datetime()/now() it's called
+                        # this might be a bit flaky, and break if we change the amount of times the code checks the time
+                        build_long_status=(
+                            "Got exception: Some builds failed to start: my-component(error:Timed out waiting for the "
+                            "build queue to free a slot, waited for 4 days, 0:00:00)"
+                        ),
+                    )
+                },
+                runs={
+                    "my-component": DeploymentRunInfo(
+                        run_status=DeploymentRunState.skipped,
+                        run_long_status="Skipped due to previous failure",
+                    )
+                },
+                tool_config=get_tool_config(),
+                status=DeploymentState.failed,
+                long_status="I will not be checked",
+            )
+        ]
+
+        with freeze_time(
+            datetime.datetime.now(),
+            auto_tick_seconds=60 * 60 * 24,
+            tick=True,
+        ):
+            do_deploy(
+                deployment=my_deployment,
+                storage=my_storage,
+                tool_config=my_tool_config,
+                tool_name="my-tool",
+                runtime=get_runtime(settings=get_settings()),
+            )
+
+        gotten_deployments = my_storage.list_deployments(tool_name="my-tool")
+
+        # make sure that we have some deployments
+        assert gotten_deployments
+        expected_deployments[0].long_status = gotten_deployments[0].long_status
         toolforge_client_mock.patch.assert_not_called()
 
     def test_times_out_deployment_not_finished_in_1h(

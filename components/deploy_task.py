@@ -1,6 +1,6 @@
 import time
 from copy import deepcopy
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import partial, wraps
 from logging import getLogger
 from typing import Any, Protocol
@@ -28,6 +28,11 @@ from .settings import get_settings
 from .storage.base import Storage
 
 logger = getLogger(__name__)
+
+# Amount of time to wait for a build to get started in case
+# there's too many builds in parallel, should be in the order
+# of how much time it takes to build one component
+START_BUILD_TIMEOUT = timedelta(minutes=30)
 
 
 class DoDeployFuncType(Protocol):
@@ -285,6 +290,40 @@ def _parse_build_error(error: Exception) -> str:
     return message
 
 
+def _start_build(
+    build: SourceBuildInfo,
+    tool_name: str,
+    component_name: str,
+    component_info: ComponentInfo,
+    force_build: bool,
+    runtime: Runtime,
+) -> DeploymentBuildInfo:
+    start_time = datetime.now()
+    now = start_time
+
+    while (now - start_time) < START_BUILD_TIMEOUT:
+        try:
+            new_build_info = runtime.start_build(
+                build=build,
+                tool_name=tool_name,
+                component_name=component_name,
+                component_info=component_info,
+                force_build=force_build,
+            )
+            return new_build_info
+        except HTTPError as error:
+            if error.response.status_code == status.HTTP_409_CONFLICT:
+                logger.info(
+                    f"Reached the builds limit, waiting for a build to finish, waited for {datetime.now() - start_time} of {START_BUILD_TIMEOUT}"
+                )
+                time.sleep(10)
+                now = datetime.now()
+
+    message = f"Timed out waiting for the build queue to free a slot, waited for {datetime.now() - start_time}"
+    logger.info(message)
+    raise BuildFailed(message)
+
+
 def _start_builds(
     components: dict[str, ComponentInfo],
     update_build_info_func: UpdateBuildInfoFuncType,
@@ -300,7 +339,8 @@ def _start_builds(
         logger.debug(f"Starting build for {component_name}")
         if isinstance(component.build, SourceBuildInfo):
             try:
-                new_build_info = runtime.start_build(
+                new_build_info = _start_build(
+                    runtime=runtime,
                     build=component.build,
                     tool_name=tool_name,
                     component_name=component_name,
@@ -335,8 +375,8 @@ def _start_builds(
             logger.debug("Skipping non-source build ")
 
         all_builds[component_name] = new_build_info
+        update_build_info_func(build_info=all_builds)
 
-    update_build_info_func(build_info=all_builds)
     if any_failed:
         message = f"Some builds failed to start: {' '.join(failed_builds)}"
         logger.error(message)
