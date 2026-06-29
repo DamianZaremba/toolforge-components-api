@@ -321,6 +321,11 @@ def cancel_tool_deployment(
 
 def get_latest_deployment(tool_name: str, storage: Storage) -> Deployment:
     deployments = list_tool_deployments(tool_name=tool_name, storage=storage)
+    if not deployments:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No deployments found for tool: {tool_name}",
+        )
     sorted_deployments = sorted(
         deployments,
         key=lambda d: datetime.strptime(d.creation_time, "%Y%m%d-%H%M%S").astimezone(
@@ -333,15 +338,12 @@ def get_latest_deployment(tool_name: str, storage: Storage) -> Deployment:
 def list_tool_deployments(tool_name: str, storage: Storage) -> list[Deployment]:
     logger.info(f"Listing deployments for tool: {tool_name}")
     try:
-        deployments = storage.list_deployments(tool_name)
-        if not deployments:
-            raise NotFoundInStorage(f"No deployments found for tool: {tool_name}")
-        return deployments
+        return storage.list_deployments(tool_name)
     except NotFoundInStorage as e:
         logger.warning(str(e))
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-    except Exception:
-        logger.exception(f"Error listing deployments for tool {tool_name}")
+        return []
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"Error listing deployments for tool {tool_name}: {e!s}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error",
