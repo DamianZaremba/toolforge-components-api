@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Toolforge Components API
-  version: 0.4.1
+  version: 0.4.2
 servers:
 - url: http://127.0.0.1:8000
   description: Local direct development server.
@@ -706,11 +706,10 @@ components:
         run:
           $ref: '#/components/schemas/ContinuousRunInfo'
         component_type:
-          anyOf:
-          - type: string
-            const: continuous
-          - type: string
-            const: scheduled
+          type: string
+          enum:
+          - continuous
+          - scheduled
           title: Component Type
           default: continuous
       type: object
@@ -1026,11 +1025,10 @@ components:
         run:
           $ref: '#/components/schemas/ScheduledRunInfo'
         component_type:
-          anyOf:
-          - type: string
-            const: continuous
-          - type: string
-            const: scheduled
+          type: string
+          enum:
+          - continuous
+          - scheduled
           title: Component Type
           default: scheduled
       type: object

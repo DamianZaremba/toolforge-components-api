@@ -1,5 +1,5 @@
+from collections.abc import Callable
 from logging import getLogger
-from typing import Callable
 
 from fastapi import FastAPI
 from prometheus_fastapi_instrumentator import Instrumentator

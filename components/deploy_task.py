@@ -1,6 +1,6 @@
 import time
 from copy import deepcopy
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from functools import partial, wraps
 from logging import getLogger
 from typing import Any, Protocol
@@ -68,9 +68,8 @@ def _cancel_builds(deployment: Deployment, runtime: Runtime, tool_name: str) -> 
         ):
             try:
                 runtime.cancel_build(tool_name=tool_name, build_id=build.build_id)
-            except Exception as error:
-                logger.exception(f"Failed trying to cancel build {build}: {error}")
-                pass
+            except Exception:
+                logger.exception(f"Failed trying to cancel build {build}")
 
             build.build_status = DeploymentBuildState.cancelled
 
@@ -110,7 +109,7 @@ def handle_deployment_exception(
         except Exception as error:
             deployment.status = DeploymentState.failed
             deployment.long_status = f"Got exception: {error}"
-            logger.exception(f"Deployment {deployment} failed: {error}")
+            logger.exception(f"Deployment {deployment} failed")
             run_long_status = "Skipped due to previous failure"
 
         for run in deployment.runs.values():
@@ -175,9 +174,7 @@ def _update_deployment(
         storage.update_deployment(tool_name=tool_name, deployment=deployment)
         logger.info(f"Updated deployment {deployment} for tool {tool_name}")
     except Exception as error:
-        logger.error(
-            f"Error updating deployment {deployment} for tool {tool_name}: {error}"
-        )
+        logger.exception(f"Error updating deployment {deployment} for tool {tool_name}")
         raise HTTPException(status_code=500, detail=str(error)) from error
 
 
@@ -211,10 +208,10 @@ def _wait_for_builds(
     }
     logger.debug(f"Waiting for {len(pending_builds)} builds to finish... from {builds}")
 
-    start_time = datetime.now()
+    start_time = datetime.now(tz=UTC)
     while (
         pending_builds
-        and (datetime.now() - start_time).total_seconds()
+        and (datetime.now(tz=UTC) - start_time).total_seconds()
         < settings.build_timeout_seconds
     ):
         to_delete = []
@@ -279,7 +276,7 @@ def _parse_build_error(error: Exception) -> str:
                 try:
                     logger.debug(f"Got 4xx HTTPError: {error}")
                     message = ", ".join(error.response.json()["error"])
-                except Exception:
+                except Exception:  # noqa: BLE001
                     logger.debug(f"Got non-json 4xx HTTPError: {error}")
                     message = f"unexpected {error}: {error.response.text}"
             else:
@@ -298,7 +295,7 @@ def _start_build(
     force_build: bool,
     runtime: Runtime,
 ) -> DeploymentBuildInfo:
-    start_time = datetime.now()
+    start_time = datetime.now(tz=UTC)
     now = start_time
 
     while (now - start_time) < START_BUILD_TIMEOUT:
@@ -314,12 +311,12 @@ def _start_build(
         except HTTPError as error:
             if error.response.status_code == status.HTTP_409_CONFLICT:
                 logger.info(
-                    f"Reached the builds limit, waiting for a build to finish, waited for {datetime.now() - start_time} of {START_BUILD_TIMEOUT}"
+                    f"Reached the builds limit, waiting for a build to finish, waited for {datetime.now(tz=UTC) - start_time} of {START_BUILD_TIMEOUT}"
                 )
                 time.sleep(10)
-                now = datetime.now()
+                now = datetime.now(tz=UTC)
 
-    message = f"Timed out waiting for the build queue to free a slot, waited for {datetime.now() - start_time}"
+    message = f"Timed out waiting for the build queue to free a slot, waited for {datetime.now(tz=UTC) - start_time}"
     logger.info(message)
     raise BuildFailed(message)
 
@@ -348,7 +345,7 @@ def _start_builds(
                     force_build=force_build,
                 )
                 logger.debug(f"Build started {new_build_info}")
-            except Exception as error:
+            except Exception as error:  # noqa: BLE001
                 any_failed = True
                 message = _parse_build_error(error=error)
                 new_build_info = DeploymentBuildInfo(
@@ -483,15 +480,15 @@ def _do_run(
             try:
                 message += ", ".join(error.response.json().get("error", ["no details"]))
             except Exception as parse_error:
-                logger.error(
-                    f"Failed parsing error response from jobs api {parse_error}, response:\n{error.response}"
+                logger.exception(
+                    f"Failed parsing error response from jobs api, response:\n{error.response}"
                 )
                 message += f"failed to parse error {parse_error}"
-                pass
+
             has_error = True
 
         except Exception as error:
-            logger.error(f"Unknown error response from jobs api {error!r}")
+            logger.exception("Unknown error response from jobs api")
             message = str(error)
             has_error = True
 
@@ -513,7 +510,7 @@ def _do_run(
         _update_deployment(storage=storage, tool_name=tool_name, deployment=deployment)
 
     deployment.status = DeploymentState.successful
-    deployment.long_status = f"Finished at {datetime.now()}"
+    deployment.long_status = f"Finished at {datetime.now(tz=UTC)}"
     _update_deployment(storage=storage, tool_name=tool_name, deployment=deployment)
 
 
@@ -529,7 +526,7 @@ def do_deploy(
     logger.info(f"Starting deployment for tool {tool_name}")
 
     deployment.status = DeploymentState.running
-    deployment.long_status = f"Started at {datetime.now()}"
+    deployment.long_status = f"Started at {datetime.now(tz=UTC)}"
     _update_deployment(storage=storage, tool_name=tool_name, deployment=deployment)
 
     _update_build_info_func = partial(

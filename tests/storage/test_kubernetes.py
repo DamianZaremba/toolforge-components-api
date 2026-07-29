@@ -134,7 +134,7 @@ class TestTimeoutOldDeployments:
     ):
         storage = KubernetesStorage()
         settings = get_settings()
-        cur_date = datetime.datetime.now()
+        cur_date = datetime.datetime.now(tz=datetime.UTC)
         old_deployment = get_deployment_from_tool_config(
             tool_config=get_tool_config(),
             creation_time=cur_date.strftime("%Y%m%d-%H%M%S"),

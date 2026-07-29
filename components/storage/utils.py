@@ -1,4 +1,5 @@
 import logging
+from typing import Annotated
 
 from fastapi import Depends
 
@@ -14,7 +15,7 @@ storage: Storage | None = None
 
 
 def get_storage(
-    settings: Settings = Depends(get_settings), rebuild_storage: bool = False
+    settings: Annotated[Settings, Depends(get_settings)], rebuild_storage: bool = False
 ) -> Storage:
     global storage
     if storage is None or rebuild_storage:

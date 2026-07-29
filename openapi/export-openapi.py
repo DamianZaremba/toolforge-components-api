@@ -40,7 +40,8 @@ parser.add_argument(
 
 
 def get_tool_config() -> dict[str, Any]:
-    spec = yaml.safe_load(Path(f"{script_dir}/../openapi/openapi.yaml").open())
+    with Path(f"{script_dir}/../openapi/openapi.yaml").open() as yaml_fd:
+        spec = yaml.safe_load(yaml_fd)
     resolved = jsonref.JsonRef.replace_refs(spec)
 
     node = resolved

@@ -3,14 +3,14 @@ default_language_version:
 
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.20
+    rev: v0.16.0
     hooks:
-      - id: ruff
+      - id: ruff-check
         args: [--fix]
       - id: ruff-format
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v2.1.0
+    rev: v2.3.0
     hooks:
       - id: mypy
         verbose: true
@@ -57,6 +57,6 @@ repos:
 
   # has to run after exporting the openapi spec
   - repo: https://gitlab.wikimedia.org/repos/cloud/cicd/gitlab-ci
-    rev: ec667f9233f2ee4648faec581dc8a287bf91a6ff
+    rev: 9c31ff7c64fecf4136115e98512e4fe79f4d5369
     hooks:
       - id: check-openapi-version-bump

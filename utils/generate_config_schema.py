@@ -12,7 +12,8 @@ CURDIR = Path(__file__).parent
 
 
 def main() -> None:
-    spec = yaml.safe_load(Path(f"{CURDIR}/../openapi/openapi.yaml").open())
+    with Path(f"{CURDIR}/../openapi/openapi.yaml").open() as yaml_fd:
+        spec = yaml.safe_load(yaml_fd)
     resolved = jsonref.JsonRef.replace_refs(spec)
 
     node = resolved

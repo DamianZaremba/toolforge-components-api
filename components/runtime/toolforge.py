@@ -240,14 +240,14 @@ class ToolforgeRuntime(Runtime):
                 )
 
             logger.exception(
-                f"Got {error} trying to fetch build status for tool {tool_name}, "
+                f"Got error trying to fetch build status for tool {tool_name}, "
                 f"build_id {build.build_id}"
             )
             unknown_error_message = f"Unknown HTTP error {error}"
 
         except Exception as error:
             logger.exception(
-                f"Got {error} trying to fetch build status for tool {tool_name}, "
+                f"Got error trying to fetch build status for tool {tool_name}, "
                 f"build_id {build.build_id}"
             )
             unknown_error_message = f"Unknown error {error}"
@@ -320,9 +320,11 @@ class ToolforgeRuntime(Runtime):
                     "Skipping build and marking deployment as skipped ..."
                 )
                 if not matching_build.build_id:
-                    raise Exception(f"Unexpected build without id: {matching_build}")
+                    raise Exception(  # noqa: TRY002
+                        f"Unexpected build without id: {matching_build}"
+                    )
                 if not matching_build.destination_image:
-                    raise Exception(
+                    raise Exception(  # noqa: TRY002
                         f"Unexpected build without destination image: {matching_build}"
                     )
                 return DeploymentBuildInfo(
@@ -341,7 +343,9 @@ class ToolforgeRuntime(Runtime):
                     "Skipping build and marking deployment as pending ..."
                 )
                 if not matching_build.build_id:
-                    raise Exception(f"Unexpected build without id: {matching_build}")
+                    raise Exception(  # noqa: TRY002
+                        f"Unexpected build without id: {matching_build}"
+                    )
                 return DeploymentBuildInfo(
                     build_id=matching_build.build_id,
                     build_status=DeploymentBuildState.pending,
@@ -387,7 +391,7 @@ class ToolforgeRuntime(Runtime):
         image_name: str,
     ) -> str:
         if not isinstance(component_info.run, ContinuousRunInfo):
-            raise ValueError(
+            raise TypeError(
                 f"Invalid run info passed, it's not a ContinuousRunInfo: {component_info.run}"
             )
         settings = get_settings()
@@ -450,7 +454,7 @@ class ToolforgeRuntime(Runtime):
         image_name: str,
     ) -> str:
         if not isinstance(component_info.run, ScheduledRunInfo):
-            raise ValueError(
+            raise TypeError(
                 f"Invalid run info passed, it's not a ScheduledRunInfo: {component_info.run}"
             )
         settings = get_settings()
@@ -501,7 +505,7 @@ class ToolforgeRuntime(Runtime):
             )
         ).jobs
 
-        if not jobs or not any([job.name == component_name for job in jobs]):
+        if not jobs or not any(job.name == component_name for job in jobs):
             logger.debug(
                 f"Job {component_name} not found for tool {tool_name}. Skipping delete operation..."
             )

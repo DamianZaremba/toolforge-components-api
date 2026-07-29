@@ -1,4 +1,5 @@
 import logging
+from typing import Annotated
 
 from fastapi import Depends
 
@@ -12,7 +13,7 @@ logger = logging.getLogger(__name__)
 runtime: Runtime | None = None
 
 
-def get_runtime(settings: Settings = Depends(get_settings)) -> Runtime:
+def get_runtime(settings: Annotated[Settings, Depends(get_settings)]) -> Runtime:
     global runtime
     if runtime is None:
         if settings.runtime_type == "toolforge":

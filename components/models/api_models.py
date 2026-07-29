@@ -9,7 +9,6 @@ from typing import (
     Generic,
     Literal,
     Self,
-    Type,
     TypeAlias,
     TypeVar,
 )
@@ -40,7 +39,7 @@ PLACEHOLDER_DEFAULT_URL = AnyHttpUrl("http://localhost/")
 PLACEHOLDER_DEFAULT_BOOL = False
 
 # TODO: add the others when we add support for them
-ComponentType: TypeAlias = Literal["continuous"] | Literal["scheduled"]
+ComponentType: TypeAlias = Literal["continuous", "scheduled"]
 T = TypeVar("T")
 
 
@@ -356,7 +355,7 @@ class Deployment(BaseModel):
 
     @classmethod
     def get_new_deployment(
-        cls: "Type[Deployment]",
+        cls: "type[Deployment]",
         builds: dict[str, DeploymentBuildInfo],
         runs: dict[str, DeploymentRunInfo],
         tool_config: ToolConfig,

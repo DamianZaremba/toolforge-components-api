@@ -208,15 +208,10 @@
                 "title": "ContinuousRunInfo"
               },
               "component_type": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "const": "continuous"
-                  },
-                  {
-                    "type": "string",
-                    "const": "scheduled"
-                  }
+                "type": "string",
+                "enum": [
+                  "continuous",
+                  "scheduled"
                 ],
                 "title": "Component Type",
                 "default": "continuous"
@@ -398,15 +393,10 @@
                 "title": "ScheduledRunInfo"
               },
               "component_type": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "const": "continuous"
-                  },
-                  {
-                    "type": "string",
-                    "const": "scheduled"
-                  }
+                "type": "string",
+                "enum": [
+                  "continuous",
+                  "scheduled"
                 ],
                 "title": "Component Type",
                 "default": "scheduled"

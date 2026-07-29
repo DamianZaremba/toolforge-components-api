@@ -67,7 +67,7 @@ class TestUpdateToolConfig:
     def test_valid_config_gets_saved_to_storage(
         self, authenticated_client: TestClient, monkeypatch: pytest.MonkeyPatch
     ):
-        storage = get_storage()
+        storage = get_storage(settings=get_settings())
         mock_set_tool_config = MagicMock(wraps=storage.set_tool_config)
         monkeypatch.setattr(storage, "set_tool_config", mock_set_tool_config)
 
@@ -793,7 +793,7 @@ class TestCreateDeployToken:
         self, authenticated_client: TestClient, monkeypatch: pytest.MonkeyPatch
     ):
         def mock_get_deploy_token(self, tool_name: str):
-            raise Exception("generic exception")
+            raise Exception("generic exception")  # noqa: TRY002
 
         monkeypatch.setattr(MockStorage, "get_deploy_token", mock_get_deploy_token)
 
@@ -1236,7 +1236,7 @@ class TestCancelDeployment:
 
         # this breaks a bit the barrier between api tests only testing through the api, but found no nicer way to
         # test this as we have to catch the deployment "on the fly"
-        storage = get_storage()
+        storage = get_storage(settings=get_settings())
         storage.create_deployment(
             tool_name="test-tool-1",
             deployment=Deployment(
@@ -1285,7 +1285,7 @@ class TestCancelDeployment:
 
         # this breaks a bit the barrier between api tests only testing through the api, but found no nicer way to
         # test this as we have to catch the deployment "on the fly"
-        storage = get_storage()
+        storage = get_storage(settings=get_settings())
         storage.create_deployment(
             tool_name="test-tool-1",
             deployment=Deployment(

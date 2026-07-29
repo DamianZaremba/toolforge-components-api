@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request
 
@@ -47,7 +47,7 @@ token_auth_router = APIRouter(
 @header_auth_router.get("/{toolname}/config", response_model_exclude_unset=True)
 def get_tool_config(
     toolname: str,
-    storage: Storage = Depends(get_storage),
+    storage: Annotated[Storage, Depends(get_storage)],
 ) -> ToolConfigResponse:
     """Retrieve the configuration for a specific tool."""
     warning_messages: list[str] = [BETA_WARNING_MESSAGE]
@@ -98,7 +98,7 @@ async def update_tool_config(
     toolname: str,
     config: ToolConfig,
     request: Request,
-    storage: Storage = Depends(get_storage),
+    storage: Annotated[Storage, Depends(get_storage)],
 ) -> ToolConfigResponse:
     """Update or create the configuration for a specific tool."""
     warning_messages: list[str] = [BETA_WARNING_MESSAGE]
@@ -124,7 +124,7 @@ async def update_tool_config(
 @header_auth_router.delete("/{toolname}/config", response_model_exclude_unset=True)
 def delete_tool_config(
     toolname: str,
-    storage: Storage = Depends(get_storage),
+    storage: Annotated[Storage, Depends(get_storage)],
 ) -> ToolConfigResponse:
     """Delete the configuration for a specific tool."""
     config = handlers.delete_tool_config(toolname, storage)
@@ -136,7 +136,7 @@ def delete_tool_config(
 )
 def generate_tool_config(
     toolname: str,
-    runtime: Runtime = Depends(get_runtime),
+    runtime: Annotated[Runtime, Depends(get_runtime)],
 ) -> ToolConfigResponse:
     """Generate the configuration for a specific tool from existing jobs if possible.
 
@@ -167,7 +167,7 @@ def generate_tool_config(
 @header_auth_router.get("/{toolname}/deployment/token")
 def get_tool_deploy_token(
     toolname: str,
-    storage: Storage = Depends(get_storage),
+    storage: Annotated[Storage, Depends(get_storage)],
 ) -> DeployTokenResponse:
     token = handlers.get_deploy_token(toolname, storage)
     return DeployTokenResponse(data=token, messages=ResponseMessages())
@@ -177,7 +177,7 @@ def get_tool_deploy_token(
     "/{toolname}/deployment/latest", response_model_exclude_unset=True
 )
 def get_latest_deployment(
-    toolname: str, storage: Storage = Depends(get_storage)
+    toolname: str, storage: Annotated[Storage, Depends(get_storage)]
 ) -> ToolDeploymentResponse:
     """Print the latest deployment for a specific tool, sorted by creation_time"""
     latest_deployment = handlers.get_latest_deployment(
@@ -192,7 +192,7 @@ def get_latest_deployment(
 def get_tool_deployment(
     toolname: str,
     deployment_id: str,
-    storage: Storage = Depends(get_storage),
+    storage: Annotated[Storage, Depends(get_storage)],
 ) -> ToolDeploymentResponse:
     deployment = handlers.get_tool_deployment(
         tool_name=toolname, deployment_name=deployment_id, storage=storage
@@ -207,7 +207,7 @@ def get_tool_deployment(
 def cancel_tool_deployment(
     toolname: str,
     deployment_id: str,
-    storage: Storage = Depends(get_storage),
+    storage: Annotated[Storage, Depends(get_storage)],
 ) -> ToolDeploymentResponse:
     # The current flow is:
 
@@ -243,7 +243,7 @@ def cancel_tool_deployment(
 @header_auth_router.get("/{toolname}/deployment", response_model_exclude_unset=True)
 def list_tool_deployments(
     toolname: str,
-    storage: Storage = Depends(get_storage),
+    storage: Annotated[Storage, Depends(get_storage)],
 ) -> ToolDeploymentListResponse:
     """List all deployments for a specific tool."""
     deployments = handlers.list_tool_deployments(tool_name=toolname, storage=storage)
@@ -257,6 +257,8 @@ def list_tool_deployments(
 def create_tool_deployment(
     toolname: str,
     background_tasks: BackgroundTasks,
+    storage: Annotated[Storage, Depends(get_storage)],
+    runtime: Annotated[Runtime, Depends(get_runtime)],
     force_build: bool = Query(
         title="Force Build",
         description=(
@@ -275,8 +277,6 @@ def create_tool_deployment(
         default=False,
         alias="force-run",
     ),
-    storage: Storage = Depends(get_storage),
-    runtime: Runtime = Depends(get_runtime),
 ) -> ToolDeploymentResponse:
     """Create a new tool deployment."""
     tool_config = handlers.get_and_refetch_config_if_needed(
@@ -288,11 +288,11 @@ def create_tool_deployment(
             build_id=DeploymentBuildInfo.NO_ID_YET,
             build_status=DeploymentBuildState.pending,
         )
-        for component_name in tool_config.components.keys()
+        for component_name in tool_config.components
     }
     runs = {
         component_name: DeploymentRunInfo(run_status=DeploymentRunState.pending)
-        for component_name in tool_config.components.keys()
+        for component_name in tool_config.components
     }
     new_deployment = Deployment.get_new_deployment(
         builds=builds,
@@ -319,7 +319,7 @@ def create_tool_deployment(
 @header_auth_router.post("/{toolname}/deployment/token")
 def create_tool_deploy_token(
     toolname: str,
-    storage: Storage = Depends(get_storage),
+    storage: Annotated[Storage, Depends(get_storage)],
 ) -> DeployTokenResponse:
     token = handlers.create_deploy_token(toolname, storage)
     return DeployTokenResponse(
@@ -333,7 +333,7 @@ def create_tool_deploy_token(
 @header_auth_router.put("/{toolname}/deployment/token")
 def update_tool_deploy_token(
     toolname: str,
-    storage: Storage = Depends(get_storage),
+    storage: Annotated[Storage, Depends(get_storage)],
 ) -> DeployTokenResponse:
     token = handlers.update_deploy_token(toolname, storage)
     return DeployTokenResponse(
@@ -347,7 +347,7 @@ def update_tool_deploy_token(
 @header_auth_router.delete("/{toolname}/deployment/token")
 def delete_tool_deploy_token(
     toolname: str,
-    storage: Storage = Depends(get_storage),
+    storage: Annotated[Storage, Depends(get_storage)],
 ) -> DeployTokenResponse:
     token = handlers.delete_deploy_token(toolname, storage)
     return DeployTokenResponse(
@@ -362,7 +362,7 @@ def delete_tool_deploy_token(
     "/{toolname}/deployment/{deployment_id}", response_model_exclude_unset=True
 )
 def delete_tool_deployment(
-    toolname: str, deployment_id: str, storage: Storage = Depends(get_storage)
+    toolname: str, deployment_id: str, storage: Annotated[Storage, Depends(get_storage)]
 ) -> ToolDeploymentResponse:
     deployment = handlers.delete_tool_deployment(toolname, deployment_id, storage)
     return ToolDeploymentResponse(

@@ -10,7 +10,7 @@ from .settings import get_settings
 logger = logging.getLogger(__name__)
 
 
-@lru_cache()
+@lru_cache
 def load_kubeconfig(namespace: str, server: str) -> Kubeconfig:
     try:
         logger.debug("Trying to load the kubeconfig certs from /etc/components-api")
@@ -22,7 +22,7 @@ def load_kubeconfig(namespace: str, server: str) -> Kubeconfig:
             current_server=server,
         )
         logger.debug("Loaded the kubeconfig certs from /etc/components-api")
-    except Exception:
+    except Exception:  # noqa: BLE001
         logger.debug("Trying to load the kubeconfig from common paths")
         kubeconfig = Kubeconfig.load()
         logger.debug("Loaded kubeconfig from common path")

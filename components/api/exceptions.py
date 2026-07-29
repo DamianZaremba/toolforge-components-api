@@ -34,7 +34,7 @@ def _format_validation_error(error: dict[str, Any]) -> str:
 async def http_exception_handler(_request: Request, exc: Exception) -> JSONResponse:
     # Needed because of https://github.com/encode/starlette/discussions/2416
     if not isinstance(exc, StarletteHTTPException):
-        raise Exception("Unable to handle {exc}")
+        raise Exception(f"Unable to handle {exc}") from exc  # noqa: TRY002, TRY004
     api_response: ApiResponse[None] = ApiResponse(
         data=None,
         messages=ResponseMessages(error=[str(exc.detail)]),
@@ -50,7 +50,7 @@ async def validation_exception_handler(
 ) -> JSONResponse:
     # Needed because of https://github.com/encode/starlette/discussions/2416
     if not isinstance(exc, RequestValidationError):
-        raise Exception("Unable to handle {exc}")
+        raise Exception(f"Unable to handle {exc}") from exc  # noqa: TRY002, TRY004
     formatted_errors = [_format_validation_error(error) for error in exc.errors()]
     api_response: ApiResponse[None] = ApiResponse(
         data=None,

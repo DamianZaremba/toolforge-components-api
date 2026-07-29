@@ -1,5 +1,6 @@
 import datetime
 from logging import getLogger
+from typing import Annotated
 
 from fastapi import Depends, HTTPException, Security, status
 from fastapi.security import APIKeyHeader, APIKeyQuery
@@ -17,7 +18,9 @@ api_key_header = APIKeyHeader(name="x-toolforge-tool", auto_error=False)
 token_parameter = APIKeyQuery(name="token", auto_error=False)
 
 
-def ensure_authenticated(api_key_header: str | None = Security(api_key_header)) -> bool:
+def ensure_authenticated(
+    api_key_header: Annotated[str | None, Security(api_key_header)] = None,
+) -> bool:
     """
     The gateway already checks that the path and the tool match, we only need to check that the tool header is set.
     """
@@ -31,9 +34,9 @@ def ensure_authenticated(api_key_header: str | None = Security(api_key_header)) 
 
 def ensure_token_or_auth(
     toolname: str,
-    api_key_header: str | None = Security(api_key_header),
-    token: str | None = Security(token_parameter),
-    storage: Storage = Depends(get_storage),
+    storage: Annotated[Storage, Depends(get_storage)],
+    api_key_header: Annotated[str | None, Security(api_key_header)] = None,
+    token: Annotated[str | None, Security(token_parameter)] = None,
 ) -> bool:
     if not api_key_header and not token:
         raise HTTPException(

@@ -22,8 +22,8 @@ def get_deployment_from_tool_config(
     with_deployment_state: DeploymentState | None = None,
     **overrides,
 ) -> Deployment:
-    params = dict(
-        builds={
+    params = {
+        "builds": {
             component_name: DeploymentBuildInfo(
                 build_id="my-build-id",
                 build_status=(
@@ -32,9 +32,9 @@ def get_deployment_from_tool_config(
                     else DeploymentBuildState.pending
                 ),
             )
-            for component_name in tool_config.components.keys()
+            for component_name in tool_config.components
         },
-        runs={
+        "runs": {
             component_name: DeploymentRunInfo(
                 run_status=(
                     with_run_state
@@ -42,26 +42,26 @@ def get_deployment_from_tool_config(
                     else DeploymentRunState.pending
                 )
             )
-            for component_name in tool_config.components.keys()
+            for component_name in tool_config.components
         },
-        tool_config=tool_config,
-        deploy_id="my-deploy-id",
-        creation_time="2021-06-01T00:00:00",
-        status=(
+        "tool_config": tool_config,
+        "deploy_id": "my-deploy-id",
+        "creation_time": "2021-06-01T00:00:00",
+        "status": (
             with_deployment_state
             if with_deployment_state is not None
             else DeploymentState.pending
         ),
-        long_status="my long status",
-    )
+        "long_status": "my long status",
+    }
     params.update(overrides)
     return Deployment(**params)  # type: ignore
 
 
 def get_tool_config(**overrides) -> ToolConfig:
-    params = dict(
-        config_version="v1beta1",
-        components={
+    params = {
+        "config_version": "v1beta1",
+        "components": {
             "my-component": ContinuousComponentInfo(
                 build=SourceBuildInfo(
                     repository=AnyGitUrl(
@@ -74,19 +74,19 @@ def get_tool_config(**overrides) -> ToolConfig:
                 ),
             )
         },
-    )
+    }
     params.update(overrides)
     return ToolConfig(**params)  # type: ignore
 
 
 def get_defined_job(**overrides) -> JobsDefinedContinuousJob:
-    params = dict(
-        job_type=JobType5.continuous,
-        cmd="my cmd",
-        image="my-image",
-        imagename="my-imagename",
-        image_state="",
-        name="my-job-name",
-    )
+    params = {
+        "job_type": JobType5.continuous,
+        "cmd": "my cmd",
+        "image": "my-image",
+        "imagename": "my-imagename",
+        "image_state": "",
+        "name": "my-job-name",
+    }
     params.update(overrides)
     return JobsDefinedContinuousJob.model_validate(params)

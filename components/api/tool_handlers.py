@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TypeAlias
 
 import requests
@@ -68,8 +68,8 @@ def get_tool_config(toolname: str, storage: Storage) -> ToolConfig:
     except NotFoundInStorage as e:
         logger.warning(str(e))
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-    except Exception as e:
-        logger.error(f"Error retrieving config for tool {toolname}: {str(e)}")
+    except Exception:
+        logger.exception(f"Error retrieving config for tool {toolname}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error",
@@ -87,9 +87,9 @@ def _fetch_config_from_url(url: AnyHttpUrl) -> ToolConfig:
         response.raise_for_status()
         config = ToolConfig.model_validate(yaml.safe_load(response.text))
     except Exception as error:
-        logging.error(f"Got error trying to re-fetch the config from {url}: {error}")
+        logger.exception(f"Got error trying to re-fetch the config from {url}")
         if response:
-            logging.debug(f"response: {response.text}")
+            logger.debug(f"response: {response.text}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Unable to retrive config from source url {url}: {error}",
@@ -109,7 +109,7 @@ def update_tool_config(
         logger.debug(f"New config {config}")
         return config
     except Exception as e:
-        logger.error(f"Error updating config for tool {toolname}: {str(e)}")
+        logger.exception(f"Error updating config for tool {toolname}")
         logger.debug(f"Failed config {config}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
@@ -123,7 +123,7 @@ def delete_tool_config(toolname: str, storage: Storage) -> ToolConfig:
         logger.info(f"Config deleted successfully for tool: {toolname}")
         return old_config
     except Exception as e:
-        logger.error(f"Error deleting config for tool {toolname}: {str(e)}")
+        logger.exception(f"Error deleting config for tool {toolname}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
@@ -273,8 +273,8 @@ def get_tool_deployment(
         logger.warning(str(e))
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
-    except Exception as e:
-        logger.error(f"Error retrieving deployment for tool {tool_name}: {str(e)}")
+    except Exception:
+        logger.exception(f"Error retrieving deployment for tool {tool_name}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error",
@@ -310,8 +310,8 @@ def cancel_tool_deployment(
         # bubble up http exceptions for the api to return
         raise
 
-    except Exception as e:
-        logger.error(f"Error cancelling deployment for tool {tool_name}: {str(e)}")
+    except Exception:
+        logger.exception(f"Error cancelling deployment for tool {tool_name}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error",
@@ -321,7 +321,10 @@ def cancel_tool_deployment(
 def get_latest_deployment(tool_name: str, storage: Storage) -> Deployment:
     deployments = list_tool_deployments(tool_name=tool_name, storage=storage)
     sorted_deployments = sorted(
-        deployments, key=lambda d: datetime.strptime(d.creation_time, "%Y%m%d-%H%M%S")
+        deployments,
+        key=lambda d: datetime.strptime(d.creation_time, "%Y%m%d-%H%M%S").astimezone(
+            tz=UTC
+        ),
     )
     return sorted_deployments[-1]
 
@@ -336,8 +339,8 @@ def list_tool_deployments(tool_name: str, storage: Storage) -> list[Deployment]:
     except NotFoundInStorage as e:
         logger.warning(str(e))
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-    except Exception as e:
-        logger.error(f"Error listing deployments for tool {tool_name}: {str(e)}")
+    except Exception:
+        logger.exception(f"Error listing deployments for tool {tool_name}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error",
@@ -391,9 +394,7 @@ def create_tool_deployment(
         storage.create_deployment(tool_name=tool_name, deployment=deployment)
         logger.info(f"Created deployment {deployment} for tool {tool_name}")
     except Exception as e:
-        logger.error(
-            f"Error creating deployment {deployment} for tool {tool_name}: {str(e)}"
-        )
+        logger.exception(f"Error creating deployment {deployment} for tool {tool_name}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
@@ -421,9 +422,9 @@ def delete_tool_deployment(
     except NotFoundInStorage as e:
         logger.warning(str(e))
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-    except Exception as e:
-        logger.error(
-            f"Error deleting deployment {deployment_name} for tool {tool_name}: {str(e)}"
+    except Exception:
+        logger.exception(
+            f"Error deleting deployment {deployment_name} for tool {tool_name}"
         )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -460,8 +461,8 @@ def create_deploy_token(toolname: str, storage: Storage) -> DeployToken:
     except HTTPException:
         raise
     # TODO: use a global exception handler for generic exceptions instead
-    except Exception as e:
-        logger.error(f"Error creating deploy token for tool {toolname}: {str(e)}")
+    except Exception:
+        logger.exception(f"Error creating deploy token for tool {toolname}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error",
@@ -487,8 +488,8 @@ def get_deploy_token(toolname: str, storage: Storage) -> DeployToken:
     except NotFoundInStorage as e:
         logger.warning(str(e))
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-    except Exception as e:
-        logger.error(f"Error retrieving deploy token for tool {toolname}: {str(e)}")
+    except Exception:
+        logger.exception(f"Error retrieving deploy token for tool {toolname}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error",
@@ -504,8 +505,8 @@ def delete_deploy_token(toolname: str, storage: Storage) -> DeployToken:
     except NotFoundInStorage as e:
         logger.warning(str(e))
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-    except Exception as e:
-        logger.error(f"Error deleting deploy token for tool {toolname}: {e}")
+    except Exception:
+        logger.exception(f"Error deleting deploy token for tool {toolname}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error",

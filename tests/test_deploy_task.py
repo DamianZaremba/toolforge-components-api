@@ -499,7 +499,7 @@ class TestDoDeploy:
         ]
 
         with freeze_time(
-            datetime.datetime.now(),
+            datetime.datetime.now(tz=datetime.UTC),
             auto_tick_seconds=60 * 60 * 24,
             tick=True,
         ):
@@ -566,7 +566,7 @@ class TestDoDeploy:
         ]
 
         with freeze_time(
-            datetime.datetime.now(),
+            datetime.datetime.now(tz=datetime.UTC),
             auto_tick_seconds=60 * 60 * 24,
             tick=True,
         ):
@@ -631,7 +631,7 @@ class TestDoDeploy:
         ]
 
         with freeze_time(
-            datetime.datetime.now(),
+            datetime.datetime.now(tz=datetime.UTC),
             auto_tick_seconds=60 * 60 * 24,
             tick=True,
         ):

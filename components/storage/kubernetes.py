@@ -107,7 +107,7 @@ class KubernetesStorage(Storage):
                 self._delete_tool_config(tool_name=tool_name)
                 self._create_tool_config(tool_name=tool_name, config=config)
             else:
-                raise Exception(
+                raise Exception(  # noqa: TRY002
                     "Unexpected unhandled k8s ApiException, should not have reached here."
                 ) from error
 
@@ -241,9 +241,9 @@ class KubernetesStorage(Storage):
         )
 
         def elapsed(datestamp: str) -> datetime.timedelta:
-            return datetime.datetime.now() - datetime.datetime.strptime(
+            return datetime.datetime.now(tz=datetime.UTC) - datetime.datetime.strptime(
                 datestamp, "%Y%m%d-%H%M%S"
-            )
+            ).astimezone(tz=datetime.UTC)
 
         to_time_out = [
             deployment
@@ -317,7 +317,7 @@ class KubernetesStorage(Storage):
             )
         except kubernetes.client.ApiException as error:
             if error.status == status.HTTP_404_NOT_FOUND:
-                logger.error(
+                logger.exception(
                     f"This should not happen, the deployment/namespace disappeared between checking and updating? (deployment: {deployment})"
                 )
                 raise NotFoundInStorage(
@@ -407,9 +407,7 @@ class KubernetesStorage(Storage):
             response = EnvvarsGetResponse.model_validate(response_data)
             logger.debug(f"Deploy token set for tool: {tool_name}: {response}")
         except Exception as error:
-            logger.error(
-                f"Error setting deploy token for tool {tool_name}: {str(error)}"
-            )
+            logger.exception(f"Error setting deploy token for tool {tool_name}")
             raise StorageError(
                 f"Got unexpected error when trying to set deploy token for {tool_name}"
             ) from error
@@ -433,7 +431,7 @@ class KubernetesStorage(Storage):
 
             if error.status == status.HTTP_409_CONFLICT:
                 # bubble up for us to handle
-                raise error
+                raise
 
             raise StorageError(
                 f"Got unexpected error ({error}) when trying to create deploy token for {tool_name}"
@@ -447,7 +445,7 @@ class KubernetesStorage(Storage):
                 self._delete_deploy_token_crd(tool_name=tool_name)
                 self._set_deploy_token_crd(tool_name=tool_name, token=token)
             else:
-                raise Exception(
+                raise Exception(  # noqa: TRY002
                     "Unexpected unhandled k8s ApiException, should not have reached here."
                 ) from error
 
@@ -463,15 +461,15 @@ class KubernetesStorage(Storage):
             )
             logger.info(f"Deploy token deleted for tool: {tool_name}")
         except HTTPError as http_err:
-            logger.error(
-                f"HTTP error occurred while deleting deploy token for tool {tool_name}: {http_err}"
+            logger.exception(
+                f"HTTP error occurred while deleting deploy token for tool {tool_name}"
             )
             raise StorageError(
                 f"Failed to delete deploy token for tool {tool_name}: {http_err}"
             ) from http_err
         except Exception as error:
-            logger.error(
-                f"Unexpected error occurred while deleting deploy token for tool {tool_name}: {error}"
+            logger.exception(
+                f"Unexpected error occurred while deleting deploy token for tool {tool_name}"
             )
             raise StorageError(
                 f"Unexpected error when trying to delete deploy token for tool {tool_name}"
