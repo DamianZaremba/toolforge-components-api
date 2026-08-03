@@ -19,6 +19,7 @@ from pydantic import (
     AnyUrl,
     BaseModel,
     Field,
+    StringConstraints,
     Tag,
     UrlConstraints,
     model_validator,
@@ -165,6 +166,16 @@ class ContinuousRunInfo(CommonRunInfoFields):
         description="Protocol to use while exposing port for the job.",
         examples=["tcp"],
     )
+    publish: Annotated[str, StringConstraints(pattern=r"^/$")] = Field(
+        default=PLACEHOLDER_DEFAULT_STR,
+        description=(
+            "If set, it will expose this component to the internet via "
+            "https://<tool_name>.toolforge.org<path>. Only the root path '/' "
+            "is supported for now."
+        ),
+        examples=["/"],
+        json_schema_extra=remove_default_from_schema,
+    )
     replicas: int = Field(
         default=PLACEHOLDER_DEFAULT_INT,
         description="Number of replicas to be used for the job. Configurable only when continuous is true.",
@@ -199,6 +210,16 @@ class ContinuousRunInfo(CommonRunInfoFields):
             not self.port or self.port_protocol == PortProtocol.udp
         ):
             raise ValueError("A tcp port must be set for health_check_http")
+
+        return self
+
+    @model_validator(mode="after")
+    def validate_publish(self) -> Self:
+        if self.publish and "port" not in self.model_fields_set:
+            raise ValueError("publish requires port to be set")
+
+        if self.publish and self.port_protocol != PortProtocol.tcp:
+            raise ValueError("publish requires port_protocol set to tcp")
         return self
 
 
@@ -431,6 +452,7 @@ EXAMPLE_GENERATED_CONFIG = ToolConfig(
                 health_check_http="/healthz",
                 port=8080,
                 port_protocol=PortProtocol.tcp,
+                publish="/",
                 cpu="500m",
                 memory="256Mi",
                 mount=Mount.none,

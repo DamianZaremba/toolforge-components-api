@@ -531,6 +531,13 @@ class JobsNewContinuousJob(JobsCommonJob):
         PortProtocol | None,
         Field(description="Protocol for the port exposed by the job", examples=["tcp"]),
     ] = "tcp"
+    publish: Annotated[
+        str | None,
+        Field(
+            description='Indicates if this job is exposed to the internet via https://{toolname}.toolforge.org by specifying the path.\nOnly the root path "/" is supported for now\n',
+            examples=["/"],
+        ),
+    ] = None
     health_check: Annotated[
         JobsScriptHealthCheck | JobsHttpHealthCheck | None,
         Field(
@@ -633,6 +640,13 @@ class JobsDefinedContinuousJob(JobsDefinedCommonJob):
         PortProtocol | None,
         Field(description="Protocol for the port exposed by the job", examples=["tcp"]),
     ] = "tcp"
+    publish: Annotated[
+        str | None,
+        Field(
+            description="Returns the job's publish path, if the job is published.\n",
+            examples=["/"],
+        ),
+    ] = None
     health_check: Annotated[
         JobsScriptHealthCheck | JobsHttpHealthCheck | None,
         Field(

@@ -26,6 +26,7 @@ def get_fake_tool_config(
                 "run": {
                     "command": "some command",
                     "port": 8080,
+                    "publish": "/",
                     "health_check_http": "/health",
                     "replicas": 2,
                     "memory": "256Mi",

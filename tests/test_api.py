@@ -331,6 +331,7 @@ class TestCreateDeployment:
                         "memory": "256Mi",
                         "mount": "none",
                         "port": 8080,
+                        "publish": "/",
                         "replicas": 2,
                         "health_check_http": "/health",
                     },
@@ -434,6 +435,7 @@ class TestCreateDeployment:
                 "memory": "256Mi",
                 "name": "component1",
                 "port": 8080,
+                "publish": "/",
                 "replicas": 2,
                 "mount": "none",
             },
@@ -510,6 +512,7 @@ class TestCreateDeployment:
                 "memory": "256Mi",
                 "name": "component1",
                 "port": 8080,
+                "publish": "/",
                 "replicas": 2,
                 "mount": "none",
             },
@@ -587,6 +590,7 @@ class TestCreateDeployment:
                 "memory": "256Mi",
                 "name": "component1",
                 "port": 8080,
+                "publish": "/",
                 "replicas": 2,
                 "mount": "none",
             },
@@ -1008,7 +1012,7 @@ class TestBuildComponents:
             build={
                 "repository": "https://gitlab-example.wikimedia.org/some-repo.git",
                 "ref": "some_ref",
-            }
+            },
         )
         response = authenticated_client.post(
             "/v1/tool/test-tool-1/config",
@@ -1049,21 +1053,23 @@ class TestBuildComponents:
         # we kinda ignore the messages
         assert expected_deployment.data == gotten_deployment.data
 
+        expected_payload = {
+            "job_type": "continuous",
+            "cmd": "some command",
+            "cpu": "0.5",
+            "filelog": False,
+            "health_check": {"path": "/health", "type": "http"},
+            "imagename": "tool-test-tool-1/component1:latest",
+            "memory": "256Mi",
+            "name": "component1",
+            "port": 8080,
+            "publish": "/",
+            "replicas": 2,
+            "mount": "none",
+        }
         fake_toolforge_client.patch.assert_called_once_with(
             "/jobs/v1/tool/test-tool-1/jobs/",
-            json={
-                "job_type": "continuous",
-                "cmd": "some command",
-                "cpu": "0.5",
-                "filelog": False,
-                "health_check": {"path": "/health", "type": "http"},
-                "imagename": "tool-test-tool-1/component1:latest",
-                "memory": "256Mi",
-                "name": "component1",
-                "port": 8080,
-                "replicas": 2,
-                "mount": "none",
-            },
+            json=expected_payload,
             verify=True,
         )
 
@@ -1086,6 +1092,7 @@ class TestGenerateConfig:
                 health_check=JobsHttpHealthCheck(path="/healthz", type="http"),
                 port=1234,
                 port_protocol="tcp",
+                publish="/",
                 image="job2-image",
             ),
         ]
@@ -1138,6 +1145,7 @@ class TestGenerateConfig:
                             health_check_http="/healthz",
                             port=1234,
                             port_protocol="tcp",
+                            publish="/",
                         ),
                     ),
                 }

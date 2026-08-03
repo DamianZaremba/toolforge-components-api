@@ -178,6 +178,7 @@ def _run_info_to_continuous_job(
         "mount",
         "port",
         "port_protocol",
+        "publish",
         "emails",
     ]:
         if field in run_info_data:

@@ -175,6 +175,15 @@
                     ],
                     "title": "PortProtocol"
                   },
+                  "publish": {
+                    "type": "string",
+                    "pattern": "^/$",
+                    "title": "Publish",
+                    "description": "If set, it will expose this component to the internet via https://<tool_name>.toolforge.org<path>. Only the root path '/' is supported for now.",
+                    "examples": [
+                      "/"
+                    ]
+                  },
                   "replicas": {
                     "type": "integer",
                     "minimum": 1.0,

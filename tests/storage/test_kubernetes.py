@@ -30,7 +30,7 @@ class TestKubernetesStorage:
         storage_k8s_cli.get_namespaced_custom_object.return_value = {
             "spec": get_deployment_from_tool_config(
                 tool_config=get_tool_config()
-            ).model_dump()
+            ).model_dump(exclude_unset=True)
         }
 
         timeout_old_deployments_mock = MagicMock(
@@ -65,7 +65,7 @@ class TestKubernetesStorage:
         storage_k8s_cli.get_namespaced_custom_object.return_value = {
             "spec": get_deployment_from_tool_config(
                 tool_config=get_tool_config()
-            ).model_dump()
+            ).model_dump(exclude_unset=True)
         }
 
         timeout_old_deployments_mock = MagicMock(
@@ -94,7 +94,7 @@ class TestKubernetesStorage:
         storage_k8s_cli.get_namespaced_custom_object.return_value = {
             "spec": get_deployment_from_tool_config(
                 tool_config=get_tool_config()
-            ).model_dump()
+            ).model_dump(exclude_unset=True)
         }
 
         timeout_old_deployments_mock = MagicMock(
