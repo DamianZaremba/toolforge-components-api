@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Toolforge Components API
-  version: 0.5.0
+  version: 0.6.0
 servers:
 - url: http://127.0.0.1:8000
   description: Local direct development server.
@@ -524,6 +524,14 @@ paths:
           type: boolean
           default: false
           title: Rebuild Storage
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/DeploymentCreateRequest'
+              - type: 'null'
+              title: Deployment Request
       responses:
         '200':
           description: Successful Response
@@ -836,6 +844,11 @@ components:
         creation_time:
           type: string
           title: Creation Time
+        description:
+          type: string
+          title: Description
+          description: Human-readable context describing what was deployed and why.
+          default: ''
         builds:
           additionalProperties:
             $ref: '#/components/schemas/DeploymentBuildInfo'
@@ -911,6 +924,18 @@ components:
       - skipped
       - cancelled
       title: DeploymentBuildState
+    DeploymentCreateRequest:
+      properties:
+        description:
+          type: string
+          title: Description
+          description: Optional human-readable context describing what is being deployed
+            and why.
+          default: ''
+          examples:
+          - 'Deploy T401993: add deployment descriptions'
+      type: object
+      title: DeploymentCreateRequest
     DeploymentList:
       properties:
         deployments:

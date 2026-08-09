@@ -363,9 +363,21 @@ class DeploymentState(str, Enum):
     cancelled = "cancelled"
 
 
+class DeploymentCreateRequest(BaseModel):
+    description: str = Field(
+        default="",
+        description="Optional human-readable context describing what is being deployed and why.",
+        examples=["Deploy T401993: add deployment descriptions"],
+    )
+
+
 class Deployment(BaseModel):
     deploy_id: str
     creation_time: str
+    description: str = Field(
+        default="",
+        description="Human-readable context describing what was deployed and why.",
+    )
     builds: dict[str, DeploymentBuildInfo]
     runs: dict[str, DeploymentRunInfo]
     tool_config: ToolConfig | None = None
@@ -380,6 +392,7 @@ class Deployment(BaseModel):
         builds: dict[str, DeploymentBuildInfo],
         runs: dict[str, DeploymentRunInfo],
         tool_config: ToolConfig,
+        description: str = "",
         force_build: bool = False,
         force_run: bool = False,
     ) -> "Deployment":
@@ -393,6 +406,7 @@ class Deployment(BaseModel):
         return Deployment(
             creation_time=cur_timestamp,
             deploy_id=new_id,
+            description=description,
             builds=builds,
             runs=runs,
             tool_config=tool_config,
