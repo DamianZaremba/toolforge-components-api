@@ -182,6 +182,7 @@ def _get_run_for_job(job: AnyDefinedJob) -> ScheduledRunInfo | ContinuousRunInfo
         "mount",
         "port",
         "port_protocol",
+        "publish",
         "replicas",
         "schedule",
         "retry",
