@@ -201,14 +201,10 @@ def get_tool_deployment(
     return ToolDeploymentResponse(data=deployment, messages=ResponseMessages())
 
 
-@header_auth_router.put("/{toolname}/deployment/latest/cancel")
-@header_auth_router.put(
-    "/{toolname}/deployment/{deployment_id}/cancel", response_model_exclude_unset=True
-)
-def cancel_tool_deployment(
+def _cancel_deployment_by_id(
     toolname: str,
     deployment_id: str,
-    storage: Annotated[Storage, Depends(get_storage)],
+    storage: Storage,
 ) -> ToolDeploymentResponse:
     # The current flow is:
 
@@ -224,12 +220,6 @@ def cancel_tool_deployment(
     #   override it with a status update. Currently considered small enough to not be a bother, but we can address it
     #   if/when it becomes relevant.
     # * We can't cancel a job once we start running it
-    if deployment_id == "latest":
-        latest_deployment = handlers.get_latest_deployment(
-            tool_name=toolname, storage=storage
-        )
-        deployment_id = latest_deployment.deploy_id
-
     deployment = handlers.cancel_tool_deployment(
         tool_name=toolname, deployment_name=deployment_id, storage=storage
     )
@@ -238,6 +228,40 @@ def cancel_tool_deployment(
         messages=ResponseMessages(
             info=["Deployment flagged for cancellation, might take a moment to cancel."]
         ),
+    )
+
+
+@header_auth_router.put(
+    "/{toolname}/deployment/latest/cancel", response_model_exclude_unset=True
+)
+def cancel_latest_tool_deployment(
+    toolname: str,
+    storage: Annotated[Storage, Depends(get_storage)],
+) -> ToolDeploymentResponse:
+    """Request cancellation of the latest deployment for a tool."""
+    latest_deployment = handlers.get_latest_deployment(
+        tool_name=toolname, storage=storage
+    )
+    return _cancel_deployment_by_id(
+        toolname=toolname,
+        deployment_id=latest_deployment.deploy_id,
+        storage=storage,
+    )
+
+
+@header_auth_router.put(
+    "/{toolname}/deployment/{deployment_id}/cancel", response_model_exclude_unset=True
+)
+def cancel_tool_deployment(
+    toolname: str,
+    deployment_id: str,
+    storage: Annotated[Storage, Depends(get_storage)],
+) -> ToolDeploymentResponse:
+    """Request cancellation of a deployment by ID."""
+    return _cancel_deployment_by_id(
+        toolname=toolname,
+        deployment_id=deployment_id,
+        storage=storage,
     )
 
 
