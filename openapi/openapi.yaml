@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Toolforge Components API
-  version: 0.6.0
+  version: 0.6.1
 servers:
 - url: http://127.0.0.1:8000
   description: Local direct development server.
@@ -357,12 +357,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /v1/tool/{toolname}/deployment/{deployment_id}/cancel:
+  /v1/tool/{toolname}/deployment/latest/cancel:
     put:
       tags:
       - tool
-      summary: Cancel Tool Deployment
-      operationId: cancel_tool_deployment
+      summary: Cancel Latest Tool Deployment
+      description: Request cancellation of the latest deployment for a tool.
+      operationId: cancel_latest_tool_deployment
       security:
       - APIKeyHeader: []
       parameters:
@@ -372,12 +373,6 @@ paths:
         schema:
           type: string
           title: Toolname
-      - name: deployment_id
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Deployment Id
       - name: rebuild_storage
         in: query
         required: false
@@ -398,11 +393,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /v1/tool/{toolname}/deployment/latest/cancel:
+  /v1/tool/{toolname}/deployment/{deployment_id}/cancel:
     put:
       tags:
       - tool
       summary: Cancel Tool Deployment
+      description: Request cancellation of a deployment by ID.
       operationId: cancel_tool_deployment
       security:
       - APIKeyHeader: []
@@ -414,7 +410,7 @@ paths:
           type: string
           title: Toolname
       - name: deployment_id
-        in: query
+        in: path
         required: true
         schema:
           type: string
