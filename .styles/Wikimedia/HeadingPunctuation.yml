@@ -1,0 +1,13 @@
+extends: existence
+message: "Don't use end punctuation in headings."
+link: https://www.mediawiki.org/wiki/Documentation/Tools/Linting/Linter_rule_reference#Wikimedia.HeadingPunctuation
+nonword: true
+level: suggestion
+scope: heading
+action:
+  name: edit
+  params:
+    - trim_right
+    - ".?!"
+raw:
+  - "[.!?]+$"

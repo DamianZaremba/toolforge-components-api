@@ -1,0 +1,8 @@
+extends: existence
+message: "'%s' has a repeated word."
+link: https://www.mediawiki.org/wiki/Documentation/Tools/Linting/Linter_rule_reference#Wikimedia.Repetition
+level: warning
+raw:
+  - '\b(\w+)\b \1\b'
+exceptions:
+  - that that
