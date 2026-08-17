@@ -282,6 +282,18 @@ class TestGetToolConfig:
 
 
 class TestCreateDeployment:
+    def test_deployments_created_before_description_support_remain_valid(self):
+        deployment = Deployment.model_validate(
+            {
+                "deploy_id": "legacy-deployment",
+                "creation_time": "20260809-120000",
+                "builds": {},
+                "runs": {},
+            }
+        )
+
+        assert deployment.description == ""
+
     def test_fails_without_auth_header(self, test_client: TestClient):
         raw_response = test_client.post("/v1/tool/test-tool-1/deployment")
 
@@ -363,16 +375,19 @@ class TestCreateDeployment:
             MagicMock(spec=k8s_storage.update_deployment),
         )
 
-        response = my_client.post("/v1/tool/test-tool-1/deployment")
+        description = "Deploy T401993: persist deployment context"
+        response = my_client.post(
+            "/v1/tool/test-tool-1/deployment",
+            json={"description": description},
+        )
         assert response.status_code == status.HTTP_200_OK
 
-        gotten_k8s_config = (
-            storage_k8s_cli.create_namespaced_custom_object.call_args.kwargs["body"][
-                "spec"
-            ]["tool_config"]
-        )
+        gotten_k8s_deployment = (
+            storage_k8s_cli.create_namespaced_custom_object.call_args.kwargs["body"]
+        )["spec"]
 
-        assert gotten_k8s_config == expected_k8s_config
+        assert gotten_k8s_deployment["description"] == description
+        assert gotten_k8s_deployment["tool_config"] == expected_k8s_config
 
     def test_creates_and_returns_the_new_deployment_of_source_built_component_using_header_auth(
         self, authenticated_client: TestClient, fake_toolforge_client: MagicMock
@@ -389,10 +404,15 @@ class TestCreateDeployment:
         }
         fake_toolforge_client.patch.return_value = JobsJobResponse().model_dump()
 
-        response = authenticated_client.post("/v1/tool/test-tool-1/deployment")
+        description = 'Deploy T401993: ship the "café" update'
+        response = authenticated_client.post(
+            "/v1/tool/test-tool-1/deployment",
+            json={"description": description},
+        )
         assert response.status_code == status.HTTP_200_OK
 
         expected_deployment = ToolDeploymentResponse.model_validate(response.json())
+        assert expected_deployment.data.description == description
         expected_deployment.data.status = DeploymentState.successful
         expected_deployment.data.long_status = ANY
         expected_deployment.data.builds[
@@ -464,12 +484,16 @@ class TestCreateDeployment:
         fake_toolforge_client.patch.return_value = JobsJobResponse().model_dump()
         unauthed_client = TestClient(app)
 
+        description = "Deploy commit ab12de34 after T401993"
         response = unauthed_client.post(
-            f"/v1/tool/test-tool-1/deployment?token={token}"
+            "/v1/tool/test-tool-1/deployment",
+            params={"token": token},
+            json={"description": description},
         )
         assert response.status_code == status.HTTP_200_OK
 
         expected_deployment = ToolDeploymentResponse.model_validate(response.json())
+        assert expected_deployment.data.description == description
         expected_deployment.data.status = DeploymentState.successful
         expected_deployment.data.long_status = ANY
         expected_deployment.data.builds[

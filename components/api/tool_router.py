@@ -1,7 +1,7 @@
 import logging
 from typing import Annotated, Any
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, Query, Request
 
 from ..models.api_models import (
     BETA_WARNING_MESSAGE,
@@ -9,6 +9,7 @@ from ..models.api_models import (
     Deployment,
     DeploymentBuildInfo,
     DeploymentBuildState,
+    DeploymentCreateRequest,
     DeploymentList,
     DeploymentRunInfo,
     DeploymentRunState,
@@ -259,6 +260,7 @@ def create_tool_deployment(
     background_tasks: BackgroundTasks,
     storage: Annotated[Storage, Depends(get_storage)],
     runtime: Annotated[Runtime, Depends(get_runtime)],
+    deployment_request: Annotated[DeploymentCreateRequest | None, Body()] = None,
     force_build: bool = Query(
         title="Force Build",
         description=(
@@ -298,6 +300,9 @@ def create_tool_deployment(
         builds=builds,
         runs=runs,
         tool_config=tool_config,
+        description=(
+            deployment_request.description if deployment_request is not None else ""
+        ),
         force_build=force_build,
         force_run=force_run,
     )
