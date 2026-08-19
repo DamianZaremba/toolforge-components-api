@@ -76,7 +76,7 @@ def _resolve_ref(build_info: SourceBuildInfo) -> str:
 def _check_for_matching_build(
     component_name: str, build_info: SourceBuildInfo, tool_name: str
 ) -> BuildsBuild | None:
-    matching_build: BuildsBuild | None = None
+    latest_component_build: BuildsBuild | None = None
     toolforge_client = get_toolforge_client()
 
     response = toolforge_client.get(
@@ -87,58 +87,92 @@ def _check_for_matching_build(
     builds = BuildsListResponse.model_validate(response).builds
     if not builds:
         return None
-
-    builds = sorted(
-        builds,
-        key=lambda build: (
-            build.start_time
-            if build.start_time
-            else datetime.datetime.min.replace(tzinfo=datetime.timezone.utc).strftime(
-                "%Y-%m-%dT%H:%M:%SZ"
-            )
-        ),
-        reverse=True,
-    )
     logger.debug(
         f"Found {len(builds)} builds for tool {tool_name} to compare for skipping"
     )
 
-    for build in builds:
-        if build.parameters and build.parameters.image_name == component_name:
-            matching_build = build
-            break
-
-    if not matching_build:
+    latest_component_build = _get_latest_component_build(
+        builds=builds, component_name=component_name
+    )
+    if not latest_component_build:
         logger.debug("Found no matching build")
         return None
 
     logger.debug(
-        f"Found maybe matching build:\nmaybe:{matching_build}\noriginal:{build_info}"
+        f"Found maybe matching build:\nmaybe:{latest_component_build}\noriginal:{build_info}"
     )
-    if not matching_build.parameters and (
-        build_info.use_latest_versions or build_info.use_deprecated_versions
+    if not _matches_parameters(
+        parameters=latest_component_build.parameters, build_info=build_info
     ):
-        logger.debug(
-            "Did not find matching build (no params set, and use_*_versions needed)"
-        )
         return None
 
-    elif matching_build.parameters:
-        if (
-            matching_build.parameters.use_latest_versions
-            != build_info.use_latest_versions
-            or matching_build.parameters.use_deprecated_versions
-            != build_info.use_deprecated_versions
-        ):
-            logger.debug("Did not find matching build (bad use_*_versions)")
-            return None
-
     build_info_ref = _resolve_ref(build_info)
-    if matching_build.resolved_ref == build_info_ref:
-        logger.debug(f"Gotten matching build: {matching_build.model_dump()}")
-        return matching_build
+    if latest_component_build.resolved_ref == build_info_ref:
+        logger.debug(f"Gotten matching build: {latest_component_build.model_dump()}")
+        return latest_component_build
 
-    logger.debug("Did not find matching build (bad ref)")
+    logger.debug(
+        f"Did not find matching build (bad ref, got '{latest_component_build.resolved_ref}', expected '{build_info_ref}')"
+    )
+    return None
+
+
+def _matches_parameters(
+    parameters: BuildsBuildParameters | None, build_info: SourceBuildInfo
+) -> bool:
+    if not parameters and (
+        build_info.use_latest_versions
+        or build_info.use_deprecated_versions
+        or build_info.envvars
+    ):
+        logger.debug(
+            f"Did not find matching build (last build for component has no params set, but we have some {build_info})"
+        )
+        return False
+
+    if not parameters:
+        return True
+
+    if parameters.use_latest_versions != build_info.use_latest_versions:
+        logger.debug(
+            f"Did not find matching build (different `use_latest_versions`, got '{parameters.use_latest_versions}', expected '{build_info.use_latest_versions}')"
+        )
+        return False
+
+    if parameters.use_deprecated_versions != build_info.use_deprecated_versions:
+        logger.debug(
+            f"Did not find matching build (different `use_deprecated_versions`, got '{parameters.use_deprecated_versions}', expected '{build_info.use_deprecated_versions}')"
+        )
+        return False
+
+    if not parameters.envvars and not build_info.envvars:
+        return True
+
+    if parameters.envvars != build_info.envvars:
+        logger.debug(
+            f"Did not find matching build (found different envvars, got '{parameters.envvars}', expected '{build_info.envvars}')"
+        )
+        return False
+
+    return True
+
+
+def _get_latest_component_build(
+    builds: list[BuildsBuild], component_name: str
+) -> BuildsBuild | None:
+    earliest_timestamp = datetime.datetime.min.replace(
+        tzinfo=datetime.timezone.utc
+    ).strftime("%Y-%m-%dT%H:%M:%SZ")
+    builds = sorted(
+        builds,
+        key=lambda build: build.start_time or earliest_timestamp,
+        reverse=True,
+    )
+
+    for build in builds:
+        if build.parameters and build.parameters.image_name == component_name:
+            return build
+
     return None
 
 
@@ -357,9 +391,9 @@ class ToolforgeRuntime(Runtime):
             ref=build.ref,
             source_url=build.repository.encoded_string(),
             image_name=component_name,
-            envvars={},
             use_latest_versions=build.use_latest_versions,
             use_deprecated_versions=build.use_deprecated_versions,
+            envvars=build.envvars,
         )
         response = toolforge_client.post(
             f"/builds/v1/tool/{tool_name}/builds",

@@ -1,11 +1,17 @@
 from typing import Any
+from unittest.mock import _Call, call
 
 import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
 
+from components.gen.toolforge_models import BuildsBuild, BuildsBuildParameters
 from components.models.api_models import (
+    ComponentInfo,
+    ContinuousComponentInfo,
+    ContinuousRunInfo,
     DeployTokenResponse,
+    SourceBuildInfo,
     ToolConfig,
     ToolConfigResponse,
     ToolDeploymentResponse,
@@ -76,7 +82,7 @@ def create_deploy_token(
 
 def delete_deploy_token(
     client: TestClient, tool_name: str = "test-tool-1"
-) -> DeployTokenResponse:
+) -> DeployTokenResponse | None:
     response = client.delete(f"/v1/tool/{tool_name}/deployment/token")
     assert response.status_code in (status.HTTP_200_OK, status.HTTP_404_NOT_FOUND)
     if response.status_code == status.HTTP_200_OK:
@@ -125,3 +131,67 @@ def cases(params_str, *params_defs):
         return pytest.mark.parametrize(params_str, test_params, ids=test_names)(func)
 
     return wrapper
+
+
+def get_dummy_source_build_info(**overrides) -> SourceBuildInfo:
+    params = {
+        "repository": "http://127.0.0.1/idontexist.git",
+        "ref": "main",
+    }
+    return SourceBuildInfo.model_validate(params | overrides)
+
+
+def get_dummy_continous_component_info(**overrides) -> ComponentInfo:
+    params = {
+        "build": get_dummy_source_build_info(),
+        "run": ContinuousRunInfo(command="some-command"),
+    }
+    return ContinuousComponentInfo.model_validate(params | overrides)
+
+
+def get_start_build_params(**overrides) -> dict[str, Any]:
+    component_info: ComponentInfo = overrides.get(
+        "component_info", get_dummy_continous_component_info()
+    )
+
+    params = {
+        "build": component_info.build,
+        "tool_name": "dummy-tool",
+        "component_name": "dummy-component",
+        "component_info": component_info,
+        "force_build": False,
+    }
+    return params | overrides
+
+
+def get_dummy_start_build_call(*args, **overrides) -> _Call:
+    args = args or [
+        "/builds/v1/tool/dummy-tool/builds",
+    ]
+    params = {
+        "json": {
+            "envvars": {},
+            "image_name": "dummy-component",
+            "ref": "main",
+            "source_url": "http://127.0.0.1/idontexist.git",
+            "use_deprecated_versions": False,
+            "use_latest_versions": False,
+        }
+        | overrides,
+        "verify": True,
+    }
+    return call(*args, **params)
+
+
+def get_dummy_builds_build_parameters(**overrides) -> BuildsBuildParameters:
+    defaults = {
+        "source_url": "http://127.0.0.1/idontexist.git",
+    }
+
+    return BuildsBuildParameters.model_validate(defaults | overrides)
+
+
+def get_dummy_builds_build(**overrides) -> BuildsBuild:
+    defaults = {}
+
+    return BuildsBuild.model_validate(defaults | overrides)
