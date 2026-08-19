@@ -357,9 +357,9 @@ class ToolforgeRuntime(Runtime):
             ref=build.ref,
             source_url=build.repository.encoded_string(),
             image_name=component_name,
-            envvars={},
             use_latest_versions=build.use_latest_versions,
             use_deprecated_versions=build.use_deprecated_versions,
+            envvars=build.envvars,
         )
         response = toolforge_client.post(
             f"/builds/v1/tool/{tool_name}/builds",
