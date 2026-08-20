@@ -912,19 +912,21 @@ class TestDeleteDeployToken:
 
 
 class TestListDeployments:
-    def test_returns_not_found_when_the_tool_does_not_exist(
+    def test_returns_empty_list_when_the_tool_does_not_exist(
         self, authenticated_client: TestClient
     ):
         response = authenticated_client.get("/v1/tool/idontexist/deployment")
-        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["data"]["deployments"] == []
 
-    def test_returns_not_found_when_tool_exists_but_has_no_deployments(
+    def test_returns_empty_list_when_tool_exists_but_has_no_deployments(
         self, authenticated_client: TestClient
     ):
         create_tool_config(authenticated_client)
 
         response = authenticated_client.get("/v1/tool/test-tool-1/deployment")
-        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["data"]["deployments"] == []
 
     def test_returns_single_deployment_when_one_exists(
         self, authenticated_client: TestClient, fake_toolforge_client: MagicMock
