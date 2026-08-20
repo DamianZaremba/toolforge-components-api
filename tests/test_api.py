@@ -1,4 +1,5 @@
 import json
+from collections import Counter
 from unittest.mock import ANY, MagicMock
 from uuid import UUID
 
@@ -23,9 +24,7 @@ from components.models.api_models import (
     ContinuousComponentInfo,
     ContinuousRunInfo,
     Deployment,
-    DeploymentBuildInfo,
     DeploymentBuildState,
-    DeploymentRunInfo,
     DeploymentRunState,
     DeploymentState,
     DeployTokenResponse,
@@ -50,7 +49,22 @@ from tests.helpers import (
     get_deploy_token,
     get_fake_tool_config,
 )
-from tests.testlibs import get_defined_job, get_tool_config
+from tests.testlibs import (
+    get_defined_job,
+    get_deployment_from_tool_config,
+    get_tool_config,
+)
+
+OPENAPI_HTTP_METHODS = {
+    "delete",
+    "get",
+    "head",
+    "options",
+    "patch",
+    "post",
+    "put",
+    "trace",
+}
 
 
 def test_healthz_endpoint_returns_ok_status(test_client: TestClient):
@@ -61,6 +75,22 @@ def test_healthz_endpoint_returns_ok_status(test_client: TestClient):
     assert raw_response.status_code == status.HTTP_200_OK
     gotten_state = HealthzResponse.model_validate(raw_response.json()).data
     assert gotten_state == expected_state
+
+
+def test_openapi_operation_ids_are_unique(app: FastAPI):
+    operation_ids = [
+        operation["operationId"]
+        for path in app.openapi()["paths"].values()
+        for method, operation in path.items()
+        if method in OPENAPI_HTTP_METHODS
+    ]
+    duplicate_operation_ids = [
+        operation_id
+        for operation_id, count in Counter(operation_ids).items()
+        if count > 1
+    ]
+
+    assert duplicate_operation_ids == []
 
 
 class TestUpdateToolConfig:
@@ -1234,21 +1264,44 @@ class TestGenerateConfig:
 
 
 class TestCancelDeployment:
-    def test_fails_without_auth_header(self, test_client: TestClient):
-        raw_response = test_client.put("/v1/tool/test-tool-1/deployment/some-id/cancel")
+    @pytest.mark.parametrize("deployment_id", ["some-id", "latest"])
+    def test_fails_without_auth_header(
+        self, test_client: TestClient, deployment_id: str
+    ):
+        raw_response = test_client.put(
+            f"/v1/tool/test-tool-1/deployment/{deployment_id}/cancel"
+        )
 
         assert raw_response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    def test_fails_if_tool_has_no_config(self, authenticated_client: TestClient):
-        authenticated_client.delete("/v1/tool/test-tool-1/config")
-        raw_response = authenticated_client.get("/v1/tool/test-tool-1/config")
-        assert raw_response.status_code == status.HTTP_404_NOT_FOUND
+    def test_openapi_contract(self, app: FastAPI):
+        paths = app.openapi()["paths"]
+        latest_operation = paths["/v1/tool/{toolname}/deployment/latest/cancel"]["put"]
+        deployment_id_operation = paths[
+            "/v1/tool/{toolname}/deployment/{deployment_id}/cancel"
+        ]["put"]
 
-        raw_response = authenticated_client.put(
+        assert latest_operation["operationId"] == "cancel_latest_tool_deployment"
+        assert deployment_id_operation["operationId"] == "cancel_tool_deployment"
+        latest_parameters = {
+            parameter["name"]: parameter["in"]
+            for parameter in latest_operation["parameters"]
+        }
+        deployment_id_parameters = {
+            parameter["name"]: parameter["in"]
+            for parameter in deployment_id_operation["parameters"]
+        }
+        assert "deployment_id" not in latest_parameters
+        assert deployment_id_parameters["deployment_id"] == "path"
+
+    def test_returns_not_found_when_deployment_does_not_exist(
+        self, authenticated_client: TestClient
+    ):
+        response = authenticated_client.put(
             "/v1/tool/test-tool-1/deployment/some-id/cancel"
         )
 
-        assert raw_response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.status_code == status.HTTP_404_NOT_FOUND
 
     def test_returns_not_found_when_tool_does_not_exist(
         self,
@@ -1273,24 +1326,9 @@ class TestCancelDeployment:
         storage = get_storage(settings=get_settings())
         storage.create_deployment(
             tool_name="test-tool-1",
-            deployment=Deployment(
-                deploy_id="my-deploy-id",
-                creation_time="2021-06-01T00:00:00",
-                builds={
-                    "my-component": DeploymentBuildInfo(
-                        build_id="my-build",
-                        build_status=DeploymentBuildState.pending,
-                    )
-                },
-                runs={
-                    "my-component": DeploymentRunInfo(
-                        run_status=DeploymentRunState.pending,
-                        run_long_status="",
-                    )
-                },
+            deployment=get_deployment_from_tool_config(
                 tool_config=get_tool_config(),
-                status=deployment_status,
-                long_status="",
+                with_deployment_state=deployment_status,
             ),
         )
 
@@ -1299,8 +1337,64 @@ class TestCancelDeployment:
         )
         assert response.status_code == status.HTTP_200_OK
 
-        expected_deployment = ToolDeploymentResponse.model_validate(response.json())
-        expected_deployment.data.status = DeploymentState.cancelling
+        gotten_deployment = ToolDeploymentResponse.model_validate(response.json())
+        assert gotten_deployment.data.status == DeploymentState.cancelling
+        assert (
+            storage.get_deployment(
+                tool_name="test-tool-1", deployment_name="my-deploy-id"
+            ).status
+            == DeploymentState.cancelling
+        )
+
+    def test_flags_latest_deployment_for_cancellation(
+        self, authenticated_client: TestClient
+    ):
+        create_tool_config(authenticated_client)
+        storage = get_storage(settings=get_settings())
+        older_deployment = get_deployment_from_tool_config(
+            tool_config=get_tool_config(),
+            deploy_id="older-deploy-id",
+            creation_time="20210601-000000",
+        )
+        latest_deployment = get_deployment_from_tool_config(
+            tool_config=get_tool_config(),
+            deploy_id="latest-deploy-id",
+            creation_time="20210602-000000",
+        )
+        storage.create_deployment(tool_name="test-tool-1", deployment=older_deployment)
+        storage.create_deployment(tool_name="test-tool-1", deployment=latest_deployment)
+
+        response = authenticated_client.put(
+            "/v1/tool/test-tool-1/deployment/latest/cancel"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        gotten_deployment = ToolDeploymentResponse.model_validate(response.json())
+        assert gotten_deployment.data.deploy_id == "latest-deploy-id"
+        assert gotten_deployment.data.status == DeploymentState.cancelling
+        assert (
+            storage.get_deployment(
+                tool_name="test-tool-1", deployment_name="older-deploy-id"
+            ).status
+            == DeploymentState.pending
+        )
+        assert (
+            storage.get_deployment(
+                tool_name="test-tool-1", deployment_name="latest-deploy-id"
+            ).status
+            == DeploymentState.cancelling
+        )
+
+    def test_returns_not_found_when_there_are_no_deployments(
+        self, authenticated_client: TestClient
+    ):
+        create_tool_config(authenticated_client)
+
+        response = authenticated_client.put(
+            "/v1/tool/test-tool-1/deployment/latest/cancel"
+        )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
 
     @pytest.mark.parametrize(
         "deployment_status",
@@ -1322,24 +1416,9 @@ class TestCancelDeployment:
         storage = get_storage(settings=get_settings())
         storage.create_deployment(
             tool_name="test-tool-1",
-            deployment=Deployment(
-                deploy_id="my-deploy-id",
-                creation_time="2021-06-01T00:00:00",
-                builds={
-                    "my-component": DeploymentBuildInfo(
-                        build_id="my-build",
-                        build_status=DeploymentBuildState.pending,
-                    )
-                },
-                runs={
-                    "my-component": DeploymentRunInfo(
-                        run_status=DeploymentRunState.pending,
-                        run_long_status="",
-                    )
-                },
+            deployment=get_deployment_from_tool_config(
                 tool_config=get_tool_config(),
-                status=deployment_status,
-                long_status="",
+                with_deployment_state=deployment_status,
             ),
         )
 
