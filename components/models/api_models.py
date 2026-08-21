@@ -1,5 +1,6 @@
 import datetime
 import random
+import re
 import string
 from enum import Enum
 from typing import (
@@ -85,6 +86,19 @@ class SourceBuildInfo(BaseModel):
         description="If set, it will use the deprecated buildpacks and run images for this build. Helpful while migrating to the newer buildpacks.",
         default=PLACEHOLDER_DEFAULT_BOOL,
         json_schema_extra=remove_default_from_schema,
+    )
+
+    envvars: dict[
+        Annotated[
+            str,
+            StringConstraints(
+                pattern=re.compile(r"^[A-Z][A-Z_0-9]{2,}[A-Z0-9]$"),
+            ),
+        ],
+        str,
+    ] = Field(
+        description="Environment variables and values to be set at build time",
+        default_factory=dict,
     )
 
 
@@ -479,6 +493,7 @@ EXAMPLE_GENERATED_CONFIG = ToolConfig(
                 repository=AnyGitUrl(
                     "https://gitlab.wikimedia.org/toolforge-repos/sample-static-buildpack-app"
                 ),
+                envvars={"BUILD_CONFIG": "production"},
             ),
             run=ContinuousRunInfo(
                 command="bash -c 'while true; do touch /tmp/everything_ok; echo hello world from component2; sleep 10; done'",
