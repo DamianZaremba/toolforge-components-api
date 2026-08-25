@@ -1,7 +1,9 @@
+import json
 import logging
 from typing import Annotated, Any
 
 from fastapi import APIRouter, BackgroundTasks, Body, Depends, Query, Request
+from pydantic import Field
 
 from ..models.api_models import (
     BETA_WARNING_MESSAGE,
@@ -14,7 +16,10 @@ from ..models.api_models import (
     DeploymentRunInfo,
     DeploymentRunState,
     DeployTokenResponse,
+    GetToolsWithConfigData,
+    GetToolsWithConfigResponse,
     ResponseMessages,
+    SearchParameters,
     ToolConfig,
     ToolConfigResponse,
     ToolDeploymentListResponse,
@@ -43,6 +48,9 @@ token_auth_router = APIRouter(
         Depends(ensure_token_or_auth),
     ],
 )
+
+# Used public endpoints, like getting tools with config
+public_router = APIRouter()
 
 
 @header_auth_router.get("/{toolname}/config", response_model_exclude_unset=True)
@@ -375,4 +383,33 @@ def delete_tool_deployment(
         messages=ResponseMessages(
             info=[f"Deployment {deployment_id} deleted successfully."]
         ),
+    )
+
+
+@public_router.post(
+    "/config/search",
+)
+def get_tools_with_config(
+    search_params: Annotated[
+        SearchParameters,
+        Field(
+            description=(
+                "Returns the list of tools that match the given configuration. Accepts pairs of dot-separated keys "
+                "and values to match the configurations by. Note that if it gives a result is because it matched, if "
+                "it does not, there might have been an issue."
+            ),
+            examples=[
+                json.dumps({"key1.key2": "myvalue1"}),
+                json.dumps({"key1[].key2": "myvalue2"}),
+            ],
+        ),
+    ],
+    storage: Annotated[Storage, Depends(get_storage)],
+) -> GetToolsWithConfigResponse:
+    matching_tools, errors = handlers.get_tools_with_config(
+        matches=search_params.matches, storage=storage
+    )
+    return GetToolsWithConfigResponse(
+        data=GetToolsWithConfigData(matching_tools=matching_tools),
+        messages=ResponseMessages(error=errors),
     )

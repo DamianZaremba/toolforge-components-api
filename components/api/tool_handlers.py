@@ -1,6 +1,6 @@
 import logging
 from datetime import UTC, datetime
-from typing import TypeAlias
+from typing import Any, TypeAlias
 
 import requests
 import yaml
@@ -510,6 +510,20 @@ def delete_deploy_token(toolname: str, storage: Storage) -> DeployToken:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception:
         logger.exception(f"Error deleting deploy token for tool {toolname}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error",
+        )
+
+
+def get_tools_with_config(
+    matches: dict[str, Any], storage: Storage
+) -> tuple[list[str], list[str]]:
+    logger.info(f"Fetching all the tools with config matching '{matches}'")
+    try:
+        return storage.get_tools_with_config(matches=matches)
+    except Exception:
+        logger.exception(f"Error retrieving tools with config matching '{matches}'")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error",

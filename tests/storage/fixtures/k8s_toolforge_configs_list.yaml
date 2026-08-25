@@ -1,0 +1,95 @@
+# response for
+# >>> kubernetes.config.load_config()
+# >>> cli = kubernetes.client.CustomObjectsApi()
+# >>> res = cli.list_cluster_custom_object(group="components-api.toolforge.org", version="v1", plural="toolconfigs")
+
+{
+    "apiVersion": "components-api.toolforge.org/v1",
+    "items": [
+        {
+            "apiVersion": "components-api.toolforge.org/v1",
+            "kind": "ToolConfig",
+            "metadata": {
+                "creationTimestamp": "2026-08-25T11:06:41Z",
+                "generation": 1,
+                "managedFields": [
+                    {
+                        "apiVersion": "components-api.toolforge.org/v1",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:spec": {
+                                ".": {},
+                                "f:components": {
+                                    ".": {},
+                                    "f:component1": {
+                                        ".": {},
+                                        "f:build": {
+                                            ".": {},
+                                            "f:ref": {},
+                                            "f:repository": {}
+                                        },
+                                        "f:component_type": {},
+                                        "f:run": {
+                                            ".": {},
+                                            "f:command": {}
+                                        }
+                                    },
+                                    "f:cron1": {
+                                        ".": {},
+                                        "f:build": {
+                                            ".": {},
+                                            "f:reuse_from": {}
+                                        },
+                                        "f:component_type": {},
+                                        "f:run": {
+                                            "f:command": {},
+                                            "f:schedule": {}
+                                        }
+                                    }
+                                },
+                                "f:config_version": {}
+                            }
+                        },
+                        "manager": "OpenAPI-Generator",
+                        "operation": "Update",
+                        "time": "2026-08-25T11:06:41Z"
+                    }
+                ],
+                "name": "tf-test-config",
+                "namespace": "tool-tf-test",
+                "resourceVersion": "614633",
+                "uid": "1b8801e7-9e8c-426c-81d1-87a91e820b57"
+            },
+            "spec": {
+                "components": {
+                    "component1": {
+                        "build": {
+                            "ref": "main",
+                            "repository": "https://gitlab.wikimedia.org/toolforge-repos/sample-static-buildpack-app"
+                        },
+                        "component_type": "continuous",
+                        "run": {
+                            "command": "web"
+                        }
+                    },
+                    "cron1": {
+                        "build": {
+                            "reuse_from": "component1"
+                        },
+                        "component_type": "scheduled",
+                        "run": {
+                            "command": "web",
+                            "schedule": "@daily"
+                        }
+                    }
+                },
+                "config_version": "v1beta1"
+            }
+        }
+    ],
+    "kind": "ToolConfigList",
+    "metadata": {
+        "continue": "",
+        "resourceVersion": "670224"
+    }
+}
