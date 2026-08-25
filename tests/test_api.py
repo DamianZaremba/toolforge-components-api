@@ -40,7 +40,7 @@ from components.models.api_models import (
 from components.runtime.utils import get_runtime
 from components.settings import Settings, get_settings
 from components.storage.mock import MockStorage
-from components.storage.utils import get_storage
+from components.storage.utils import get_storage, inner_get_storage
 from tests.helpers import (
     create_deploy_token,
     create_tool_config,
@@ -325,7 +325,7 @@ class TestCreateDeployment:
         my_app = create_app(settings=my_settings)
         my_client = TestClient(my_app)
         my_client.headers.update({"x-toolforge-tool": "test-tool-1"})
-        k8s_storage = get_storage(settings=my_settings, rebuild_storage=True)
+        k8s_storage = inner_get_storage(settings=my_settings, rebuild_storage=True)
         monkeypatch.setattr(k8s_storage, "k8s", storage_k8s_cli)
 
         expected_k8s_config = {
