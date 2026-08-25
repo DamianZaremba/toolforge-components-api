@@ -430,6 +430,14 @@ class HealthState(BaseModel):
     status: Literal["OK", "ERROR"]
 
 
+class SearchParameters(BaseModel):
+    matches: dict[str, Any]
+
+
+class GetToolsWithConfigData(BaseModel):
+    matching_tools: list[str]
+
+
 BETA_WARNING_MESSAGE = "You are using a beta feature of Toolforge."
 
 
@@ -449,6 +457,7 @@ HealthzResponse = ApiResponse[HealthState]
 ToolDeploymentResponse = ApiResponse[Deployment]
 DeployTokenResponse = ApiResponse[DeployToken]
 ToolDeploymentListResponse = ApiResponse[DeploymentList]
+GetToolsWithConfigResponse = ApiResponse[GetToolsWithConfigData]
 
 
 EXAMPLE_GENERATED_CONFIG = ToolConfig(

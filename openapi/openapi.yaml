@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Toolforge Components API
-  version: 0.6.1
+  version: 0.7.0
 servers:
 - url: http://127.0.0.1:8000
   description: Local direct development server.
@@ -529,6 +529,38 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /v1/config/search:
+    post:
+      tags:
+      - tool
+      summary: Get Tools With Config
+      operationId: get_tools_with_config
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchParameters'
+              description: Returns the list of tools that match the given configuration.
+                Accepts pairs of dot-separated keys and values to match the configurations
+                by. Note that if it gives a result is because it matched, if it does
+                not, there might have been an issue.
+              examples:
+              - '{"key1.key2": "myvalue1"}'
+              - '{"key1[].key2": "myvalue2"}'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_GetToolsWithConfigData_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
 components:
   schemas:
     ApiResponse_DeployToken_:
@@ -576,6 +608,21 @@ components:
       required:
       - data
       title: ApiResponse[Deployment]
+    ApiResponse_GetToolsWithConfigData_:
+      properties:
+        data:
+          $ref: '#/components/schemas/GetToolsWithConfigData'
+        messages:
+          $ref: '#/components/schemas/ResponseMessages'
+          default:
+            info: []
+            warning:
+            - You are using a beta feature of Toolforge.
+            error: []
+      type: object
+      required:
+      - data
+      title: ApiResponse[GetToolsWithConfigData]
     ApiResponse_HealthState_:
       properties:
         data:
@@ -886,6 +933,17 @@ components:
       - cancelling
       - cancelled
       title: DeploymentState
+    GetToolsWithConfigData:
+      properties:
+        matching_tools:
+          items:
+            type: string
+          type: array
+          title: Matching Tools
+      type: object
+      required:
+      - matching_tools
+      title: GetToolsWithConfigData
     HTTPValidationError:
       properties:
         detail:
@@ -1051,6 +1109,16 @@ components:
       - command
       - schedule
       title: ScheduledRunInfo
+    SearchParameters:
+      properties:
+        matches:
+          additionalProperties: true
+          type: object
+          title: Matches
+      type: object
+      required:
+      - matches
+      title: SearchParameters
     SourceBuildInfo:
       properties:
         repository:
