@@ -1,6 +1,6 @@
 import logging
 from datetime import UTC, datetime
-from typing import Any, TypeAlias
+from typing import Any
 
 import requests
 import yaml
@@ -11,7 +11,6 @@ from ..deploy_task import do_deploy
 from ..gen.toolforge_models import (
     BuildsBuild,
     JobsDefinedContinuousJob,
-    JobsDefinedOneOffJob,
     JobsDefinedScheduledJob,
     JobsDefinedWebserviceJob,
     JobsHttpHealthCheck,
@@ -31,21 +30,15 @@ from ..models.api_models import (
     ScheduledRunInfo,
     SourceBuildInfo,
     ToolConfig,
+    WebServiceComponentInfo,
+    WebServiceRunInfo,
 )
-from ..runtime.base import Runtime
+from ..runtime.base import AnyDefinedJob, Runtime
 from ..settings import get_settings
 from ..storage import Storage
 from ..storage.exceptions import NotFoundInStorage
 
 logger = logging.getLogger(__name__)
-
-
-AnyDefinedJob: TypeAlias = (
-    JobsDefinedContinuousJob
-    | JobsDefinedOneOffJob
-    | JobsDefinedScheduledJob
-    | JobsDefinedWebserviceJob
-)
 
 
 def get_and_refetch_config_if_needed(toolname: str, storage: Storage) -> ToolConfig:
@@ -163,16 +156,25 @@ def _get_build_for_job(
     return None
 
 
-def _get_run_for_job(job: AnyDefinedJob) -> ScheduledRunInfo | ContinuousRunInfo:
+def _get_run_for_job(
+    job: AnyDefinedJob,
+) -> ScheduledRunInfo | ContinuousRunInfo | WebServiceRunInfo:
     # we need to strip launcher because jobs adds it automatically but then does not remove it when getting the job
     params: dict[str, Any] = {}
     if job.cmd:
         command = job.cmd.split("launcher ", 1)[-1]
         params["command"] = command
 
+    # jobs-api can return webservice without cmd set (happens when user didn't provide a command).
+    # In webservice components, command field is webservice_command
+    if isinstance(job, JobsDefinedWebserviceJob) and "command" in params:
+        params["webservice_command"] = params.pop("command")
     set_fields = job.model_dump(exclude_unset=True)
 
-    if isinstance(job, JobsDefinedContinuousJob) and job.health_check:
+    if (
+        isinstance(job, (JobsDefinedContinuousJob, JobsDefinedWebserviceJob))
+        and job.health_check
+    ):
         match job.health_check:
             case JobsHttpHealthCheck():
                 params["health_check_http"] = job.health_check.path
@@ -198,10 +200,11 @@ def _get_run_for_job(job: AnyDefinedJob) -> ScheduledRunInfo | ContinuousRunInfo
         if param_name in set_fields:
             params[param_name] = set_fields[param_name]
 
+    run_info: ContinuousRunInfo | ScheduledRunInfo | WebServiceRunInfo
     if isinstance(job, JobsDefinedContinuousJob):
-        run_info: ContinuousRunInfo | ScheduledRunInfo = (
-            ContinuousRunInfo.model_validate(params)
-        )
+        run_info = ContinuousRunInfo.model_validate(params)
+    elif isinstance(job, JobsDefinedWebserviceJob):
+        run_info = WebServiceRunInfo.model_validate(params)
     else:
         run_info = ScheduledRunInfo.model_validate(params)
     logger.debug(f"Generated run info {run_info} from job {job}")
@@ -212,13 +215,17 @@ def _get_component_for_job(
     job: AnyDefinedJob, existing_builds: list[BuildsBuild]
 ) -> tuple[ComponentInfo | None, str]:
     match job:
-        case JobsDefinedScheduledJob() | JobsDefinedContinuousJob():
+        case (
+            JobsDefinedScheduledJob()
+            | JobsDefinedContinuousJob()
+            | JobsDefinedWebserviceJob()
+        ):
             pass
         case _:
             logger.debug(f"unknown job type {job}")
             return (
                 None,
-                f"Job {job.name} is not a continuous or scheduled job, it's not supported yet, skipping",
+                f"Job {job.name} is not a continuous, scheduled or webservice job, it's not supported yet, skipping",
             )
 
     build = _get_build_for_job(job=job, existing_builds=existing_builds)
@@ -234,6 +241,8 @@ def _get_component_for_job(
             return ScheduledComponentInfo(build=build, run=run), ""
         case ContinuousRunInfo():
             return ContinuousComponentInfo(build=build, run=run), ""
+        case WebServiceRunInfo():
+            return WebServiceComponentInfo(build=build, run=run), ""
 
 
 def generate_tool_config(
