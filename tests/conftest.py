@@ -14,7 +14,7 @@ import components.runtime.toolforge
 import components.settings
 from components.main import create_app
 from components.settings import Settings
-from components.storage.utils import get_storage
+from components.storage.utils import inner_get_storage
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ def app() -> FastAPI:
     components.settings.settings = settings
     app = create_app(settings=settings)
     # force creating a new storage
-    get_storage(settings=settings, rebuild_storage=True)
+    inner_get_storage(settings=settings, rebuild_storage=True)
     return app
 
 
