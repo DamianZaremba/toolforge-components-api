@@ -1,4 +1,5 @@
 import json
+from collections import Counter
 from unittest.mock import ANY, MagicMock
 from uuid import UUID
 
@@ -61,6 +62,32 @@ def test_healthz_endpoint_returns_ok_status(test_client: TestClient):
     assert raw_response.status_code == status.HTTP_200_OK
     gotten_state = HealthzResponse.model_validate(raw_response.json()).data
     assert gotten_state == expected_state
+
+
+def test_openapi_operation_ids_are_unique(app: FastAPI):
+    OPENAPI_HTTP_METHODS = {
+        "delete",
+        "get",
+        "head",
+        "options",
+        "patch",
+        "post",
+        "put",
+        "trace",
+    }
+    operation_ids = [
+        operation["operationId"]
+        for path in app.openapi()["paths"].values()
+        for method, operation in path.items()
+        if method in OPENAPI_HTTP_METHODS
+    ]
+    duplicate_operation_ids = [
+        operation_id
+        for operation_id, count in Counter(operation_ids).items()
+        if count > 1
+    ]
+
+    assert duplicate_operation_ids == []
 
 
 class TestUpdateToolConfig:
@@ -1234,18 +1261,24 @@ class TestGenerateConfig:
 
 
 class TestCancelDeployment:
-    def test_fails_without_auth_header(self, test_client: TestClient):
-        raw_response = test_client.put("/v1/tool/test-tool-1/deployment/some-id/cancel")
+    @pytest.mark.parametrize("deployment_id", ["some-id", "latest"])
+    def test_fails_without_auth_header(
+        self, test_client: TestClient, deployment_id: str
+    ):
+        raw_response = test_client.put(
+            f"/v1/tool/test-tool-1/deployment/{deployment_id}/cancel"
+        )
 
         assert raw_response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    def test_fails_if_tool_has_no_config(self, authenticated_client: TestClient):
-        authenticated_client.delete("/v1/tool/test-tool-1/config")
-        raw_response = authenticated_client.get("/v1/tool/test-tool-1/config")
-        assert raw_response.status_code == status.HTTP_404_NOT_FOUND
+    @pytest.mark.parametrize("deployment_id", ["some-id", "latest"])
+    def test_returns_not_found_when_deployment_does_not_exist(
+        self, authenticated_client: TestClient, deployment_id: str
+    ):
+        create_tool_config(authenticated_client)
 
         raw_response = authenticated_client.put(
-            "/v1/tool/test-tool-1/deployment/some-id/cancel"
+            f"/v1/tool/test-tool-1/deployment/{deployment_id}/cancel"
         )
 
         assert raw_response.status_code == status.HTTP_404_NOT_FOUND
@@ -1261,10 +1294,18 @@ class TestCancelDeployment:
         assert raw_response.status_code == status.HTTP_404_NOT_FOUND
 
     @pytest.mark.parametrize(
-        "deployment_status", [DeploymentState.pending, DeploymentState.running]
+        ("deployment_id", "deployment_status"),
+        [
+            ("my-deploy-id", DeploymentState.pending),
+            ("my-deploy-id", DeploymentState.running),
+            ("latest", DeploymentState.pending),
+        ],
     )
     def test_flags_deployment_for_cancellation(
-        self, authenticated_client: TestClient, deployment_status: DeploymentState
+        self,
+        authenticated_client: TestClient,
+        deployment_id: str,
+        deployment_status: DeploymentState,
     ):
         create_tool_config(authenticated_client)
 
@@ -1275,7 +1316,7 @@ class TestCancelDeployment:
             tool_name="test-tool-1",
             deployment=Deployment(
                 deploy_id="my-deploy-id",
-                creation_time="2021-06-01T00:00:00",
+                creation_time="20210602-000000",
                 builds={
                     "my-component": DeploymentBuildInfo(
                         build_id="my-build",
@@ -1295,12 +1336,19 @@ class TestCancelDeployment:
         )
 
         response = authenticated_client.put(
-            "/v1/tool/test-tool-1/deployment/my-deploy-id/cancel"
+            f"/v1/tool/test-tool-1/deployment/{deployment_id}/cancel"
         )
         assert response.status_code == status.HTTP_200_OK
 
-        expected_deployment = ToolDeploymentResponse.model_validate(response.json())
-        expected_deployment.data.status = DeploymentState.cancelling
+        gotten_deployment = ToolDeploymentResponse.model_validate(response.json())
+        assert gotten_deployment.data.deploy_id == "my-deploy-id"
+        assert gotten_deployment.data.status == DeploymentState.cancelling
+        assert (
+            storage.get_deployment(
+                tool_name="test-tool-1", deployment_name="my-deploy-id"
+            ).status
+            == DeploymentState.cancelling
+        )
 
     @pytest.mark.parametrize(
         "deployment_status",
