@@ -1,5 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
+from typing import Any
 
 from ..models.api_models import Deployment, DeployToken, ToolConfig
 
@@ -50,3 +51,9 @@ class Storage(ABC):
     @abstractmethod
     def delete_deploy_token(self, tool_name: str) -> DeployToken:
         pass
+
+    @abstractmethod
+    def get_tools_with_config(
+        self, matches: dict[str, Any]
+    ) -> tuple[list[str], list[str]]:
+        """This should return the list of tools found that matched, and if there were any errors."""

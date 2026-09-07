@@ -1,8 +1,10 @@
 import logging
+from typing import Any
 
 from ..models.api_models import Deployment, DeployToken, ToolConfig
 from .base import Storage
 from .exceptions import NotFoundInStorage
+from .helpers import matches_query
 
 logger = logging.getLogger(__name__)
 
@@ -97,3 +99,12 @@ class MockStorage(Storage):
         token = self._deploy_tokens.pop(tool_name)
         logger.info(f"Deploy token deleted for tool: {tool_name}")
         return token
+
+    def get_tools_with_config(
+        self, matches: dict[str, Any]
+    ) -> tuple[list[str], list[str]]:
+        return [
+            tool_name
+            for tool_name, config in self._tool_configs.items()
+            if matches_query(matches=matches, config=config.model_dump(mode="json"))
+        ], []

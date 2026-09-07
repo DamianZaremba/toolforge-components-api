@@ -1,4 +1,6 @@
+import copy
 import json
+from pathlib import Path
 from unittest.mock import ANY, MagicMock
 from uuid import UUID
 
@@ -1347,3 +1349,154 @@ class TestCancelDeployment:
             "/v1/tool/test-tool-1/deployment/my-deploy-id/cancel"
         )
         assert response.status_code == status.HTTP_409_CONFLICT
+
+
+class TestGetToolsWithConfig:
+    def test_matches_some_tools_without_auth(
+        self,
+        authenticated_client: TestClient,
+        storage_k8s_cli: MagicMock,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        my_settings = Settings(runtime_type="toolforge", storage_type="kubernetes")
+        my_app = create_app(settings=my_settings)
+        my_client = TestClient(my_app)
+        k8s_storage = inner_get_storage(settings=my_settings, rebuild_storage=True)
+        config_list_fixture = (
+            Path(__file__).parent / "storage/fixtures/k8s_toolforge_configs_list.yaml"
+        )
+        k8s_response = yaml.safe_load(config_list_fixture.read_text())
+        storage_k8s_cli.list_cluster_custom_object.return_value = k8s_response
+        monkeypatch.setattr(k8s_storage, "k8s", storage_k8s_cli)
+        expected_response = {
+            "data": {
+                "matching_tools": [
+                    "tf-test",
+                ],
+            },
+            "messages": {
+                "info": [],
+                "warning": [
+                    "You are using a beta feature of Toolforge.",
+                ],
+                "error": [],
+            },
+        }
+
+        gotten_response = my_client.post(
+            "/v1/config/search",
+            json={"matches": {"components.component1.build.ref": "main"}},
+        )
+
+        assert gotten_response.status_code == status.HTTP_200_OK
+        assert gotten_response.json() == expected_response
+        storage_k8s_cli.list_cluster_custom_object.assert_called_with(
+            group="components-api.toolforge.org", version="v1", plural="toolconfigs"
+        )
+
+    def test_returns_empty_when_no_tools_match(
+        self,
+        authenticated_client: TestClient,
+        storage_k8s_cli: MagicMock,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        my_settings = Settings(runtime_type="toolforge", storage_type="kubernetes")
+        my_app = create_app(settings=my_settings)
+        my_client = TestClient(my_app)
+        k8s_storage = inner_get_storage(settings=my_settings, rebuild_storage=True)
+        config_list_fixture = (
+            Path(__file__).parent / "storage/fixtures/k8s_toolforge_configs_list.yaml"
+        )
+        k8s_response = yaml.safe_load(config_list_fixture.read_text())
+        storage_k8s_cli.list_cluster_custom_object.return_value = k8s_response
+        monkeypatch.setattr(k8s_storage, "k8s", storage_k8s_cli)
+        expected_response = {
+            "data": {
+                "matching_tools": [],
+            },
+            "messages": {
+                "info": [],
+                "warning": [
+                    "You are using a beta feature of Toolforge.",
+                ],
+                "error": [],
+            },
+        }
+
+        gotten_response = my_client.post(
+            "/v1/config/search",
+            json={"matches": {"components.component1.build.ref": "idontmatchanything"}},
+        )
+
+        assert gotten_response.status_code == status.HTTP_200_OK
+        assert gotten_response.json() == expected_response
+        storage_k8s_cli.list_cluster_custom_object.assert_called_with(
+            group="components-api.toolforge.org", version="v1", plural="toolconfigs"
+        )
+
+    def test_skips_error_on_malformed_config(
+        self,
+        authenticated_client: TestClient,
+        storage_k8s_cli: MagicMock,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        my_settings = Settings(runtime_type="toolforge", storage_type="kubernetes")
+        my_app = create_app(settings=my_settings)
+        my_client = TestClient(my_app)
+        k8s_storage = inner_get_storage(settings=my_settings, rebuild_storage=True)
+        config_list_fixture = (
+            Path(__file__).parent / "storage/fixtures/k8s_toolforge_configs_list.yaml"
+        )
+        k8s_response = yaml.safe_load(config_list_fixture.read_text())
+
+        # 2 valid configs, 3 malformed ones
+        malformed_config_1 = {
+            "metadata": {"name": "malformed-config-1"},
+            "spec": {"malformed": "config"},
+        }
+        valid_config_2 = k8s_response["items"][0]
+        malformed_config_3 = {
+            "metadata": {"name": "malformed-config-3"},
+            "spec": {"malformed": "config"},
+        }
+        valid_config_4 = copy.deepcopy(valid_config_2)
+        valid_config_4["metadata"]["name"] = "tf-test-2-config"
+        valid_config_4["metadata"]["namespace"] = "tool-tf-test-2"
+        malformed_config_5 = {
+            "metadata": {"name": "malformed-config-5"},
+            "spec": {"malformed": "config"},
+        }
+        k8s_response["items"] = [
+            malformed_config_1,
+            valid_config_2,
+            malformed_config_3,
+            valid_config_4,
+            malformed_config_5,
+        ]
+        storage_k8s_cli.list_cluster_custom_object.return_value = k8s_response
+        monkeypatch.setattr(k8s_storage, "k8s", storage_k8s_cli)
+
+        gotten_response = my_client.post(
+            "/v1/config/search",
+            json={"matches": {"components.component1.build.ref": "main"}},
+        )
+
+        assert gotten_response.status_code == status.HTTP_200_OK
+        gotten_response_json = gotten_response.json()
+        # the two valid configs still match, the malformed ones are skipped
+        assert gotten_response_json["data"]["matching_tools"] == [
+            "tf-test",
+            "tf-test-2",
+        ]
+        assert gotten_response_json["messages"]["info"] == []
+        assert gotten_response_json["messages"]["warning"] == [
+            "You are using a beta feature of Toolforge."
+        ]
+        gotten_errors = gotten_response_json["messages"]["error"]
+        assert len(gotten_errors) == 3
+        assert gotten_errors[0].startswith("Error parsing config malformed-config-1")
+        assert gotten_errors[1].startswith("Error parsing config malformed-config-3")
+        assert gotten_errors[2].startswith("Error parsing config malformed-config-5")
+        storage_k8s_cli.list_cluster_custom_object.assert_called_with(
+            group="components-api.toolforge.org", version="v1", plural="toolconfigs"
+        )

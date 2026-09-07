@@ -4,6 +4,7 @@ from typing import Any
 
 import kubernetes  # type: ignore
 from fastapi import status
+from pydantic import ValidationError
 from requests.exceptions import HTTPError
 
 from ..client import get_toolforge_client
@@ -16,6 +17,7 @@ from ..models.api_models import Deployment, DeploymentState, DeployToken, ToolCo
 from ..settings import get_settings
 from .base import Storage
 from .exceptions import NotFoundInStorage, StorageError
+from .helpers import matches_query
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +56,10 @@ def _deploy_token_to_k8s_crd(tool_name: str, token: DeployToken) -> dict[str, An
 
 def _get_k8s_tool_config_name(tool_name: str) -> str:
     return f"{tool_name}-config"
+
+
+def _get_tool_name_from_config_name(config_name: str) -> str:
+    return config_name.rsplit("-", 1)[0]
 
 
 def _get_k8s_tool_namespace(tool_name: str) -> str:
@@ -506,3 +512,35 @@ class KubernetesStorage(Storage):
         self._delete_deploy_token_crd(tool_name=tool_name)
         self._delete_deploy_token_envvar(tool_name=tool_name)
         return token
+
+    def get_tools_with_config(
+        self, matches: dict[str, Any]
+    ) -> tuple[list[str], list[str]]:
+        try:
+            gotten_k8s_configs = self.k8s.list_cluster_custom_object(
+                group="components-api.toolforge.org", version="v1", plural="toolconfigs"
+            )["items"]
+        except kubernetes.client.ApiException as error:
+            logger.exception("Error attempting to retrieve all tool configurations")
+            raise StorageError(
+                "Error attempting to retrieve all tool configurations"
+            ) from error
+        matching_tools = []
+        errors = []
+        for k8s_config in gotten_k8s_configs:
+            try:
+                config = ToolConfig.model_validate(
+                    k8s_config.get("spec", {})
+                ).model_dump(mode="json")
+            except ValidationError as error:
+                logger.exception(f"Found malformed config, skipping: {k8s_config}")
+                config_name = k8s_config.get("metadata", {}).get("name", "<unknown>")
+                errors.append(f"Error parsing config {config_name}: {error}")
+                continue
+            if matches_query(matches=matches, config=config):
+                tool_name = _get_tool_name_from_config_name(
+                    config_name=k8s_config["metadata"]["name"]
+                )
+                matching_tools.append(tool_name)
+
+        return matching_tools, errors
