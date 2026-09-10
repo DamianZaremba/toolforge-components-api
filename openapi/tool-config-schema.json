@@ -62,6 +62,16 @@
                         "type": "boolean",
                         "title": "Use Deprecated Versions",
                         "description": "If set, it will use the deprecated buildpacks and run images for this build. Helpful while migrating to the newer buildpacks."
+                      },
+                      "envvars": {
+                        "patternProperties": {
+                          "^[A-Z][A-Z_0-9]{2,}[A-Z0-9]$": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object",
+                        "title": "Envvars",
+                        "description": "Environment variables and values to be set at build time"
                       }
                     },
                     "type": "object",
@@ -268,6 +278,16 @@
                         "type": "boolean",
                         "title": "Use Deprecated Versions",
                         "description": "If set, it will use the deprecated buildpacks and run images for this build. Helpful while migrating to the newer buildpacks."
+                      },
+                      "envvars": {
+                        "patternProperties": {
+                          "^[A-Z][A-Z_0-9]{2,}[A-Z0-9]$": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object",
+                        "title": "Envvars",
+                        "description": "Environment variables and values to be set at build time"
                       }
                     },
                     "type": "object",
