@@ -339,8 +339,8 @@ paths:
     put:
       tags:
       - tool
-      summary: Cancel Tool Deployment
-      operationId: cancel_tool_deployment
+      summary: Cancel Latest Tool Deployment
+      operationId: cancel_latest_tool_deployment
       security:
       - APIKeyHeader: []
       parameters:
@@ -350,12 +350,6 @@ paths:
         schema:
           type: string
           title: Toolname
-      - name: deployment_id
-        in: query
-        required: true
-        schema:
-          type: string
-          title: Deployment Id
       responses:
         '200':
           description: Successful Response
