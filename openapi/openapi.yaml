@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Toolforge Components API
-  version: 0.9.0
+  version: 0.10.0
 servers:
 - url: http://127.0.0.1:8000
   description: Local direct development server.
@@ -649,6 +649,25 @@ components:
       required:
       - data
       title: ApiResponse[ToolConfig]
+    ConfigAlerts:
+      properties:
+        enabled:
+          type: boolean
+          title: Enabled
+          description: Enable if you want to receive emails for tool alerts (beta
+            feature)
+          default: false
+      type: object
+      title: ConfigAlerts
+    ConfigDefaults:
+      properties:
+        alerts:
+          $ref: '#/components/schemas/ConfigAlerts'
+          description: Tool alerts configuration defaults
+          default:
+            enabled: false
+      type: object
+      title: ConfigDefaults
     ContinuousComponentInfo:
       properties:
         build:
@@ -1188,6 +1207,12 @@ components:
           title: Source Url
           description: If passed, it will ignore anything else and try to fetch the
             configuration from the given URL on every deploy.
+        defaults:
+          $ref: '#/components/schemas/ConfigDefaults'
+          description: Some fields that will apply tool-wide
+          default:
+            alerts:
+              enabled: false
         components:
           additionalProperties:
             anyOf:

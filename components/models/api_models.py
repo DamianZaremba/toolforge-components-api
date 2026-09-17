@@ -60,6 +60,26 @@ class ConfigVersion(str, Enum):
     V1_BETA1 = "v1beta1"
 
 
+class ConfigAlerts(BaseModel):
+    enabled: Annotated[
+        bool,
+        Field(
+            ...,
+            description="Enable if you want to receive emails for tool alerts (beta feature)",
+        ),
+    ] = False
+
+
+class ConfigDefaults(BaseModel):
+    alerts: Annotated[
+        ConfigAlerts,
+        Field(
+            ...,
+            description="Tool alerts configuration defaults",
+        ),
+    ] = ConfigAlerts()
+
+
 class SourceBuildInfo(BaseModel):
     repository: AnyGitUrl = Field(
         description="URL of the public git repository with the code to build.",
@@ -292,6 +312,13 @@ class ToolConfig(BaseModel):
         ),
         json_schema_extra=remove_default_from_schema,
     )
+    defaults: Annotated[
+        ConfigDefaults,
+        Field(
+            ...,
+            description="Some fields that will apply tool-wide",
+        ),
+    ] = ConfigDefaults()
     components: dict[str, ComponentInfo] = Field(
         ...,
         description=(
@@ -475,6 +502,7 @@ GetToolsWithConfigResponse = ApiResponse[GetToolsWithConfigData]
 
 
 EXAMPLE_GENERATED_CONFIG = ToolConfig(
+    defaults=ConfigDefaults(alerts=ConfigAlerts(enabled=True)),
     components={
         "my-backend-service-1": ContinuousComponentInfo(
             component_type="continuous",
@@ -531,5 +559,5 @@ EXAMPLE_GENERATED_CONFIG = ToolConfig(
                 schedule="@daily",
             ),
         ),
-    }
+    },
 )
