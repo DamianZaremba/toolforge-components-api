@@ -254,7 +254,10 @@ def generate_tool_config(
 
     logger.debug(f"Got components: {components}")
     return (
-        ToolConfig(components=components, config_version=ConfigVersion.V1_BETA1),
+        ToolConfig(
+            components=components,
+            config_version=ConfigVersion.V1_BETA1,
+        ),
         messages,
     )
 
