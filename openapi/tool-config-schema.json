@@ -24,6 +24,24 @@
       "title": "Source Url",
       "description": "If passed, it will ignore anything else and try to fetch the configuration from the given URL on every deploy."
     },
+    "defaults": {
+      "properties": {
+        "alerts": {
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "title": "Enabled",
+              "description": "Enable if you want to receive emails for tool alerts (beta feature)",
+              "default": false
+            }
+          },
+          "type": "object",
+          "title": "ConfigAlerts"
+        }
+      },
+      "type": "object",
+      "title": "ConfigDefaults"
+    },
     "components": {
       "additionalProperties": {
         "anyOf": [
