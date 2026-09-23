@@ -13,6 +13,7 @@ from ..gen.toolforge_models import (
     JobsDefinedContinuousJob,
     JobsDefinedOneOffJob,
     JobsDefinedScheduledJob,
+    JobsDefinedWebserviceJob,
     JobsHttpHealthCheck,
     JobsScriptHealthCheck,
 )
@@ -40,7 +41,10 @@ logger = logging.getLogger(__name__)
 
 
 AnyDefinedJob: TypeAlias = (
-    JobsDefinedContinuousJob | JobsDefinedOneOffJob | JobsDefinedScheduledJob
+    JobsDefinedContinuousJob
+    | JobsDefinedOneOffJob
+    | JobsDefinedScheduledJob
+    | JobsDefinedWebserviceJob
 )
 
 
@@ -161,8 +165,11 @@ def _get_build_for_job(
 
 def _get_run_for_job(job: AnyDefinedJob) -> ScheduledRunInfo | ContinuousRunInfo:
     # we need to strip launcher because jobs adds it automatically but then does not remove it when getting the job
-    command = job.cmd.split("launcher ", 1)[-1]
-    params = {"command": command}
+    params: dict[str, Any] = {}
+    if job.cmd:
+        command = job.cmd.split("launcher ", 1)[-1]
+        params["command"] = command
+
     set_fields = job.model_dump(exclude_unset=True)
 
     if isinstance(job, JobsDefinedContinuousJob) and job.health_check:

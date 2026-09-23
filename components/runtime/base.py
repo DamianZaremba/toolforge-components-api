@@ -7,6 +7,7 @@ from ..gen.toolforge_models import (
     JobsDefinedContinuousJob,
     JobsDefinedOneOffJob,
     JobsDefinedScheduledJob,
+    JobsDefinedWebserviceJob,
 )
 from ..models.api_models import (
     ComponentInfo,
@@ -18,7 +19,10 @@ logger = logging.getLogger(__name__)
 
 
 AnyDefinedJob: TypeAlias = (
-    JobsDefinedOneOffJob | JobsDefinedScheduledJob | JobsDefinedContinuousJob
+    JobsDefinedOneOffJob
+    | JobsDefinedScheduledJob
+    | JobsDefinedContinuousJob
+    | JobsDefinedWebserviceJob
 )
 
 
