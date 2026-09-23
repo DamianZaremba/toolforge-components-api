@@ -1,4 +1,4 @@
-from components.gen.toolforge_models import JobsDefinedContinuousJob, JobType5
+from components.gen.toolforge_models import JobsDefinedContinuousJob, JobType2
 from components.models.api_models import (
     AnyGitUrl,
     ContinuousComponentInfo,
@@ -81,7 +81,7 @@ def get_tool_config(**overrides) -> ToolConfig:
 
 def get_defined_job(**overrides) -> JobsDefinedContinuousJob:
     params = {
-        "job_type": JobType5.continuous,
+        "job_type": JobType2.continuous.value,
         "cmd": "my cmd",
         "image": "my-image",
         "imagename": "my-imagename",
