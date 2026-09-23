@@ -61,10 +61,10 @@ class ConfigVersion(str, Enum):
 
 
 class ConfigAlerts(BaseModel):
-    enabled: Annotated[
+    notify: Annotated[
         bool,
         Field(
-            description="Enable if you want to receive emails for tool alerts (beta feature)",
+            description="Enable if you want to receive notification emails for tool alerts (beta feature)",
         ),
     ] = False
 
@@ -498,7 +498,7 @@ GetToolsWithConfigResponse = ApiResponse[GetToolsWithConfigData]
 
 
 EXAMPLE_GENERATED_CONFIG = ToolConfig(
-    defaults=ConfigDefaults(alerts=ConfigAlerts(enabled=False)),
+    defaults=ConfigDefaults(alerts=ConfigAlerts(notify=False)),
     components={
         "my-backend-service-1": ContinuousComponentInfo(
             component_type="continuous",

@@ -28,10 +28,10 @@
       "properties": {
         "alerts": {
           "properties": {
-            "enabled": {
+            "notify": {
               "type": "boolean",
-              "title": "Enabled",
-              "description": "Enable if you want to receive emails for tool alerts (beta feature)",
+              "title": "Notify",
+              "description": "Enable if you want to receive notification emails for tool alerts (beta feature)",
               "default": false
             }
           },
