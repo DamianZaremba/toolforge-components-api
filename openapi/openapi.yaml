@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Toolforge Components API
-  version: 0.10.0
+  version: 0.11.0
 servers:
 - url: http://127.0.0.1:8000
   description: Local direct development server.
@@ -651,11 +651,11 @@ components:
       title: ApiResponse[ToolConfig]
     ConfigAlerts:
       properties:
-        enabled:
+        notify:
           type: boolean
-          title: Enabled
-          description: Enable if you want to receive emails for tool alerts (beta
-            feature)
+          title: Notify
+          description: Enable if you want to receive notification emails for tool
+            alerts (beta feature)
           default: false
       type: object
       title: ConfigAlerts
@@ -666,7 +666,7 @@ components:
           description: Values that will apply to all the components of the tool. Per-component
             overrides will be supported in the future.
           default:
-            enabled: false
+            notify: false
       type: object
       title: ConfigDefaults
     ContinuousComponentInfo:
@@ -1213,7 +1213,7 @@ components:
           description: Some fields that will apply tool-wide
           default:
             alerts:
-              enabled: false
+              notify: false
         components:
           additionalProperties:
             anyOf:
