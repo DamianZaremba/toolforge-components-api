@@ -1,0 +1,6 @@
+extends: existence
+message: "Use one space instead of two in '%s'."
+link: https://www.mediawiki.org/wiki/Documentation/Tools/Linting/Linter_rule_reference#Wikimedia.Spacing
+level: suggestion
+nonword: true
+tokens: '[\w\d]+[.?!]? {2,}[\w\d]+'

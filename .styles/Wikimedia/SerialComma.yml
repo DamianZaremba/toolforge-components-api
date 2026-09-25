@@ -1,0 +1,7 @@
+extends: existence
+message: "Use a serial comma in '%s'."
+link: https://www.mediawiki.org/wiki/Documentation/Tools/Linting/Linter_rule_reference#Wikimedia.SerialComma
+scope: sentence
+level: suggestion
+tokens:
+  - '(?:[^,]+,){1,}\s\w+\s(?:and|or)'
