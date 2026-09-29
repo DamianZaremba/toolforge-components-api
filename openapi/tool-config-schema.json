@@ -4,16 +4,20 @@
       "anyOf": [
         {
           "type": "string",
-          "const": "v1beta1"
+          "enum": [
+            "v1beta1",
+            "v1beta2"
+          ]
         },
         {
           "type": "null"
         }
       ],
       "title": "Config Version",
-      "default": "v1beta1",
+      "default": "v1beta2",
       "examples": [
-        "v1beta1"
+        "v1beta1",
+        "v1beta2"
       ],
       "nullable": true
     },

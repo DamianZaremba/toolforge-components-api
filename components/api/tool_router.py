@@ -8,6 +8,7 @@ from pydantic import Field
 from ..models.api_models import (
     BETA_WARNING_MESSAGE,
     EXAMPLE_GENERATED_CONFIG,
+    ConfigVersion,
     Deployment,
     DeploymentBuildInfo,
     DeploymentBuildState,
@@ -102,6 +103,40 @@ def _get_unknown_config_fields(
     return unknown_fields
 
 
+# TODO: remove when v1beta1 -> v1beta2 config migration is done.
+def _get_v1beta1_config_deprecation_message_or_none(
+    raw_config: dict[str, Any],
+) -> str | None:
+    components = raw_config.get("components")
+    if not isinstance(components, dict):
+        components = {}
+
+    deprecations = []
+    if raw_config.get("config_version") == ConfigVersion.V1_BETA1:
+        deprecations.append(
+            f'"config_version" was updated to {ConfigVersion.V1_BETA2.value}.',
+        )
+
+    if any(
+        isinstance(component, dict) and not component.get("component_type")
+        for component in components.values()
+    ):
+        deprecations.append(
+            '"component_type" was inferred for all components that were missing it.',
+        )
+
+    if not deprecations:
+        return None
+    bullets = "\n* ".join(deprecations)
+    return (
+        f"Your config was migrated to the {ConfigVersion.V1_BETA2.value} format:\n"
+        f"* {bullets}\n"
+        "\n"
+        f"{ConfigVersion.V1_BETA1.value} config format is getting deprecated soon.\n"
+        "Please run 'toolforge components config generate' to get your config in the v1beta2 format."
+    )
+
+
 @header_auth_router.post("/{toolname}/config", response_model_exclude_unset=True)
 async def update_tool_config(
     toolname: str,
@@ -116,10 +151,18 @@ async def update_tool_config(
     updated_config = handlers.get_and_refetch_config_if_needed(
         toolname=toolname, storage=storage
     )
+    raw_config = await request.json()
+    # TODO: remove when v1beta1 -> v1beta2 config migration is done.
+    config_deprecation_message = _get_v1beta1_config_deprecation_message_or_none(
+        raw_config
+    )
+    if config_deprecation_message:
+        warning_messages.append(config_deprecation_message)
+
     warning_messages.extend(
         f"Unknown field {field}, skipped"
         for field in _get_unknown_config_fields(
-            user_passed_config=await request.json(),
+            user_passed_config=raw_config,
             parsed_config=updated_config.model_dump(),
         )
     )

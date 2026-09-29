@@ -83,7 +83,7 @@
                         }
                     }
                 },
-                "config_version": "v1beta1"
+                "config_version": "v1beta2"
             }
         }
     ],
