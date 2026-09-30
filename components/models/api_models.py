@@ -10,7 +10,6 @@ from typing import (
     Generic,
     Literal,
     Self,
-    TypeAlias,
     TypeVar,
 )
 from uuid import UUID, uuid4
@@ -40,8 +39,6 @@ PLACEHOLDER_DEFAULT_STR = ""
 PLACEHOLDER_DEFAULT_URL = AnyHttpUrl("http://localhost/")
 PLACEHOLDER_DEFAULT_BOOL = False
 
-# TODO: add the others when we add support for them
-ComponentType: TypeAlias = Literal["continuous", "scheduled"]
 T = TypeVar("T")
 
 
@@ -58,6 +55,11 @@ def remove_default_from_schema(schema: dict[str, Any]) -> None:
 
 class ConfigVersion(str, Enum):
     V1_BETA1 = "v1beta1"
+
+
+class ComponentType(str, Enum):
+    CONTINUOUS = "continuous"
+    SCHEDULED = "scheduled"
 
 
 class ConfigAlerts(BaseModel):
@@ -282,7 +284,7 @@ class ScheduledComponentInfo(BaseModel):
         SourceBuildInfo | SourceBuildReference, Tag("source_build_info_tag")
     ]
     run: ScheduledRunInfo
-    component_type: ComponentType = "scheduled"
+    component_type: Literal[ComponentType.SCHEDULED] = ComponentType.SCHEDULED
 
 
 class ContinuousComponentInfo(BaseModel):
@@ -290,7 +292,7 @@ class ContinuousComponentInfo(BaseModel):
         SourceBuildInfo | SourceBuildReference, Tag("source_build_info_tag")
     ]
     run: ContinuousRunInfo
-    component_type: ComponentType = "continuous"
+    component_type: Literal[ComponentType.CONTINUOUS] = ComponentType.CONTINUOUS
 
 
 ComponentInfo = ContinuousComponentInfo | ScheduledComponentInfo
@@ -501,7 +503,7 @@ EXAMPLE_GENERATED_CONFIG = ToolConfig(
     defaults=ConfigDefaults(alerts=ConfigAlerts(notify=False)),
     components={
         "my-backend-service-1": ContinuousComponentInfo(
-            component_type="continuous",
+            component_type=ComponentType.CONTINUOUS,
             build=SourceBuildInfo(
                 ref="main",
                 repository=AnyGitUrl(
@@ -520,7 +522,7 @@ EXAMPLE_GENERATED_CONFIG = ToolConfig(
             ),
         ),
         "my-backend-service-2": ContinuousComponentInfo(
-            component_type="continuous",
+            component_type=ComponentType.CONTINUOUS,
             build=SourceBuildInfo(
                 ref="dummy_branch",
                 repository=AnyGitUrl(
@@ -540,7 +542,7 @@ EXAMPLE_GENERATED_CONFIG = ToolConfig(
             ),
         ),
         "my-cronjob1": ScheduledComponentInfo(
-            component_type="scheduled",
+            component_type=ComponentType.SCHEDULED,
             build=SourceBuildReference(
                 reuse_from="my-backend-service-2",
             ),
