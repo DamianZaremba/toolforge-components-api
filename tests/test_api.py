@@ -45,6 +45,7 @@ from components.settings import Settings, get_settings
 from components.storage.mock import MockStorage
 from components.storage.utils import get_storage, inner_get_storage
 from tests.helpers import (
+    cases,
     create_deploy_token,
     create_tool_config,
     create_tool_deployment,
@@ -232,7 +233,7 @@ class TestUpdateToolConfig:
                     "run": {"command": "child-command"},
                 },
             },
-            "config_version": "v1beta1",
+            "config_version": "v1beta2",
         }
         raw_response = authenticated_client.post(
             "/v1/tool/test-tool-1/config", json=config_json
@@ -268,7 +269,7 @@ class TestUpdateToolConfig:
                     "run": {"command": "child-command"},
                 },
             },
-            "config_version": "v1beta1",
+            "config_version": "v1beta2",
         }
         raw_response = authenticated_client.post(
             "/v1/tool/test-tool-1/config", json=config_json
@@ -278,6 +279,123 @@ class TestUpdateToolConfig:
             "The following components reuse builds from components that also use reuse_from. They should point to "
             "the original components instead: child-component"
         ) in raw_response.json()["messages"]["error"][0]
+
+    def test_config_v1beta1_schema_upgraded_to_v1beta2(
+        self, authenticated_client: TestClient
+    ):
+        config_json = {
+            "config_version": "v1beta1",
+            "components": {
+                "my-component": {
+                    "build": {
+                        "repository": "https://gitlab-example.wikimedia.org/my-repo.git",
+                        "ref": "main",
+                    },
+                    "run": {"command": "my-command"},
+                }
+            },
+        }
+        raw_response = authenticated_client.post(
+            "/v1/tool/test-tool-1/config", json=config_json
+        )
+        assert raw_response.status_code == status.HTTP_200_OK
+        gotten = ToolConfigResponse.model_validate(raw_response.json())
+        assert gotten.data.config_version == "v1beta2"
+        assert gotten.data.components["my-component"].component_type == "continuous"  # type: ignore
+
+
+WITHOUT_COMPONENT_TYPE = {
+    "build": {
+        "repository": "https://gitlab-example.wikimedia.org/my-repo.git",
+        "ref": "main",
+    },
+    "run": {"command": "my-command"},
+}
+WITH_COMPONENT_TYPE = {**WITHOUT_COMPONENT_TYPE, "component_type": "continuous"}
+
+
+class TestConfigDeprecationWarning:
+    @cases(
+        "config_body,expected_fields_changed",
+        [
+            "warns about both changes when config_version is v1beta1 and component_type is missing",
+            [
+                {
+                    "config_version": "v1beta1",
+                    "components": {"my-component": WITHOUT_COMPONENT_TYPE},
+                },
+                ["config_version", "component_type"],
+            ],
+        ],
+        [
+            "warns only about config_version when config_version is v1beta1 and component_type is set",
+            [
+                {
+                    "config_version": "v1beta1",
+                    "components": {"my-component": WITH_COMPONENT_TYPE},
+                },
+                ["config_version"],
+            ],
+        ],
+        [
+            "warns only about component_type when config_version is not set and component_type is missing",
+            [
+                {"components": {"my-component": WITHOUT_COMPONENT_TYPE}},
+                ["component_type"],
+            ],
+        ],
+        [
+            "gets no warning when config_version is not set and component_type is set",
+            [
+                {"components": {"my-component": WITH_COMPONENT_TYPE}},
+                None,
+            ],
+        ],
+        [
+            "gets no warning when config_version is v1beta2 and component_type is set",
+            [
+                {
+                    "config_version": "v1beta2",
+                    "components": {"my-component": WITH_COMPONENT_TYPE},
+                },
+                None,
+            ],
+        ],
+        [
+            "warns about both changes when config_version is v1beta1 and component_type is null",
+            [
+                {
+                    "config_version": "v1beta1",
+                    "components": {
+                        "my-component": {
+                            **WITHOUT_COMPONENT_TYPE,
+                            "component_type": None,
+                        }
+                    },
+                },
+                ["config_version", "component_type"],
+            ],
+        ],
+    )
+    def test_deprecation_warning_lists_only_the_changes_the_migration_applied(
+        self, authenticated_client: TestClient, config_body, expected_fields_changed
+    ):
+        raw_response = authenticated_client.post(
+            "/v1/tool/test-tool-1/config", json=config_body
+        )
+        assert raw_response.status_code == status.HTTP_200_OK
+        warnings = ToolConfigResponse.model_validate(
+            raw_response.json()
+        ).messages.warning
+
+        config_deprecation_warning = ""
+        for warning in warnings:
+            if "config format is getting deprecated soon" in warning:
+                config_deprecation_warning = warning
+
+        if expected_fields_changed:
+            for field in expected_fields_changed:
+                assert field in config_deprecation_warning
 
 
 class TestGetToolConfig:
@@ -358,7 +476,7 @@ class TestCreateDeployment:
         monkeypatch.setattr(k8s_storage, "k8s", storage_k8s_cli)
 
         expected_k8s_config = {
-            "config_version": "v1beta1",
+            "config_version": "v1beta2",
             "components": {
                 "component1": {
                     "build": {

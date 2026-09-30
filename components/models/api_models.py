@@ -31,6 +31,8 @@ from components.gen.toolforge_models import (
     PortProtocol,
 )
 
+from .migration import upgrade_deployment_dict, upgrade_tool_config_dict
+
 # these placeholders are stripped away later with exclude_unset.
 # they are only used to ensure the config models don't force the users to provide values for non-mandatory fields,
 # and because we don't want to mark the fields as Optional because then user's can do field=null and we don't want that either.
@@ -55,6 +57,7 @@ def remove_default_from_schema(schema: dict[str, Any]) -> None:
 
 class ConfigVersion(str, Enum):
     V1_BETA1 = "v1beta1"
+    V1_BETA2 = "v1beta2"
 
 
 class ComponentType(str, Enum):
@@ -299,10 +302,12 @@ ComponentInfo = ContinuousComponentInfo | ScheduledComponentInfo
 
 
 class ToolConfig(BaseModel):
-    config_version: Literal[ConfigVersion.V1_BETA1] | None = Field(
-        examples=["v1beta1"],
-        default=ConfigVersion.V1_BETA1,
-        json_schema_extra={"nullable": True},
+    config_version: Literal[ConfigVersion.V1_BETA1, ConfigVersion.V1_BETA2] | None = (
+        Field(
+            examples=["v1beta1", "v1beta2"],
+            default=ConfigVersion.V1_BETA2,
+            json_schema_extra={"nullable": True},
+        )
     )
     source_url: AnyHttpUrl = Field(
         default=PLACEHOLDER_DEFAULT_URL,
@@ -325,6 +330,13 @@ class ToolConfig(BaseModel):
         ),
         min_length=1,
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def upgrade_v1beta1_config(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            return upgrade_tool_config_dict(data)
+        return data
 
     @model_validator(mode="after")
     def validate_job(self) -> Self:
@@ -424,6 +436,13 @@ class Deployment(BaseModel):
     long_status: str = ""
     force_build: bool = False
     force_run: bool = False
+
+    @model_validator(mode="before")
+    @classmethod
+    def upgrade_v1beta1_tool_config(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            return upgrade_deployment_dict(data)
+        return data
 
     @classmethod
     def get_new_deployment(

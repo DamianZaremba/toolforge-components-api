@@ -22,7 +22,7 @@ def get_fake_tool_config(
     build: dict[str, Any] | None = None, **overrides
 ) -> ToolConfig:
     params = {
-        "config_version": "v1beta1",
+        "config_version": "v1beta2",
         "components": {
             "component1": {
                 "build": {

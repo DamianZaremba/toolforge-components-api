@@ -60,7 +60,7 @@ def get_deployment_from_tool_config(
 
 def get_tool_config(**overrides) -> ToolConfig:
     params = {
-        "config_version": "v1beta1",
+        "config_version": "v1beta2",
         "components": {
             "my-component": ContinuousComponentInfo(
                 build=SourceBuildInfo(

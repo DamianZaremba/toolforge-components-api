@@ -1177,7 +1177,7 @@ class TestDoDeploy:
     ):
         my_storage = MockStorage()
         my_tool_config = ToolConfig(
-            config_version="v1beta1",
+            config_version="v1beta2",
             components={
                 "my-component": ContinuousComponentInfo(
                     build=SourceBuildInfo(
@@ -1269,7 +1269,7 @@ class TestDoDeploy:
     ):
         my_storage = MockStorage()
         my_tool_config = ToolConfig(
-            config_version="v1beta1",
+            config_version="v1beta2",
             components={
                 "my-component": ContinuousComponentInfo(
                     build=SourceBuildInfo(
