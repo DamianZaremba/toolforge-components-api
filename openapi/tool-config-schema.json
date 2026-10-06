@@ -459,14 +459,10 @@
         ]
       },
       "type": "object",
-      "minProperties": 1,
       "title": "Components",
       "description": "List of components to run. Each component matches a continuous job, scheduled job, one-off job or webservice."
     }
   },
   "type": "object",
-  "required": [
-    "components"
-  ],
   "title": "ToolConfig"
 }

@@ -402,6 +402,11 @@ def create_tool_deployment(
     _check_parallel_deployment_limit(storage=storage, tool_name=tool_name)
 
     tool_config = get_tool_config(toolname=tool_name, storage=storage)
+    if not tool_config.components:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Nothing to deploy: the tool config has no components.",
+        )
 
     try:
         storage.create_deployment(tool_name=tool_name, deployment=deployment)
