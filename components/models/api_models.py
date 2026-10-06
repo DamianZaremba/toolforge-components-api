@@ -317,11 +317,11 @@ class ToolConfig(BaseModel):
         ),
     ] = ConfigDefaults()
     components: dict[str, ComponentInfo] = Field(
+        default_factory=dict,
         description=(
             "List of components to run. Each component matches a continuous job, scheduled job, one-off job or "
             "webservice."
         ),
-        min_length=1,
     )
 
     @model_validator(mode="after")

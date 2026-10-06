@@ -129,6 +129,17 @@ class TestUpdateToolConfig:
         ) == expected_tool_config.model_dump(exclude_unset=True)
         assert gotten_response.messages == expected_messages
 
+    def test_succeeds_without_components(self, authenticated_client: TestClient):
+        raw_response = authenticated_client.post(
+            "/v1/tool/test-tool-1/config",
+            json={"defaults": {"alerts": {"notify": True}}},
+        )
+
+        assert raw_response.status_code == status.HTTP_200_OK
+        gotten_response = ToolConfigResponse.model_validate(raw_response.json())
+        assert gotten_response.data.components == {}
+        assert gotten_response.data.defaults.alerts.notify is True
+
     def test_fails_with_invalid_config_data(
         self,
         authenticated_client: TestClient,
@@ -335,6 +346,26 @@ class TestCreateDeployment:
         raw_response = authenticated_client.post("/v1/tool/test-tool-1/deployment")
 
         assert raw_response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_fails_if_config_has_no_components(self, authenticated_client: TestClient):
+        raw_response = authenticated_client.post(
+            "/v1/tool/test-tool-1/config",
+            json={"defaults": {"alerts": {"notify": True}}},
+        )
+        assert raw_response.status_code == status.HTTP_200_OK
+
+        raw_response = authenticated_client.post("/v1/tool/test-tool-1/deployment")
+
+        assert raw_response.status_code == status.HTTP_400_BAD_REQUEST
+        assert raw_response.json()["messages"]["error"] == [
+            "Nothing to deploy: the tool config has no components."
+        ]
+        assert (
+            authenticated_client.get("/v1/tool/test-tool-1/deployment").json()["data"][
+                "deployments"
+            ]
+            == []
+        )
 
     def test_returns_not_found_when_tool_does_not_exist(
         self,
@@ -1500,19 +1531,19 @@ class TestGetToolsWithConfig:
         # 2 valid configs, 3 malformed ones
         malformed_config_1 = {
             "metadata": {"name": "malformed-config-1"},
-            "spec": {"malformed": "config"},
+            "spec": {"components": "malformed"},
         }
         valid_config_2 = k8s_response["items"][0]
         malformed_config_3 = {
             "metadata": {"name": "malformed-config-3"},
-            "spec": {"malformed": "config"},
+            "spec": {"components": "malformed"},
         }
         valid_config_4 = copy.deepcopy(valid_config_2)
         valid_config_4["metadata"]["name"] = "tf-test-2-config"
         valid_config_4["metadata"]["namespace"] = "tool-tf-test-2"
         malformed_config_5 = {
             "metadata": {"name": "malformed-config-5"},
-            "spec": {"malformed": "config"},
+            "spec": {"components": "malformed"},
         }
         k8s_response["items"] = [
             malformed_config_1,
