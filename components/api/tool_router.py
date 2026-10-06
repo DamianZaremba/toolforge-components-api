@@ -2,7 +2,7 @@ import json
 import logging
 from typing import Annotated, Any
 
-from fastapi import APIRouter, BackgroundTasks, Body, Depends, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, Header, Query, Request
 from pydantic import Field
 
 from ..models.api_models import (
@@ -311,6 +311,7 @@ def create_tool_deployment(
         default=False,
         alias="force-run",
     ),
+    user_name: Annotated[str, Header(alias="x-toolforge-user")] = "",
 ) -> ToolDeploymentResponse:
     """Create a new tool deployment."""
     tool_config = handlers.get_and_refetch_config_if_needed(
@@ -344,6 +345,7 @@ def create_tool_deployment(
         storage=storage,
         runtime=runtime,
         background_tasks=background_tasks,
+        user_name=user_name,
     )
     return ToolDeploymentResponse(
         data=new_deployment,

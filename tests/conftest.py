@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from toolforge_weld.api_client import ToolforgeClient
 from toolforge_weld.kubernetes_config import Kubeconfig
 
+import components.api.tool_handlers
 import components.deploy_task
 import components.runtime.toolforge
 import components.settings
@@ -68,6 +69,14 @@ def cleanup_deployments(app: FastAPI):
         deployments = response.json()
         for deployment in deployments["data"]["deployments"]:
             client.delete(f"/v1/tool/test-tool-1/deployment/{deployment['deploy_id']}")
+
+
+@pytest.fixture(autouse=True)
+def notify_mock(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
+    mock = MagicMock()
+    monkeypatch.setattr(components.deploy_task, "notify", mock)
+    monkeypatch.setattr(components.api.tool_handlers, "notify", mock)
+    return mock
 
 
 @pytest.fixture(autouse=True)
