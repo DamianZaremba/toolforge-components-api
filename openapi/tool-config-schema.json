@@ -121,14 +121,6 @@
               },
               "run": {
                 "properties": {
-                  "command": {
-                    "type": "string",
-                    "title": "Command",
-                    "description": "Command to use to run this component, `launcher` will be prepended to it to load the environment if needed.",
-                    "examples": [
-                      "bash -c 'while date; do sleep 10; done'"
-                    ]
-                  },
                   "cpu": {
                     "type": "string",
                     "title": "Cpu",
@@ -146,6 +138,22 @@
                       "onfailure"
                     ],
                     "title": "JobsEmailOption"
+                  },
+                  "memory": {
+                    "type": "string",
+                    "title": "Memory",
+                    "description": "Job memory resource limit.",
+                    "examples": [
+                      "1G"
+                    ]
+                  },
+                  "mount": {
+                    "type": "string",
+                    "enum": [
+                      "all",
+                      "none"
+                    ],
+                    "title": "Mount"
                   },
                   "filelog": {
                     "type": "boolean",
@@ -171,21 +179,13 @@
                       "logs/my-job.out"
                     ]
                   },
-                  "memory": {
+                  "command": {
                     "type": "string",
-                    "title": "Memory",
-                    "description": "Job memory resource limit.",
+                    "title": "Command",
+                    "description": "Command to use to run this component, `launcher` will be prepended to it to load the environment if needed.",
                     "examples": [
-                      "1G"
+                      "bash -c 'while date; do sleep 10; done'"
                     ]
-                  },
-                  "mount": {
-                    "type": "string",
-                    "enum": [
-                      "all",
-                      "none"
-                    ],
-                    "title": "Mount"
                   },
                   "port": {
                     "type": "integer",
@@ -334,14 +334,6 @@
               },
               "run": {
                 "properties": {
-                  "command": {
-                    "type": "string",
-                    "title": "Command",
-                    "description": "Command to use to run this component, `launcher` will be prepended to it to load the environment if needed.",
-                    "examples": [
-                      "bash -c 'while date; do sleep 10; done'"
-                    ]
-                  },
                   "cpu": {
                     "type": "string",
                     "title": "Cpu",
@@ -359,6 +351,22 @@
                       "onfailure"
                     ],
                     "title": "JobsEmailOption"
+                  },
+                  "memory": {
+                    "type": "string",
+                    "title": "Memory",
+                    "description": "Job memory resource limit.",
+                    "examples": [
+                      "1G"
+                    ]
+                  },
+                  "mount": {
+                    "type": "string",
+                    "enum": [
+                      "all",
+                      "none"
+                    ],
+                    "title": "Mount"
                   },
                   "filelog": {
                     "type": "boolean",
@@ -384,21 +392,13 @@
                       "logs/my-job.out"
                     ]
                   },
-                  "memory": {
+                  "command": {
                     "type": "string",
-                    "title": "Memory",
-                    "description": "Job memory resource limit.",
+                    "title": "Command",
+                    "description": "Command to use to run this component, `launcher` will be prepended to it to load the environment if needed.",
                     "examples": [
-                      "1G"
+                      "bash -c 'while date; do sleep 10; done'"
                     ]
-                  },
-                  "mount": {
-                    "type": "string",
-                    "enum": [
-                      "all",
-                      "none"
-                    ],
-                    "title": "Mount"
                   },
                   "retry": {
                     "type": "integer",
