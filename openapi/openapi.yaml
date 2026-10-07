@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Toolforge Components API
-  version: 0.12.0
+  version: 0.13.0
 servers:
 - url: http://127.0.0.1:8000
   description: Local direct development server.
@@ -1213,6 +1213,7 @@ components:
         components:
           additionalProperties:
             anyOf:
+            - $ref: '#/components/schemas/WebServiceComponentInfo'
             - $ref: '#/components/schemas/ContinuousComponentInfo'
             - $ref: '#/components/schemas/ScheduledComponentInfo'
           type: object
@@ -1245,6 +1246,91 @@ components:
       - msg
       - type
       title: ValidationError
+    WebServiceComponentInfo:
+      properties:
+        build:
+          anyOf:
+          - $ref: '#/components/schemas/SourceBuildInfo'
+          - $ref: '#/components/schemas/SourceBuildReference'
+          title: Build
+        run:
+          $ref: '#/components/schemas/WebServiceRunInfo'
+        component_type:
+          type: string
+          const: webservice
+          title: Component Type
+          default: webservice
+      type: object
+      required:
+      - build
+      - run
+      title: WebServiceComponentInfo
+    WebServiceRunInfo:
+      properties:
+        cpu:
+          type: string
+          title: Cpu
+          description: Job CPU resource limit.
+          examples:
+          - '1'
+        emails:
+          $ref: '#/components/schemas/JobsEmailOption'
+          description: Job emails setting.
+          default: none
+          examples:
+          - none
+        memory:
+          type: string
+          title: Memory
+          description: Job memory resource limit.
+          examples:
+          - 1G
+        mount:
+          $ref: '#/components/schemas/Mount'
+          description: NFS mount configuration for the job.
+          default: none
+          examples:
+          - none
+          - all
+        webservice_command:
+          type: string
+          title: Webservice Command
+          description: 'Command to use to run this component. Optional for webservices:
+            when not when set, the content get''s appended to the webservice default
+            command of the image.when not set, the image''s webservice default command
+            only is used.'
+          examples:
+          - ./run.sh
+        port:
+          type: integer
+          title: Port
+          description: Port the webservice should listen on. When not set, jobs-api
+            resolves it from the image's webservice defaults.
+          examples:
+          - 8000
+        replicas:
+          type: integer
+          minimum: 1.0
+          title: Replicas
+          description: Number of replicas to be used for the job.
+          examples:
+          - 1
+        health_check_script:
+          type: string
+          title: Health Check Script
+          description: Script/command to run to check that the service is running
+            correctly. This will run inside the same container as the service itself.
+          examples:
+          - test -e /tmp/everything_is_ok
+        health_check_http:
+          type: string
+          title: Health Check Http
+          description: HTTP path to query for the status of the system. It expects
+            an HTTP 200 OK response, anything else is interpreted as failure.
+          examples:
+          - /healthz
+      type: object
+      title: WebServiceRunInfo
   securitySchemes:
     APIKeyHeader:
       type: apiKey

@@ -61,6 +61,7 @@ class ConfigVersion(str, Enum):
 class ComponentType(StrEnum):
     CONTINUOUS = "continuous"
     SCHEDULED = "scheduled"
+    WEBSERVICE = "webservice"
 
 
 class ConfigAlerts(BaseModel):
@@ -292,6 +293,58 @@ class ScheduledRunInfo(FileLoggingRunInfoFields, CommonRunInfoFields):
     )
 
 
+class WebServiceRunInfo(CommonRunInfoFields):
+    webservice_command: str = Field(
+        default=PLACEHOLDER_DEFAULT_STR,
+        description=(
+            "Command to use to run this component. Optional for webservices: when not "
+            "when set, the content get's appended to the webservice default command of the image."
+            "when not set, the image's webservice default command only is used."
+        ),
+        examples=["./run.sh"],
+        json_schema_extra=remove_default_from_schema,
+    )
+    port: int = Field(
+        default=PLACEHOLDER_DEFAULT_INT,
+        description=(
+            "Port the webservice should listen on. When not set, jobs-api resolves "
+            "it from the image's webservice defaults."
+        ),
+        examples=[8000],
+        json_schema_extra=remove_default_from_schema,
+    )
+    replicas: int = Field(
+        default=PLACEHOLDER_DEFAULT_INT,
+        description="Number of replicas to be used for the job.",
+        examples=[1],
+        ge=1,
+        json_schema_extra=remove_default_from_schema,
+    )
+    health_check_script: str = Field(
+        default=PLACEHOLDER_DEFAULT_STR,
+        description=(
+            "Script/command to run to check that the service is running correctly. This will run inside the same "
+            "container as the service itself."
+        ),
+        examples=["test -e /tmp/everything_is_ok"],
+        json_schema_extra=remove_default_from_schema,
+    )
+    health_check_http: str = Field(
+        default=PLACEHOLDER_DEFAULT_STR,
+        description="HTTP path to query for the status of the system. It expects an HTTP 200 OK response, anything else is interpreted as failure.",
+        examples=["/healthz"],
+        json_schema_extra=remove_default_from_schema,
+    )
+
+    @model_validator(mode="after")
+    def validate_health_check(self) -> Self:
+        if self.health_check_script and self.health_check_http:
+            raise ValueError(
+                "Cannot specify both health_check_script and health_check_http"
+            )
+        return self
+
+
 class ScheduledComponentInfo(BaseModel):
     build: Annotated[
         SourceBuildInfo | SourceBuildReference, Tag("source_build_info_tag")
@@ -308,7 +361,17 @@ class ContinuousComponentInfo(BaseModel):
     component_type: Literal[ComponentType.CONTINUOUS] = ComponentType.CONTINUOUS
 
 
-ComponentInfo = ContinuousComponentInfo | ScheduledComponentInfo
+class WebServiceComponentInfo(BaseModel):
+    build: Annotated[
+        SourceBuildInfo | SourceBuildReference, Tag("source_build_info_tag")
+    ]
+    run: WebServiceRunInfo
+    component_type: Literal[ComponentType.WEBSERVICE] = ComponentType.WEBSERVICE
+
+
+ComponentInfo = (
+    WebServiceComponentInfo | ContinuousComponentInfo | ScheduledComponentInfo
+)
 
 
 class ToolConfig(BaseModel):
@@ -528,7 +591,6 @@ EXAMPLE_GENERATED_CONFIG = ToolConfig(
                 health_check_http="/healthz",
                 port=8080,
                 port_protocol=PortProtocol.tcp,
-                publish="/",
                 cpu="500m",
                 memory="256Mi",
                 mount=Mount.none,
@@ -568,6 +630,22 @@ EXAMPLE_GENERATED_CONFIG = ToolConfig(
                 timeout=180,
                 mount=Mount.all,
                 schedule="@daily",
+            ),
+        ),
+        "my-webservice": WebServiceComponentInfo(
+            component_type=ComponentType.WEBSERVICE,
+            build=SourceBuildInfo(
+                ref="main",
+                repository=AnyGitUrl(
+                    "https://gitlab.wikimedia.org/toolforge-repos/sample-static-buildpack-app"
+                ),
+            ),
+            run=WebServiceRunInfo(
+                health_check_http="/",
+                replicas=1,
+                cpu="500m",
+                memory="256Mi",
+                mount=Mount.none,
             ),
         ),
     },

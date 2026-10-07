@@ -22,6 +22,7 @@ from .models.api_models import (
     SourceBuildInfo,
     SourceBuildReference,
     ToolConfig,
+    WebServiceComponentInfo,
 )
 from .runtime.base import Runtime
 from .settings import get_settings
@@ -428,7 +429,11 @@ def _do_run(
 
         # TODO: add support to load all the components jobs and then sync the current status
         match component_info:
-            case ContinuousComponentInfo() | ScheduledComponentInfo():
+            case (
+                ContinuousComponentInfo()
+                | ScheduledComponentInfo()
+                | WebServiceComponentInfo()
+            ):
                 pass
             case _:
                 logger.info(
@@ -471,6 +476,14 @@ def _do_run(
                         tool_name=tool_name,
                         component_info=component_info,
                         component_name=component_name,
+                        image_name=deployment.builds[build_component].build_image,
+                    )
+                case WebServiceComponentInfo():
+                    message = _retry_http_failures(runtime.run_webservice_job)(
+                        tool_name=tool_name,
+                        component_info=component_info,
+                        component_name=component_name,
+                        force_restart=needs_rerun,
                         image_name=deployment.builds[build_component].build_image,
                     )
             has_error = False

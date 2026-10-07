@@ -12,12 +12,14 @@ from toolforge_weld.api_client import ToolforgeClient
 from components.deploy_task import _retry_http_failures, do_deploy
 from components.gen.toolforge_models import (
     BuildsBuildStatus,
+    JobsEmailOption,
     JobsJobListResponse,
     JobsJobResponse,
     JobsResponseMessages,
     JobsUpdateResponse,
 )
 from components.models.api_models import (
+    AnyGitUrl,
     ContinuousComponentInfo,
     ContinuousRunInfo,
     Deployment,
@@ -29,12 +31,19 @@ from components.models.api_models import (
     SourceBuildInfo,
     SourceBuildReference,
     ToolConfig,
+    WebServiceComponentInfo,
+    WebServiceRunInfo,
 )
 from components.runtime.utils import get_runtime
 from components.settings import get_settings
 from components.storage.mock import MockStorage
 
-from .testlibs import get_defined_job, get_deployment_from_tool_config, get_tool_config
+from .testlibs import (
+    get_defined_continuous_job,
+    get_deployment_from_tool_config,
+    get_tool_config,
+    get_webservice_tool_config,
+)
 
 
 class TestDoDeploy:
@@ -1019,7 +1028,7 @@ class TestDoDeploy:
                     }
                 ]
             },
-            JobsJobListResponse(jobs=[get_defined_job(name="my-component")]),
+            JobsJobListResponse(jobs=[get_defined_continuous_job(name="my-component")]),
         ]
         toolforge_client_mock.delete.return_value = JobsJobResponse().model_dump()
         toolforge_client_mock.patch.return_value = JobsUpdateResponse(
@@ -1110,7 +1119,7 @@ class TestDoDeploy:
                     "destination_image": "tool-my-tool/my-component:latest",
                 }
             },
-            JobsJobListResponse(jobs=[get_defined_job(name="my-component")]),
+            JobsJobListResponse(jobs=[get_defined_continuous_job(name="my-component")]),
         ]
         toolforge_client_mock.delete.return_value = JobsJobResponse().model_dump()
         toolforge_client_mock.patch.return_value = JobsUpdateResponse(
@@ -1223,9 +1232,9 @@ class TestDoDeploy:
             if path == "/jobs/v1/tool/my-tool/jobs":
                 return {
                     "jobs": [
-                        get_defined_job(name="my-component"),
-                        get_defined_job(name="first-component"),
-                        get_defined_job(name="second-component"),
+                        get_defined_continuous_job(name="my-component"),
+                        get_defined_continuous_job(name="first-component"),
+                        get_defined_continuous_job(name="second-component"),
                     ]
                 }
 
@@ -1384,6 +1393,242 @@ class TestDoDeploy:
                 ),
             ],
             any_order=True,
+        )
+
+    def test_deploys_webservice_component(self, monkeypatch: MonkeyPatch):
+        """Test that a webservice component is deployed via the standard /jobs endpoint as job_type webservice."""
+        my_storage = MockStorage()
+        my_tool_config = get_webservice_tool_config()
+        my_deployment = get_deployment_from_tool_config(tool_config=my_tool_config)
+        my_storage.create_deployment(tool_name="my-tool", deployment=my_deployment)
+
+        toolforge_client_mock = MagicMock(spec=ToolforgeClient)
+        monkeypatch.setattr(
+            "components.runtime.toolforge.get_toolforge_client",
+            lambda: toolforge_client_mock,
+        )
+
+        existing_build_id = "random_existing_build_id"
+        toolforge_client_mock.get.side_effect = [
+            {
+                "builds": [
+                    {
+                        "build_id": existing_build_id,
+                        "name": "my-webservice",
+                        "resolved_ref": "dummy-resolved-ref",
+                        "destination_image": "tool-my-tool/my-webservice:latest",
+                        "status": BuildsBuildStatus.BUILD_SUCCESS.value,
+                        "parameters": {
+                            "image_name": "my-webservice",
+                            "source_url": "https://gitlab-example.wikimedia.org/my-repo.git",
+                        },
+                    }
+                ]
+            },
+            {
+                "build": {
+                    "status": BuildsBuildStatus.BUILD_SUCCESS.value,
+                    "destination_image": "tool-my-tool/my-webservice:latest",
+                }
+            },
+        ]
+        # PATCH to /jobs (upsert, returns JobsUpdateResponse)
+        toolforge_client_mock.patch.return_value = JobsUpdateResponse(
+            messages=JobsResponseMessages(
+                error=None, info=["created continuous job my-job-name"], warning=None
+            ),
+            job_changed=True,
+        ).model_dump()
+
+        monkeypatch.setattr(
+            "components.runtime.toolforge._resolve_ref",
+            lambda *args, **kwargs: "dummy-resolved-ref",
+        )
+
+        do_deploy(
+            deployment=my_deployment,
+            storage=my_storage,
+            tool_config=my_tool_config,
+            tool_name="my-tool",
+            runtime=get_runtime(settings=get_settings()),
+        )
+
+        gotten_deployments = my_storage.list_deployments(tool_name="my-tool")
+        assert gotten_deployments
+        assert gotten_deployments[0].status == DeploymentState.successful
+
+        # Verify the PATCH was made to the standard /jobs endpoint
+        toolforge_client_mock.patch.assert_called_once()
+        patch_call = toolforge_client_mock.patch.call_args
+        sent_json = patch_call.kwargs["json"]
+        assert sent_json["job_type"] == "webservice"
+        assert "publish" not in sent_json
+        assert "port" not in sent_json
+        assert sent_json["name"] == "my-webservice"
+        assert sent_json["imagename"] == "tool-my-tool/my-webservice:latest"
+        assert sent_json["health_check"] == {"type": "http", "path": "/healthz"}
+        assert "cmd" not in sent_json
+
+    def test_deploys_webservice_component_with_command_and_port(
+        self, monkeypatch: MonkeyPatch
+    ):
+        """Test that a webservice command, port and emails are forwarded to jobs-api."""
+        my_storage = MockStorage()
+        my_tool_config = get_webservice_tool_config(
+            components={
+                "my-webservice": WebServiceComponentInfo(
+                    build=SourceBuildInfo(
+                        repository=AnyGitUrl(
+                            "https://gitlab-example.wikimedia.org/my-repo.git"
+                        ),
+                        ref="main",
+                    ),
+                    run=WebServiceRunInfo(
+                        webservice_command="./run.sh",
+                        port=8080,
+                        emails=JobsEmailOption.onfailure,
+                    ),
+                )
+            },
+        )
+        my_deployment = get_deployment_from_tool_config(tool_config=my_tool_config)
+        my_storage.create_deployment(tool_name="my-tool", deployment=my_deployment)
+
+        toolforge_client_mock = MagicMock(spec=ToolforgeClient)
+        monkeypatch.setattr(
+            "components.runtime.toolforge.get_toolforge_client",
+            lambda: toolforge_client_mock,
+        )
+
+        existing_build_id = "random_existing_build_id"
+        toolforge_client_mock.get.side_effect = [
+            {
+                "builds": [
+                    {
+                        "build_id": existing_build_id,
+                        "name": "my-webservice",
+                        "resolved_ref": "dummy-resolved-ref",
+                        "destination_image": "tool-my-tool/my-webservice:latest",
+                        "status": BuildsBuildStatus.BUILD_SUCCESS.value,
+                        "parameters": {
+                            "image_name": "my-webservice",
+                            "source_url": "https://gitlab-example.wikimedia.org/my-repo.git",
+                        },
+                    }
+                ]
+            },
+            {
+                "build": {
+                    "status": BuildsBuildStatus.BUILD_SUCCESS.value,
+                    "destination_image": "tool-my-tool/my-webservice:latest",
+                }
+            },
+        ]
+        toolforge_client_mock.patch.return_value = JobsUpdateResponse(
+            messages=JobsResponseMessages(
+                error=None, info=["created webservice my-webservice"], warning=None
+            ),
+            job_changed=True,
+        ).model_dump()
+
+        monkeypatch.setattr(
+            "components.runtime.toolforge._resolve_ref",
+            lambda *args, **kwargs: "dummy-resolved-ref",
+        )
+
+        do_deploy(
+            deployment=my_deployment,
+            storage=my_storage,
+            tool_config=my_tool_config,
+            tool_name="my-tool",
+            runtime=get_runtime(settings=get_settings()),
+        )
+
+        gotten_deployments = my_storage.list_deployments(tool_name="my-tool")
+        assert gotten_deployments
+        assert gotten_deployments[0].status == DeploymentState.successful
+
+        toolforge_client_mock.patch.assert_called_once()
+        patch_call = toolforge_client_mock.patch.call_args
+        sent_json = patch_call.kwargs["json"]
+        assert sent_json["job_type"] == "webservice"
+        assert sent_json["name"] == "my-webservice"
+        assert sent_json["imagename"] == "tool-my-tool/my-webservice:latest"
+        assert sent_json["cmd"] == "./run.sh"
+        assert sent_json["port"] == 8080
+        assert sent_json["emails"] == "onfailure"
+
+    def test_webservice_force_restart(self, monkeypatch: MonkeyPatch):
+        """Test that force_restart triggers a restart when webservice config is unchanged (job_changed=False)."""
+        my_storage = MockStorage()
+        my_tool_config = get_webservice_tool_config()
+        my_deployment = get_deployment_from_tool_config(
+            tool_config=my_tool_config, force_run=True
+        )
+        my_storage.create_deployment(tool_name="my-tool", deployment=my_deployment)
+
+        toolforge_client_mock = MagicMock(spec=ToolforgeClient)
+        monkeypatch.setattr(
+            "components.runtime.toolforge.get_toolforge_client",
+            lambda: toolforge_client_mock,
+        )
+
+        existing_build_id = "random_existing_build_id"
+        toolforge_client_mock.get.side_effect = [
+            {
+                "builds": [
+                    {
+                        "build_id": existing_build_id,
+                        "name": "my-webservice",
+                        "resolved_ref": "dummy-resolved-ref",
+                        "destination_image": "tool-my-tool/my-webservice:latest",
+                        "status": BuildsBuildStatus.BUILD_SUCCESS.value,
+                        "parameters": {
+                            "image_name": "my-webservice",
+                            "source_url": "https://gitlab-example.wikimedia.org/my-repo.git",
+                        },
+                    }
+                ]
+            },
+            {
+                "build": {
+                    "status": BuildsBuildStatus.BUILD_SUCCESS.value,
+                    "destination_image": "tool-my-tool/my-webservice:latest",
+                }
+            },
+        ]
+        toolforge_client_mock.patch.return_value = JobsUpdateResponse(
+            messages=JobsResponseMessages(),
+            job_changed=False,
+        ).model_dump()
+
+        monkeypatch.setattr(
+            "components.runtime.toolforge._resolve_ref",
+            lambda *args, **kwargs: "dummy-resolved-ref",
+        )
+
+        do_deploy(
+            deployment=my_deployment,
+            storage=my_storage,
+            tool_config=my_tool_config,
+            tool_name="my-tool",
+            runtime=get_runtime(settings=get_settings()),
+        )
+
+        assert toolforge_client_mock.patch.called
+        restart_calls = [
+            call
+            for call in toolforge_client_mock.post.call_args_list
+            if "restart" in str(call)
+        ]
+        assert len(restart_calls) == 1
+
+        # Verify the deployment was successful
+        gotten_deployments = my_storage.list_deployments(tool_name="my-tool")
+        assert gotten_deployments
+        assert (
+            gotten_deployments[0].runs["my-webservice"].run_status
+            == DeploymentRunState.successful
         )
 
 

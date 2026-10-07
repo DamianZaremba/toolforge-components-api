@@ -155,6 +155,175 @@
                     ],
                     "title": "Mount"
                   },
+                  "webservice_command": {
+                    "type": "string",
+                    "title": "Webservice Command",
+                    "description": "Command to use to run this component. Optional for webservices: when not when set, the content get's appended to the webservice default command of the image.when not set, the image's webservice default command only is used.",
+                    "examples": [
+                      "./run.sh"
+                    ]
+                  },
+                  "port": {
+                    "type": "integer",
+                    "title": "Port",
+                    "description": "Port the webservice should listen on. When not set, jobs-api resolves it from the image's webservice defaults.",
+                    "examples": [
+                      8000
+                    ]
+                  },
+                  "replicas": {
+                    "type": "integer",
+                    "minimum": 1.0,
+                    "title": "Replicas",
+                    "description": "Number of replicas to be used for the job.",
+                    "examples": [
+                      1
+                    ]
+                  },
+                  "health_check_script": {
+                    "type": "string",
+                    "title": "Health Check Script",
+                    "description": "Script/command to run to check that the service is running correctly. This will run inside the same container as the service itself.",
+                    "examples": [
+                      "test -e /tmp/everything_is_ok"
+                    ]
+                  },
+                  "health_check_http": {
+                    "type": "string",
+                    "title": "Health Check Http",
+                    "description": "HTTP path to query for the status of the system. It expects an HTTP 200 OK response, anything else is interpreted as failure.",
+                    "examples": [
+                      "/healthz"
+                    ]
+                  }
+                },
+                "type": "object",
+                "title": "WebServiceRunInfo"
+              },
+              "component_type": {
+                "type": "string",
+                "const": "webservice",
+                "title": "Component Type",
+                "default": "webservice"
+              }
+            },
+            "type": "object",
+            "required": [
+              "build",
+              "run"
+            ],
+            "title": "WebServiceComponentInfo"
+          },
+          {
+            "properties": {
+              "build": {
+                "anyOf": [
+                  {
+                    "properties": {
+                      "repository": {
+                        "type": "string",
+                        "minLength": 1,
+                        "format": "uri",
+                        "title": "Repository",
+                        "description": "URL of the public git repository with the code to build.",
+                        "examples": [
+                          "https://gitlab.wikimedia.org/toolforge-repos/sample-complex-app-backend"
+                        ]
+                      },
+                      "ref": {
+                        "type": "string",
+                        "title": "Ref",
+                        "description": "Git ref to build from. This can be a tag, a branch name or a commit SHA.",
+                        "examples": [
+                          "main",
+                          "v1.2.3",
+                          "35b594f5d452c288c4a15fe667a7dfb94a7e5489"
+                        ]
+                      },
+                      "use_latest_versions": {
+                        "type": "boolean",
+                        "title": "Use Latest Versions",
+                        "description": "If set, it will use the latest buildpacks and run images for this build. Helpful to always get the latest versions or test them before they become standard."
+                      },
+                      "use_deprecated_versions": {
+                        "type": "boolean",
+                        "title": "Use Deprecated Versions",
+                        "description": "If set, it will use the deprecated buildpacks and run images for this build. Helpful while migrating to the newer buildpacks."
+                      },
+                      "envvars": {
+                        "patternProperties": {
+                          "^[A-Z][A-Z_0-9]{2,}[A-Z0-9]$": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object",
+                        "title": "Envvars",
+                        "description": "Environment variables and values to be set at build time"
+                      }
+                    },
+                    "type": "object",
+                    "required": [
+                      "repository",
+                      "ref"
+                    ],
+                    "title": "SourceBuildInfo"
+                  },
+                  {
+                    "properties": {
+                      "reuse_from": {
+                        "type": "string",
+                        "title": "Reuse From",
+                        "description": "Component to re-use the build from.",
+                        "examples": [
+                          "parent-component"
+                        ]
+                      }
+                    },
+                    "type": "object",
+                    "required": [
+                      "reuse_from"
+                    ],
+                    "title": "SourceBuildReference"
+                  }
+                ],
+                "title": "Build"
+              },
+              "run": {
+                "properties": {
+                  "cpu": {
+                    "type": "string",
+                    "title": "Cpu",
+                    "description": "Job CPU resource limit.",
+                    "examples": [
+                      "1"
+                    ]
+                  },
+                  "emails": {
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "all",
+                      "onfinish",
+                      "onfailure"
+                    ],
+                    "title": "JobsEmailOption"
+                  },
+                  "memory": {
+                    "type": "string",
+                    "title": "Memory",
+                    "description": "Job memory resource limit.",
+                    "examples": [
+                      "1G"
+                    ]
+                  },
+                  "mount": {
+                    "type": "string",
+                    "enum": [
+                      "all",
+                      "none"
+                    ],
+                    "title": "Mount"
+                  },
                   "filelog": {
                     "type": "boolean",
                     "title": "Filelog",
