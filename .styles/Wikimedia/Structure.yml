@@ -1,0 +1,5 @@
+extends: metric
+message: 'The document contains no headings or too few headings. Try adding headings to improve readability. Aim for at least one heading per 15 sentences.'
+link: https://www.mediawiki.org/wiki/Documentation/Tools/Linting/Linter_rule_reference#Wikimedia.Structure
+formula: (heading.h1 + heading.h2 + heading.h3 + heading.h4 + heading.h5 + heading.h6) / sentences
+condition: '<= 0.06666667'
