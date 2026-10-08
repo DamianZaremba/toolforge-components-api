@@ -31,7 +31,7 @@ class DeploymentEvent(BaseModel):
         return cls(
             deployment_id=deployment.deploy_id,
             user_name=user_name,
-            jobs=list(deployment.runs),
+            jobs=list(deployment.runs.keys()),
             builds=[
                 build.build_id
                 for build in deployment.builds.values()

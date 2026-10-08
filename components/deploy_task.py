@@ -101,12 +101,15 @@ def handle_deployment_exception(
                 storage=storage,
                 runtime=runtime,
             )
-            notify(
-                tool_name=tool_name,
-                event=DeploymentSucceeded.from_deployment(
-                    deployment=deployment, user_name=user_name
-                ),
-            )
+            try:  # avoid affecting the deployment if anything goes wrong here:
+                notify(
+                    tool_name=tool_name,
+                    event=DeploymentSucceeded.from_deployment(
+                        deployment=deployment, user_name=user_name
+                    ),
+                )
+            except Exception:
+                logger.warning("notification failed", exc_info=True)
             return
 
         except DeployCancelled:
@@ -133,12 +136,15 @@ def handle_deployment_exception(
             deployment=deployment,
             raise_if_cancelled=False,
         )
-        notify(
-            tool_name=tool_name,
-            event=DeploymentFailed.from_failed_deployment(
-                deployment=deployment, user_name=user_name
-            ),
-        )
+        try:
+            notify(
+                tool_name=tool_name,
+                event=DeploymentFailed.from_failed_deployment(
+                    deployment=deployment, user_name=user_name
+                ),
+            )
+        except Exception:
+            logger.warning("notification failed", exc_info=True)
 
     return _inner
 
