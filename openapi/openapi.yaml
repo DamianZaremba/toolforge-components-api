@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Toolforge Components API
-  version: 0.12.1
+  version: 0.13.0
 servers:
 - url: http://127.0.0.1:8000
   description: Local direct development server.
@@ -690,13 +690,6 @@ components:
       title: ContinuousComponentInfo
     ContinuousRunInfo:
       properties:
-        command:
-          type: string
-          title: Command
-          description: Command to use to run this component, `launcher` will be prepended
-            to it to load the environment if needed.
-          examples:
-          - bash -c 'while date; do sleep 10; done'
         cpu:
           type: string
           title: Cpu
@@ -709,6 +702,19 @@ components:
           default: none
           examples:
           - none
+        memory:
+          type: string
+          title: Memory
+          description: Job memory resource limit.
+          examples:
+          - 1G
+        mount:
+          $ref: '#/components/schemas/Mount'
+          description: NFS mount configuration for the job.
+          default: none
+          examples:
+          - none
+          - all
         filelog:
           type: boolean
           title: Filelog
@@ -727,19 +733,13 @@ components:
           description: Path to the stdout file log.
           examples:
           - logs/my-job.out
-        memory:
+        command:
           type: string
-          title: Memory
-          description: Job memory resource limit.
+          title: Command
+          description: Command to use to run this component, `launcher` will be prepended
+            to it to load the environment if needed.
           examples:
-          - 1G
-        mount:
-          $ref: '#/components/schemas/Mount'
-          description: NFS mount configuration for the job.
-          default: none
-          examples:
-          - none
-          - all
+          - bash -c 'while date; do sleep 10; done'
         port:
           type: integer
           title: Port
@@ -1043,13 +1043,6 @@ components:
       title: ScheduledComponentInfo
     ScheduledRunInfo:
       properties:
-        command:
-          type: string
-          title: Command
-          description: Command to use to run this component, `launcher` will be prepended
-            to it to load the environment if needed.
-          examples:
-          - bash -c 'while date; do sleep 10; done'
         cpu:
           type: string
           title: Cpu
@@ -1062,6 +1055,19 @@ components:
           default: none
           examples:
           - none
+        memory:
+          type: string
+          title: Memory
+          description: Job memory resource limit.
+          examples:
+          - 1G
+        mount:
+          $ref: '#/components/schemas/Mount'
+          description: NFS mount configuration for the job.
+          default: none
+          examples:
+          - none
+          - all
         filelog:
           type: boolean
           title: Filelog
@@ -1080,19 +1086,13 @@ components:
           description: Path to the stdout file log.
           examples:
           - logs/my-job.out
-        memory:
+        command:
           type: string
-          title: Memory
-          description: Job memory resource limit.
+          title: Command
+          description: Command to use to run this component, `launcher` will be prepended
+            to it to load the environment if needed.
           examples:
-          - 1G
-        mount:
-          $ref: '#/components/schemas/Mount'
-          description: NFS mount configuration for the job.
-          default: none
-          examples:
-          - none
-          - all
+          - bash -c 'while date; do sleep 10; done'
         retry:
           type: integer
           maximum: 5.0
