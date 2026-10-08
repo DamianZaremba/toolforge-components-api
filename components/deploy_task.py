@@ -23,6 +23,7 @@ from .models.api_models import (
     SourceBuildReference,
     ToolConfig,
 )
+from .notifier import DeploymentFailed, DeploymentSucceeded, notify
 from .runtime.base import Runtime
 from .settings import get_settings
 from .storage.base import Storage
@@ -44,6 +45,7 @@ class DoDeployFuncType(Protocol):
         deployment: Deployment,
         storage: Storage,
         runtime: Runtime,
+        user_name: str = "",
     ) -> None: ...
 
 
@@ -89,15 +91,26 @@ def handle_deployment_exception(
         deployment: Deployment,
         storage: Storage,
         runtime: Runtime,
+        user_name: str = "",
     ) -> None:
         try:
-            return func(
+            func(
                 tool_name=tool_name,
                 tool_config=tool_config,
                 deployment=deployment,
                 storage=storage,
                 runtime=runtime,
             )
+            try:  # avoid affecting the deployment if anything goes wrong here:
+                notify(
+                    tool_name=tool_name,
+                    event=DeploymentSucceeded.from_deployment(
+                        deployment=deployment, user_name=user_name
+                    ),
+                )
+            except Exception:
+                logger.warning("notification failed", exc_info=True)
+            return
 
         except DeployCancelled:
             deployment.status = DeploymentState.cancelled
@@ -123,6 +136,15 @@ def handle_deployment_exception(
             deployment=deployment,
             raise_if_cancelled=False,
         )
+        try:
+            notify(
+                tool_name=tool_name,
+                event=DeploymentFailed.from_failed_deployment(
+                    deployment=deployment, user_name=user_name
+                ),
+            )
+        except Exception:
+            logger.warning("notification failed", exc_info=True)
 
     return _inner
 
@@ -522,6 +544,8 @@ def do_deploy(
     deployment: Deployment,
     storage: Storage,
     runtime: Runtime,
+    # only used by handle_deployment_exception for the deployment events
+    user_name: str = "",
 ) -> None:
     logger.info(f"Starting deployment for tool {tool_name}")
 

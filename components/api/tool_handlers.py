@@ -32,6 +32,7 @@ from ..models.api_models import (
     SourceBuildInfo,
     ToolConfig,
 )
+from ..notifier import DeploymentCreated, notify
 from ..runtime.base import Runtime
 from ..settings import get_settings
 from ..storage import Storage
@@ -397,6 +398,7 @@ def create_tool_deployment(
     storage: Storage,
     runtime: Runtime,
     background_tasks: BackgroundTasks,
+    user_name: str = "",
 ) -> Deployment:
     logger.info(f"Creating deployment for tool: {tool_name}")
     _check_parallel_deployment_limit(storage=storage, tool_name=tool_name)
@@ -418,12 +420,20 @@ def create_tool_deployment(
         )
 
     background_tasks.add_task(
+        notify,
+        tool_name=tool_name,
+        event=DeploymentCreated.from_deployment(
+            deployment=deployment, user_name=user_name
+        ),
+    )
+    background_tasks.add_task(
         do_deploy,
         deployment=deployment,
         tool_config=tool_config,
         tool_name=tool_name,
         storage=storage,
         runtime=runtime,
+        user_name=user_name,
     )
 
     return deployment
