@@ -40,6 +40,7 @@ from components.models.api_models import (
     ToolConfigResponse,
     ToolDeploymentResponse,
 )
+from components.notifier import DeploymentCreated
 from components.runtime.utils import get_runtime
 from components.settings import Settings, get_settings
 from components.storage.mock import MockStorage
@@ -333,6 +334,25 @@ class TestCreateDeployment:
         )
 
         assert deployment.description == ""
+
+    def test_notifies_created_with_user_name(
+        self,
+        authenticated_client: TestClient,
+        fake_toolforge_client: MagicMock,
+        notify_mock: MagicMock,
+    ):
+        create_tool_config(client=authenticated_client)
+
+        response = authenticated_client.post(
+            "/v1/tool/test-tool-1/deployment",
+            headers={"x-toolforge-user": "some-user"},
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        event = notify_mock.call_args_list[0].kwargs["event"]
+        assert isinstance(event, DeploymentCreated)
+        assert event.deployment_id == response.json()["data"]["deploy_id"]
+        assert event.user_name == "some-user"
 
     def test_fails_without_auth_header(self, test_client: TestClient):
         raw_response = test_client.post("/v1/tool/test-tool-1/deployment")

@@ -436,6 +436,13 @@ paths:
         description: By default an already running component is not restarted if there
           are no changes to the run parameters. To force a re-run regardless of the
           run parameters, use force-run
+      - name: x-toolforge-user
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: X-Toolforge-User
       requestBody:
         content:
           application/json:

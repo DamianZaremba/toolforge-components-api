@@ -1,4 +1,5 @@
 import datetime
+import json
 from unittest.mock import MagicMock, call
 
 import pytest
@@ -9,7 +10,12 @@ from pytest import MonkeyPatch
 from requests import HTTPError, ReadTimeout, Response
 from toolforge_weld.api_client import ToolforgeClient
 
-from components.deploy_task import _retry_http_failures, do_deploy
+from components.deploy_task import (
+    _retry_http_failures,
+    do_deploy,
+    handle_deployment_exception,
+)
+from components.exceptions import DeployCancelled
 from components.gen.toolforge_models import (
     BuildsBuildStatus,
     JobsJobListResponse,
@@ -30,6 +36,7 @@ from components.models.api_models import (
     SourceBuildReference,
     ToolConfig,
 )
+from components.notifier import DeploymentFailed, DeploymentSucceeded
 from components.runtime.utils import get_runtime
 from components.settings import get_settings
 from components.storage.mock import MockStorage
@@ -1409,3 +1416,45 @@ class TestExceptionRetry:
             _retry_http_failures(_func)()
 
         assert isinstance(exc_info.value, ReadTimeout)
+
+
+class TestDeploymentEvents:
+    def _run(self, func, deployment: Deployment) -> None:
+        storage = MockStorage()
+        storage.create_deployment(tool_name="my-tool", deployment=deployment)
+        handle_deployment_exception(func)(
+            tool_name="my-tool",
+            tool_config=get_tool_config(),
+            deployment=deployment,
+            storage=storage,
+            runtime=MagicMock(),
+            user_name="me",
+        )
+
+    def test_notifies_succeeded(self, notify_mock: MagicMock):
+        deployment = get_deployment_from_tool_config(tool_config=get_tool_config())
+
+        self._run(lambda **_: None, deployment)
+
+        event = notify_mock.call_args.kwargs["event"]
+        assert isinstance(event, DeploymentSucceeded)
+        assert (event.deployment_id, event.user_name) == ("my-deploy-id", "me")
+
+    @pytest.mark.parametrize(
+        "error, expected_message",
+        [
+            (Exception("boom"), "Got exception: boom"),
+            (DeployCancelled("cancelled"), "Deployment was cancelled"),
+        ],
+    )
+    def test_notifies_failed(
+        self, notify_mock: MagicMock, error: Exception, expected_message: str
+    ):
+        def fail(**_):
+            raise error
+
+        self._run(fail, get_deployment_from_tool_config(tool_config=get_tool_config()))
+
+        event = notify_mock.call_args.kwargs["event"]
+        assert isinstance(event, DeploymentFailed)
+        assert json.loads(event.message) == {"error": expected_message}
