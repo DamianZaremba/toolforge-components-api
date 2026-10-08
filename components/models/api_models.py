@@ -388,7 +388,7 @@ class DeploymentBuildInfo(BaseModel):
 
 class DeploymentRunState(str, Enum):
     """
-    This are the states a run can be in
+    These are the states a run can be in.
 
     A run being an execution of a component (ex. running a continuous job, or creating a new scheduled job).
     """
