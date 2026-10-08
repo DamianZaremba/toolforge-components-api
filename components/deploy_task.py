@@ -432,7 +432,7 @@ def _do_run(
                 pass
             case _:
                 logger.info(
-                    f"{tool_name}: skipping component {component_name} ({component_info.component_type} "
+                    f"{tool_name}: skipping component {component_name} ({component_info.component_type.value} "
                     "is not supported yet)"
                 )
                 run_info = DeploymentRunInfo(run_status=DeploymentRunState.skipped)
