@@ -188,7 +188,7 @@ def get_tool_deploy_token(
 def get_latest_deployment(
     toolname: str, storage: Annotated[Storage, Depends(get_storage)]
 ) -> ToolDeploymentResponse:
-    """Print the latest deployment for a specific tool, sorted by creation_time"""
+    """Retrieve the latest deployment for a specific tool, sorted by creation_time"""
     latest_deployment = handlers.get_latest_deployment(
         tool_name=toolname, storage=storage
     )

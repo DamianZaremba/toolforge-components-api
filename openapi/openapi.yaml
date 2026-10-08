@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Toolforge Components API
-  version: 0.13.0
+  version: 0.13.1
 servers:
 - url: http://127.0.0.1:8000
   description: Local direct development server.
@@ -277,7 +277,7 @@ paths:
       tags:
       - tool
       summary: Get Latest Deployment
-      description: Print the latest deployment for a specific tool, sorted by creation_time
+      description: Retrieve the latest deployment for a specific tool, sorted by creation_time
       operationId: get_latest_deployment
       security:
       - APIKeyHeader: []
@@ -938,7 +938,7 @@ components:
       - skipped
       - unknown
       title: DeploymentRunState
-      description: 'This are the states a run can be in
+      description: 'These are the states a run can be in.
 
 
         A run being an execution of a component (ex. running a continuous job, or
