@@ -19,16 +19,21 @@ token_parameter = APIKeyQuery(name="token", auto_error=False)
 
 
 def ensure_authenticated(
+    toolname: str,
     api_key_header: Annotated[str | None, Security(api_key_header)] = None,
 ) -> bool:
-    """
-    The gateway already checks that the path and the tool match, we only need to check that the tool header is set.
-    """
     if not api_key_header:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"The '{TOOL_HEADER}' header is required",
         )
+
+    if api_key_header != toolname:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"The '{TOOL_HEADER}' header does not match the tool in the path",
+        )
+
     return True
 
 
@@ -42,6 +47,12 @@ def ensure_token_or_auth(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"The '{TOOL_HEADER}' header or a token are required",
+        )
+
+    if api_key_header and api_key_header != toolname:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"The '{TOOL_HEADER}' header does not match the tool in the path",
         )
 
     if api_key_header:
