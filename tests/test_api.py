@@ -159,6 +159,29 @@ class TestUpdateToolConfig:
 
         assert raw_response.status_code == status.HTTP_401_UNAUTHORIZED
 
+    def test_fails_when_auth_header_does_not_match_tool_in_path(
+        self, authenticated_client: TestClient
+    ):
+        raw_response = authenticated_client.post(
+            "/v1/tool/another-tool/config",
+            content=get_fake_tool_config().model_dump_json(exclude_unset=True),
+        )
+
+        assert raw_response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert raw_response.json()["messages"]["error"] == [
+            "The 'x-toolforge-tool' header does not match the tool in the path"
+        ]
+
+    def test_deployment_fails_when_auth_header_does_not_match_tool_in_path(
+        self, authenticated_client: TestClient
+    ):
+        raw_response = authenticated_client.post("/v1/tool/another-tool/deployment")
+
+        assert raw_response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert raw_response.json()["messages"]["error"] == [
+            "The 'x-toolforge-tool' header does not match the tool in the path"
+        ]
+
     def test_returns_warning_with_unknown_fields(
         self, authenticated_client: TestClient
     ):
@@ -297,7 +320,10 @@ class TestGetToolConfig:
         self,
         authenticated_client: TestClient,
     ):
-        raw_response = authenticated_client.get("/v1/tool/idontexist/config")
+        raw_response = authenticated_client.get(
+            "/v1/tool/idontexist/config",
+            headers={"x-toolforge-tool": "idontexist"},
+        )
 
         assert raw_response.status_code == status.HTTP_404_NOT_FOUND
 
@@ -391,7 +417,10 @@ class TestCreateDeployment:
         self,
         authenticated_client: TestClient,
     ):
-        raw_response = authenticated_client.post("/v1/tool/idontexist/deployment")
+        raw_response = authenticated_client.post(
+            "/v1/tool/idontexist/deployment",
+            headers={"x-toolforge-tool": "idontexist"},
+        )
 
         assert raw_response.status_code == status.HTTP_404_NOT_FOUND
 
@@ -800,7 +829,8 @@ class TestDeleteDeployment:
         self, authenticated_client: TestClient
     ):
         response = authenticated_client.delete(
-            "/v1/tool/idontexist/deployment/idontexist"
+            "/v1/tool/idontexist/deployment/idontexist",
+            headers={"x-toolforge-tool": "idontexist"},
         )
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
@@ -833,7 +863,10 @@ class TestDeleteToolConfig:
         self,
         authenticated_client: TestClient,
     ):
-        response = authenticated_client.delete("/v1/tool/nonexistent-tool/config")
+        response = authenticated_client.delete(
+            "/v1/tool/nonexistent-tool/config",
+            headers={"x-toolforge-tool": "nonexistent-tool"},
+        )
 
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
         json_response = response.json()
@@ -870,7 +903,8 @@ class TestGetDeployToken:
         self, authenticated_client: TestClient
     ):
         raw_response = authenticated_client.get(
-            "/v1/tool/test-tool-no-token/deployment/token"
+            "/v1/tool/test-tool-no-token/deployment/token",
+            headers={"x-toolforge-tool": "test-tool-no-token"},
         )
 
         assert raw_response.status_code == status.HTTP_404_NOT_FOUND
@@ -956,7 +990,8 @@ class TestDeleteDeployToken:
         self, authenticated_client: TestClient
     ):
         raw_response = authenticated_client.delete(
-            "/v1/tool/idontexist/deployment/token"
+            "/v1/tool/idontexist/deployment/token",
+            headers={"x-toolforge-tool": "idontexist"},
         )
 
         assert raw_response.status_code == status.HTTP_404_NOT_FOUND
@@ -995,7 +1030,10 @@ class TestListDeployments:
     def test_returns_empty_list_when_the_tool_does_not_exist(
         self, authenticated_client: TestClient
     ):
-        response = authenticated_client.get("/v1/tool/idontexist/deployment")
+        response = authenticated_client.get(
+            "/v1/tool/idontexist/deployment",
+            headers={"x-toolforge-tool": "idontexist"},
+        )
         assert response.status_code == status.HTTP_200_OK
         assert response.json()["data"]["deployments"] == []
 
@@ -1341,7 +1379,8 @@ class TestCancelDeployment:
         authenticated_client: TestClient,
     ):
         raw_response = authenticated_client.put(
-            "/v1/tool/idontexist/deployment/some-id/cancel"
+            "/v1/tool/idontexist/deployment/some-id/cancel",
+            headers={"x-toolforge-tool": "idontexist"},
         )
 
         assert raw_response.status_code == status.HTTP_404_NOT_FOUND
