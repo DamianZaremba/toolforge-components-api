@@ -1,0 +1,16 @@
+---
+extends: existence
+message: Avoid terms like '%s' which can be frustrating for readers.
+link: https://www.mediawiki.org/wiki/Documentation/Tools/Linting/Linter_rule_reference#Wikimedia.FreeOfFrustration
+level: suggestion
+ignorecase: true
+tokens:
+  - obvious
+  - obviously
+  - simple
+  - simply
+  - easy
+  - easily
+  - of course
+  - clearly
+  - everyone knows

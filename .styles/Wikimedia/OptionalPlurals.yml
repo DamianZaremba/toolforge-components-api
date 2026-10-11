@@ -1,0 +1,7 @@
+extends: existence
+message: "Use a regular plural instead of '%s'."
+link: https://www.mediawiki.org/wiki/Documentation/Tools/Linting/Linter_rule_reference#Wikimedia.OptionalPlurals
+ignorecase: true
+level: suggestion
+raw:
+  - '\w+\(s\)|\w+\(es\)'
