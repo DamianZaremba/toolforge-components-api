@@ -13,6 +13,8 @@ from components.models.api_models import (
     ScheduledRunInfo,
     SourceBuildInfo,
     ToolConfig,
+    WebServiceComponentInfo,
+    WebServiceRunInfo,
 )
 from tests.utils import cases
 
@@ -84,8 +86,8 @@ class TestComponentInfo:
             ],
         ],
         [
-            "no component_type, no run fields -> error: command required",
-            [{"run": {}}, None, "ContinuousComponentInfo.run.command"],
+            "no component_type, no run fields -> error: webservice needs component_type",
+            [{"run": {}}, None, "WebServiceComponentInfo.component_type"],
         ],
         [
             "no component_type, no run -> error: run required",
@@ -128,6 +130,56 @@ class TestComponentInfo:
                 {"component_type": "scheduled", "run": {"command": "my-command"}},
                 None,
                 "ScheduledComponentInfo.run.schedule",
+            ],
+        ],
+        [
+            "component_type webservice, no run fields -> webservice",
+            [
+                {"component_type": "webservice", "run": {}},
+                WebServiceComponentInfo(
+                    component_type="webservice", build=BUILD, run=WebServiceRunInfo()
+                ),
+                None,
+            ],
+        ],
+        [
+            "component_type webservice, command -> webservice with command",
+            [
+                {"component_type": "webservice", "run": {"command": "my-command"}},
+                WebServiceComponentInfo(
+                    component_type="webservice",
+                    build=BUILD,
+                    run=WebServiceRunInfo(command="my-command"),
+                ),
+                None,
+            ],
+        ],
+        [
+            "component_type webservice, filelog -> webservice",
+            [
+                {"component_type": "webservice", "run": {"filelog": True}},
+                WebServiceComponentInfo(
+                    component_type="webservice", build=BUILD, run=WebServiceRunInfo()
+                ),
+                None,
+            ],
+        ],
+        [
+            "component_type webservice, no run -> webservice",
+            [
+                {"component_type": "webservice"},
+                WebServiceComponentInfo(
+                    component_type="webservice", build=BUILD, run=WebServiceRunInfo()
+                ),
+                None,
+            ],
+        ],
+        [
+            "component_type webservice, run set to null -> error: run must be a dictionary",
+            [
+                {"component_type": "webservice", "run": None},
+                None,
+                "WebServiceComponentInfo.run",
             ],
         ],
         [

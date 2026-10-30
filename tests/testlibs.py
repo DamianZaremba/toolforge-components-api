@@ -1,4 +1,9 @@
-from components.gen.toolforge_models import JobsDefinedContinuousJob, JobType2
+from components.gen.toolforge_models import (
+    JobsDefinedContinuousJob,
+    JobsDefinedWebserviceJob,
+    JobType2,
+    JobType7,
+)
 from components.models.api_models import (
     AnyGitUrl,
     ContinuousComponentInfo,
@@ -11,6 +16,8 @@ from components.models.api_models import (
     DeploymentState,
     SourceBuildInfo,
     ToolConfig,
+    WebServiceComponentInfo,
+    WebServiceRunInfo,
 )
 
 
@@ -90,3 +97,37 @@ def get_defined_job(**overrides) -> JobsDefinedContinuousJob:
     }
     params.update(overrides)
     return JobsDefinedContinuousJob.model_validate(params)
+
+
+def get_defined_webservice_job(**overrides) -> JobsDefinedWebserviceJob:
+    params = {
+        "job_type": JobType7.webservice,
+        "image": "my-image",
+        "imagename": "my-imagename",
+        "image_state": "",
+        "name": "my-job-name",
+    }
+    params.update(overrides)
+    return JobsDefinedWebserviceJob.model_validate(params)
+
+
+def get_webservice_tool_config(**overrides) -> ToolConfig:
+    params = {
+        "config_version": "v1beta1",
+        "components": {
+            "my-webservice": WebServiceComponentInfo(
+                component_type="webservice",
+                build=SourceBuildInfo(
+                    repository=AnyGitUrl(
+                        "https://gitlab-example.wikimedia.org/my-repo.git"
+                    ),
+                    ref="main",
+                ),
+                run=WebServiceRunInfo(
+                    health_check_http="/healthz",
+                ),
+            )
+        },
+    }
+    params.update(overrides)
+    return ToolConfig(**params)  # type: ignore

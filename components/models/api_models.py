@@ -61,6 +61,7 @@ class ConfigVersion(str, Enum):
 class ComponentType(StrEnum):
     CONTINUOUS = "continuous"
     SCHEDULED = "scheduled"
+    WEBSERVICE = "webservice"
 
 
 class ConfigAlerts(BaseModel):
@@ -292,6 +293,59 @@ class ScheduledRunInfo(FileLoggingRunInfoFields, CommonRunInfoFields):
     )
 
 
+class WebServiceRunInfo(CommonRunInfoFields):
+    command: str = Field(
+        default=PLACEHOLDER_DEFAULT_STR,
+        description=(
+            "Command to use to run this component, `launcher` will be prepended to it to load the "
+            "environment if needed. If not set, the `web` entry of the Procfile is used."
+        ),
+        examples=["./run.sh"],
+        json_schema_extra=remove_default_from_schema,
+    )
+    port: int = Field(
+        default=PLACEHOLDER_DEFAULT_INT,
+        description=(
+            "Port the webservice should listen on. When not set, jobs-api resolves "
+            "it from the image's webservice defaults."
+        ),
+        examples=[8000],
+        ge=1,
+        le=65535,
+        json_schema_extra=remove_default_from_schema,
+    )
+    replicas: int = Field(
+        default=PLACEHOLDER_DEFAULT_INT,
+        description="Number of replicas to be used for the job.",
+        examples=[1],
+        ge=1,
+        json_schema_extra=remove_default_from_schema,
+    )
+    health_check_script: str = Field(
+        default=PLACEHOLDER_DEFAULT_STR,
+        description=(
+            "Script/command to run to check that the service is running correctly. This will run inside the same "
+            "container as the service itself."
+        ),
+        examples=["test -e /tmp/everything_is_ok"],
+        json_schema_extra=remove_default_from_schema,
+    )
+    health_check_http: str = Field(
+        default=PLACEHOLDER_DEFAULT_STR,
+        description="HTTP path to query for the status of the system. It expects an HTTP 200 OK response, anything else is interpreted as failure.",
+        examples=["/healthz"],
+        json_schema_extra=remove_default_from_schema,
+    )
+
+    @model_validator(mode="after")
+    def validate_health_check(self) -> Self:
+        if self.health_check_script and self.health_check_http:
+            raise ValueError(
+                "Cannot specify both health_check_script and health_check_http"
+            )
+        return self
+
+
 class ScheduledComponentInfo(BaseModel):
     build: Annotated[
         SourceBuildInfo | SourceBuildReference, Tag("source_build_info_tag")
@@ -308,7 +362,22 @@ class ContinuousComponentInfo(BaseModel):
     component_type: Literal[ComponentType.CONTINUOUS] = ComponentType.CONTINUOUS
 
 
-type ComponentInfo = ContinuousComponentInfo | ScheduledComponentInfo
+class WebServiceComponentInfo(BaseModel):
+    build: Annotated[
+        SourceBuildInfo | SourceBuildReference, Tag("source_build_info_tag")
+    ]
+    # We are providing a default_factory here.
+    # That is because a webservice can have nothing at all in runs, and still work.
+    # And forcing users to always do `run: {}` is a bit non-sensical.
+    run: WebServiceRunInfo = Field(default_factory=WebServiceRunInfo)
+    # without a default value this forces us to always provide component_type for webservice component
+    component_type: Literal[ComponentType.WEBSERVICE]
+
+
+# note that order matters here
+type ComponentInfo = (
+    ContinuousComponentInfo | ScheduledComponentInfo | WebServiceComponentInfo
+)
 
 
 class ToolConfig(BaseModel):

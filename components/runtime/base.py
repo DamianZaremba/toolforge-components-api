@@ -66,6 +66,17 @@ class Runtime(ABC):
         pass
 
     @abstractmethod
+    def run_webservice_job(
+        self,
+        tool_name: str,
+        component_name: str,
+        component_info: ComponentInfo,
+        force_restart: bool,
+        image_name: str,
+    ) -> str:
+        pass
+
+    @abstractmethod
     def delete_job_if_exists(
         self,
         tool_name: str,

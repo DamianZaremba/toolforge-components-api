@@ -32,6 +32,8 @@ from ..models.api_models import (
     ScheduledRunInfo,
     SourceBuildInfo,
     ToolConfig,
+    WebServiceComponentInfo,
+    WebServiceRunInfo,
 )
 from ..notifier import DeploymentCreated, notify
 from ..runtime.base import Runtime
@@ -181,7 +183,9 @@ def _get_build_for_job(
     return None
 
 
-def _get_run_for_job(job: AnyDefinedJob) -> ScheduledRunInfo | ContinuousRunInfo:
+def _get_run_for_job(
+    job: AnyDefinedJob,
+) -> ScheduledRunInfo | ContinuousRunInfo | WebServiceRunInfo:
     # we need to strip launcher because jobs adds it automatically but then does not remove it when getting the job
     params: dict[str, Any] = {}
     if job.cmd:
@@ -190,7 +194,10 @@ def _get_run_for_job(job: AnyDefinedJob) -> ScheduledRunInfo | ContinuousRunInfo
 
     set_fields = job.model_dump(exclude_unset=True)
 
-    if isinstance(job, JobsDefinedContinuousJob) and job.health_check:
+    if (
+        isinstance(job, (JobsDefinedContinuousJob, JobsDefinedWebserviceJob))
+        and job.health_check
+    ):
         match job.health_check:
             case JobsHttpHealthCheck():
                 params["health_check_http"] = job.health_check.path
@@ -217,9 +224,11 @@ def _get_run_for_job(job: AnyDefinedJob) -> ScheduledRunInfo | ContinuousRunInfo
             params[param_name] = set_fields[param_name]
 
     if isinstance(job, JobsDefinedContinuousJob):
-        run_info: ContinuousRunInfo | ScheduledRunInfo = (
+        run_info: ContinuousRunInfo | ScheduledRunInfo | WebServiceRunInfo = (
             ContinuousRunInfo.model_validate(params)
         )
+    elif isinstance(job, JobsDefinedWebserviceJob):
+        run_info = WebServiceRunInfo.model_validate(params)
     else:
         run_info = ScheduledRunInfo.model_validate(params)
     logger.debug(f"Generated run info {run_info} from job {job}")
@@ -230,13 +239,17 @@ def _get_component_for_job(
     job: AnyDefinedJob, existing_builds: list[BuildsBuild]
 ) -> tuple[ComponentInfo | None, str]:
     match job:
-        case JobsDefinedScheduledJob() | JobsDefinedContinuousJob():
+        case (
+            JobsDefinedScheduledJob()
+            | JobsDefinedContinuousJob()
+            | JobsDefinedWebserviceJob()
+        ):
             pass
         case _:
             logger.debug(f"unknown job type {job}")
             return (
                 None,
-                f"Job {job.name} is not a continuous or scheduled job, it's not supported yet, skipping",
+                f"Job {job.name} is not a continuous, scheduled or webservice job, it's not supported yet, skipping",
             )
 
     build = _get_build_for_job(job=job, existing_builds=existing_builds)
@@ -259,6 +272,13 @@ def _get_component_for_job(
             return (
                 ContinuousComponentInfo(
                     build=build, run=run, component_type=ComponentType.CONTINUOUS
+                ),
+                "",
+            )
+        case WebServiceRunInfo():
+            return (
+                WebServiceComponentInfo(
+                    build=build, run=run, component_type=ComponentType.WEBSERVICE
                 ),
                 "",
             )
