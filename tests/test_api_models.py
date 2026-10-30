@@ -13,6 +13,8 @@ from components.models.api_models import (
     ScheduledRunInfo,
     SourceBuildInfo,
     ToolConfig,
+    WebServiceComponentInfo,
+    WebServiceRunInfo,
 )
 from tests.utils import cases
 
@@ -67,6 +69,35 @@ class TestComponentInfo:
                 ),
             ],
         ],
+        [
+            "component_type webservice, no run fields -> webservice",
+            [
+                {"component_type": "webservice", "run": {}},
+                WebServiceComponentInfo(
+                    component_type="webservice", build=BUILD, run=WebServiceRunInfo()
+                ),
+            ],
+        ],
+        [
+            "component_type webservice, command -> webservice with command",
+            [
+                {"component_type": "webservice", "run": {"command": "my-command"}},
+                WebServiceComponentInfo(
+                    component_type="webservice",
+                    build=BUILD,
+                    run=WebServiceRunInfo(command="my-command"),
+                ),
+            ],
+        ],
+        [
+            "component_type webservice, no run -> webservice",
+            [
+                {"component_type": "webservice"},
+                WebServiceComponentInfo(
+                    component_type="webservice", build=BUILD, run=WebServiceRunInfo()
+                ),
+            ],
+        ],
     )
     def test_component_parsing_succeeds(
         self,
@@ -111,8 +142,8 @@ class TestComponentInfo:
             ],
         ],
         [
-            "no component_type, no run fields -> error: command required",
-            [{"run": {}}, "ContinuousComponentInfo.run.command"],
+            "no component_type, no run fields -> error: webservice needs component_type",
+            [{"run": {}}, "WebServiceComponentInfo.component_type"],
         ],
         [
             "no component_type, no run -> error: run required",
@@ -147,6 +178,20 @@ class TestComponentInfo:
             [
                 {"component_type": "scheduled", "run": {"command": "my-command"}},
                 "ScheduledComponentInfo.run.schedule",
+            ],
+        ],
+        [
+            "component_type webservice, filelog -> error: filelog not allowed",
+            [
+                {"component_type": "webservice", "run": {"filelog": True}},
+                "WebServiceComponentInfo.run.filelog",
+            ],
+        ],
+        [
+            "component_type webservice, run set to null -> error: run must be a dictionary",
+            [
+                {"component_type": "webservice", "run": None},
+                "WebServiceComponentInfo.run",
             ],
         ],
         [
