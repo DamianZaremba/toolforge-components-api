@@ -50,6 +50,22 @@ AnyDefinedJob: TypeAlias = (
 )
 
 
+def get_component_type_warnings(config: ToolConfig) -> list[str]:
+    warnings: list[str] = []
+    for component_name, component_info in config.components.items():
+        if "component_type" in component_info.model_fields_set:
+            continue
+
+        component_type = component_info.component_type.value
+        warnings.append(
+            f"Component {component_name} has no component_type, it will be deployed as a "
+            f"{component_type} component. \n"
+            f"Add 'component_type: {component_type}' to the component to remove this warning."
+        )
+
+    return warnings
+
+
 def get_and_refetch_config_if_needed(toolname: str, storage: Storage) -> ToolConfig:
     logger.debug("Checking if I should update the config from source_url")
     config = get_tool_config(toolname=toolname, storage=storage)
