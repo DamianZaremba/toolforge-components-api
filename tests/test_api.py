@@ -314,6 +314,89 @@ class TestUpdateToolConfig:
             "the original components instead: child-component"
         ) in raw_response.json()["messages"]["error"][0]
 
+    def test_returns_warning_with_the_selected_type_for_components_without_component_type(
+        self, authenticated_client: TestClient
+    ):
+        build = {
+            "repository": "https://gitlab-example.wikimedia.org/my-repo.git",
+            "ref": "main",
+        }
+        config_json = {
+            "components": {
+                "my-continuous": {"build": build, "run": {"command": "my-command"}},
+                "my-scheduled": {
+                    "build": build,
+                    "run": {"command": "my-command", "schedule": "@daily"},
+                },
+                "my-typed": {
+                    "build": build,
+                    "component_type": "continuous",
+                    "run": {"command": "my-command"},
+                },
+            },
+        }
+        expected_messages = ResponseMessages(
+            warning=[
+                "You are using a beta feature of Toolforge.",
+                (
+                    "Component my-continuous has no component_type, it will be deployed as a continuous component. \n"
+                    "Add 'component_type: continuous' to the component to remove this warning."
+                ),
+                (
+                    "Component my-scheduled has no component_type, it will be deployed as a scheduled component. \n"
+                    "Add 'component_type: scheduled' to the component to remove this warning."
+                ),
+            ],
+            info=["Configuration for test-tool-1 updated successfully."],
+        )
+
+        raw_response = authenticated_client.post(
+            "/v1/tool/test-tool-1/config", json=config_json
+        )
+
+        assert raw_response.status_code == status.HTTP_200_OK
+        gotten_response = ToolConfigResponse.model_validate(raw_response.json())
+        assert gotten_response.messages == expected_messages
+
+    def test_returns_warning_for_components_without_component_type_from_source_url(
+        self, authenticated_client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ):
+        fetched_config_json = {
+            "components": {
+                "my-continuous": {
+                    "build": {
+                        "repository": "https://gitlab-example.wikimedia.org/my-repo.git",
+                        "ref": "main",
+                    },
+                    "run": {"command": "my-command"},
+                },
+            },
+        }
+        response_mock = MagicMock()
+        response_mock.text = yaml.safe_dump(fetched_config_json)
+        get_mock = MagicMock()
+        get_mock.return_value = response_mock
+        monkeypatch.setattr(requests, "get", get_mock)
+        expected_messages = ResponseMessages(
+            warning=[
+                "You are using a beta feature of Toolforge.",
+                (
+                    "Component my-continuous has no component_type, it will be deployed as a continuous component. \n"
+                    "Add 'component_type: continuous' to the component to remove this warning."
+                ),
+            ],
+            info=["Configuration for test-tool-1 updated successfully."],
+        )
+
+        raw_response = authenticated_client.post(
+            "/v1/tool/test-tool-1/config",
+            json={"source_url": "http://idontexist.local/myconfig"},
+        )
+
+        assert raw_response.status_code == status.HTTP_200_OK
+        gotten_response = ToolConfigResponse.model_validate(raw_response.json())
+        assert gotten_response.messages == expected_messages
+
 
 class TestGetToolConfig:
     def test_returns_not_found_when_tool_does_not_exist(

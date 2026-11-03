@@ -123,6 +123,10 @@ async def update_tool_config(
             parsed_config=updated_config.model_dump(),
         )
     )
+    # atleast warn users in cases were they omit component_type,
+    # that they may have unintentionally created a different config.
+    # important for cases were we can't completely decide what config the user intended.
+    warning_messages.extend(handlers.get_component_type_warnings(config=updated_config))
     messages = ResponseMessages(
         info=[f"Configuration for {toolname} updated successfully."],
         warning=warning_messages,
