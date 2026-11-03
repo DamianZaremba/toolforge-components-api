@@ -47,8 +47,10 @@ def _resolve_ref(build_info: SourceBuildInfo) -> str:
         ref = "HEAD"
 
     logger.debug(f"Resolving ref '{ref}' for git repository '{source_url}'")
+    # "--end-of-options" makes git read source_url and ref as values, not options.
+    # without it a ref can be used to make git run a program.
     result = subprocess.run(
-        ["git", "ls-remote", source_url, ref],
+        ["git", "ls-remote", "--end-of-options", source_url, ref],
         capture_output=True,
         text=True,
         check=False,
