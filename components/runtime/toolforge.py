@@ -160,9 +160,9 @@ def _matches_parameters(
 def _get_latest_component_build(
     builds: list[BuildsBuild], component_name: str
 ) -> BuildsBuild | None:
-    earliest_timestamp = datetime.datetime.min.replace(
-        tzinfo=datetime.timezone.utc
-    ).strftime("%Y-%m-%dT%H:%M:%SZ")
+    earliest_timestamp = datetime.datetime.min.replace(tzinfo=datetime.UTC).strftime(
+        "%Y-%m-%dT%H:%M:%SZ"
+    )
     builds = sorted(
         builds,
         key=lambda build: build.start_time or earliest_timestamp,
