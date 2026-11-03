@@ -1,7 +1,7 @@
 import datetime
 import subprocess
 from logging import getLogger
-from typing import TypeAlias
+from typing import Any, TypeAlias
 
 from fastapi import status
 from requests import HTTPError
@@ -19,6 +19,7 @@ from ..gen.toolforge_models import (
     JobsNewContinuousJob,
     JobsNewOneOffJob,
     JobsNewScheduledJob,
+    JobsNewWebserviceJob,
     JobsResponseMessages,
     JobsScriptHealthCheck,
     JobsUpdateResponse,
@@ -30,6 +31,7 @@ from ..models.api_models import (
     DeploymentBuildState,
     ScheduledRunInfo,
     SourceBuildInfo,
+    WebServiceRunInfo,
 )
 from ..settings import get_settings
 from .base import AnyDefinedJob, Runtime
@@ -248,6 +250,42 @@ def _run_info_to_scheduled_job(
             params[field] = run_info_data[field]
 
     return JobsNewScheduledJob.model_validate(params)
+
+
+def _run_info_to_webservice_job(
+    component_name: str, run_info: WebServiceRunInfo, image_name: str
+) -> JobsNewWebserviceJob:
+    run_info_data = run_info.model_dump(exclude_unset=True)
+    params: dict[str, Any] = {
+        # we always want to send job_type
+        "job_type": "webservice",
+        "name": component_name,
+        "imagename": image_name,
+    }
+    if run_info_data.get("command"):
+        params["cmd"] = run_info_data["command"]
+
+    if run_info_data.get("health_check_http"):
+        params["health_check"] = JobsHttpHealthCheck(
+            type="http", path=run_info_data["health_check_http"]
+        ).model_dump()
+    elif run_info_data.get("health_check_script"):
+        params["health_check"] = JobsScriptHealthCheck(
+            type="script", script=run_info_data["health_check_script"]
+        ).model_dump()
+
+    for field in [
+        "cpu",
+        "emails",
+        "memory",
+        "replicas",
+        "mount",
+        "port",
+    ]:
+        if field in run_info_data:
+            params[field] = run_info_data[field]
+
+    return JobsNewWebserviceJob.model_validate(params)
 
 
 class ToolforgeRuntime(Runtime):
@@ -522,6 +560,66 @@ class ToolforgeRuntime(Runtime):
         else:
             return self._format_status_messages(
                 f"job {component_name} is already up to date", create_response.messages
+            )
+
+    def run_webservice_job(
+        self,
+        tool_name: str,
+        component_name: str,
+        component_info: ComponentInfo,
+        force_restart: bool,
+        image_name: str,
+    ) -> str:
+        if not isinstance(component_info.run, WebServiceRunInfo):
+            raise TypeError(
+                f"Invalid run info passed, it's not a WebServiceRunInfo: {component_info.run}"
+            )
+        settings = get_settings()
+        toolforge_client = get_toolforge_client()
+
+        logger.debug(
+            f"Creating webservice for component {component_name} with image "
+            f"{image_name} and run_info {component_info.run}"
+        )
+        new_job = _run_info_to_webservice_job(
+            component_name=component_name,
+            run_info=component_info.run,
+            image_name=image_name,
+        )
+
+        json_data = new_job.model_dump(mode="json", exclude_unset=True)
+        logger.debug(f"Sending webservice info {json_data} to jobs-api")
+        create_response = JobsUpdateResponse.model_validate(
+            toolforge_client.patch(
+                f"/jobs/v1/tool/{tool_name}/jobs/",
+                json=json_data,
+                verify=settings.verify_toolforge_api_cert,
+            )
+        )
+        logger.debug(f"Deployed webservice {component_name}: {create_response}")
+        if create_response.job_changed:
+            return self._format_status_messages(
+                f"created or updated webservice {component_name}",
+                create_response.messages,
+            )
+
+        elif force_restart:
+            logger.debug(
+                f"Explicitly restarting webservice {component_name} as the "
+                "configuration did not change"
+            )
+            toolforge_client.post(
+                f"/jobs/v1/tool/{tool_name}/jobs/{component_name}/restart/",
+                verify=settings.verify_toolforge_api_cert,
+            )
+            return self._format_status_messages(
+                f"restarted webservice {component_name}", create_response.messages
+            )
+
+        else:
+            return self._format_status_messages(
+                f"webservice {component_name} is already up to date",
+                create_response.messages,
             )
 
     def delete_job_if_exists(
