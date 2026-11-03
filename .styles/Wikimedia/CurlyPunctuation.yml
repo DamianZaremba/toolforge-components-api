@@ -1,0 +1,10 @@
+extends: substitution
+message: "Use neutral quotes (%s) instead of curly quotes (%s)."
+link: https://www.mediawiki.org/wiki/Documentation/Tools/Linting/Linter_rule_reference#Wikimedia.CurlyPunctuation
+nonword: true
+level: suggestion
+swap:
+  "‘": "'"
+  "’": "'"
+  '“': '"'
+  '”': '"'

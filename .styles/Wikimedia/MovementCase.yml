@@ -1,0 +1,7 @@
+extends: existence
+message: "Use lowercase 'movement' for the Wikimedia movement."
+link: https://www.mediawiki.org/wiki/Documentation/Tools/Linting/Linter_rule_reference#Wikimedia.MovementCase
+level: suggestion
+nonword: true
+tokens:
+  - '[a-z] Movement'

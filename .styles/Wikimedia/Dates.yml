@@ -1,0 +1,5 @@
+extends: existence
+message: "Consider reformatting '%s' to YYYY-MM-DD or similar."
+link: https://www.mediawiki.org/wiki/Documentation/Tools/Linting/Linter_rule_reference#Wikimedia.Dates
+level: suggestion
+raw: (\b(0?[1-9]|[123]\d)[\/\-\\\.](0?[1-9]|[0123]\d)([\/\-\\\.](\d{4})|[\/\-\\](\d{2,4}))\b)
