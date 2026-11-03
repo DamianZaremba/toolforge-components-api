@@ -21,6 +21,7 @@ from ..models.api_models import (
     PLACEHOLDER_DEFAULT_URL,
     AnyGitUrl,
     ComponentInfo,
+    ComponentType,
     ConfigVersion,
     ContinuousComponentInfo,
     ContinuousRunInfo,
@@ -232,9 +233,19 @@ def _get_component_for_job(
     run = _get_run_for_job(job=job)
     match run:
         case ScheduledRunInfo():
-            return ScheduledComponentInfo(build=build, run=run), ""
+            return (
+                ScheduledComponentInfo(
+                    build=build, run=run, component_type=ComponentType.SCHEDULED
+                ),
+                "",
+            )
         case ContinuousRunInfo():
-            return ContinuousComponentInfo(build=build, run=run), ""
+            return (
+                ContinuousComponentInfo(
+                    build=build, run=run, component_type=ComponentType.CONTINUOUS
+                ),
+                "",
+            )
 
 
 def generate_tool_config(

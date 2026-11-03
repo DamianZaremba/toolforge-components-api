@@ -1308,6 +1308,10 @@ class TestGenerateConfig:
 
         assert parsed_response.data == expected_config.data
         assert parsed_response.messages == expected_config.messages
+        assert [
+            component["component_type"]
+            for component in raw_response.json()["data"]["components"].values()
+        ] == ["continuous", "continuous"]
 
     def test_generates_example_if_no_supported_jobs(
         self, authenticated_client: TestClient, monkeypatch: pytest.MonkeyPatch
