@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Toolforge Components API
-  version: 0.13.1
+  version: 0.13.2
 servers:
 - url: http://127.0.0.1:8000
   description: Local direct development server.
@@ -656,6 +656,10 @@ components:
       required:
       - data
       title: ApiResponse[ToolConfig]
+    ComponentInfo:
+      anyOf:
+      - $ref: '#/components/schemas/ContinuousComponentInfo'
+      - $ref: '#/components/schemas/ScheduledComponentInfo'
     ConfigAlerts:
       properties:
         notify:
@@ -1219,9 +1223,7 @@ components:
               notify: false
         components:
           additionalProperties:
-            anyOf:
-            - $ref: '#/components/schemas/ContinuousComponentInfo'
-            - $ref: '#/components/schemas/ScheduledComponentInfo'
+            $ref: '#/components/schemas/ComponentInfo'
           type: object
           title: Components
           description: List of components to run. Each component matches a continuous

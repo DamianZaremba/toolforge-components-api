@@ -308,7 +308,7 @@ class ContinuousComponentInfo(BaseModel):
     component_type: Literal[ComponentType.CONTINUOUS] = ComponentType.CONTINUOUS
 
 
-ComponentInfo = ContinuousComponentInfo | ScheduledComponentInfo
+type ComponentInfo = ContinuousComponentInfo | ScheduledComponentInfo
 
 
 class ToolConfig(BaseModel):
