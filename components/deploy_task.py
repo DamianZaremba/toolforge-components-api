@@ -337,6 +337,8 @@ def _start_build(
                 )
                 time.sleep(10)
                 now = datetime.now(tz=UTC)
+                continue
+            raise
 
     message = f"Timed out waiting for the build queue to free a slot, waited for {datetime.now(tz=UTC) - start_time}"
     logger.info(message)
