@@ -18,48 +18,48 @@ class BuildsBuildLog(BaseModel):
 class BuildsBuildParameters(BaseModel):
     envvars: Annotated[
         dict[str, str] | None,
-        Field(description='Environment variables and values to be set at build time'),
+        Field(description="Environment variables and values to be set at build time"),
     ] = None
     image_name: Annotated[
-        str | None, Field(description='The name of the image to be built')
+        str | None, Field(description="The name of the image to be built")
     ] = None
     ref: Annotated[
         str | None,
-        Field(description='Source code reference to build (ex. a git branch name)'),
+        Field(description="Source code reference to build (ex. a git branch name)"),
     ] = None
     source_url: Annotated[
         str,
         Field(
-            description='URL to the public git repository that contains the source code\nto build\n'
+            description="URL to the public git repository that contains the source code\nto build\n"
         ),
     ]
     use_deprecated_versions: Annotated[
         bool | None,
         Field(
-            description='<- If set, it will use a deprecated version of the builder+runner images, use only as last resort while migrating. It will be ignored if `use_latest_versions` is `true`.'
+            description="<- If set, it will use a deprecated version of the builder+runner images, use only as last resort while migrating. It will be ignored if `use_latest_versions` is `true`."
         ),
     ] = False
     use_latest_versions: Annotated[
         bool | None,
         Field(
-            description='<- If set, it will use the latest available versions of the builder+runner images, recommended if you want to be able to have some buffer before the old versions are removed'
+            description="<- If set, it will use the latest available versions of the builder+runner images, recommended if you want to be able to have some buffer before the old versions are removed"
         ),
     ] = False
 
 
 class BuildsBuildStatus(StrEnum):
-    BUILD_PENDING = 'BUILD_PENDING'
-    BUILD_RUNNING = 'BUILD_RUNNING'
-    BUILD_SUCCESS = 'BUILD_SUCCESS'
-    BUILD_FAILURE = 'BUILD_FAILURE'
-    BUILD_CANCELLED = 'BUILD_CANCELLED'
-    BUILD_TIMEOUT = 'BUILD_TIMEOUT'
-    BUILD_UNKNOWN = 'BUILD_UNKNOWN'
+    BUILD_PENDING = "BUILD_PENDING"
+    BUILD_RUNNING = "BUILD_RUNNING"
+    BUILD_SUCCESS = "BUILD_SUCCESS"
+    BUILD_FAILURE = "BUILD_FAILURE"
+    BUILD_CANCELLED = "BUILD_CANCELLED"
+    BUILD_TIMEOUT = "BUILD_TIMEOUT"
+    BUILD_UNKNOWN = "BUILD_UNKNOWN"
 
 
 class Status(StrEnum):
-    OK = 'OK'
-    ERROR = 'ERROR'
+    OK = "OK"
+    ERROR = "ERROR"
 
 
 class BuildsNewBuild(BaseModel):
@@ -91,8 +91,8 @@ class ComponentsConfigAlerts(BaseModel):
     notify: Annotated[
         bool | None,
         Field(
-            description='Enable if you want to receive notification emails for tool alerts (beta feature)',
-            title='Notify',
+            description="Enable if you want to receive notification emails for tool alerts (beta feature)",
+            title="Notify",
         ),
     ] = False
 
@@ -101,145 +101,145 @@ class ComponentsConfigDefaults(BaseModel):
     alerts: Annotated[
         ComponentsConfigAlerts | None,
         Field(
-            description='Values that will apply to all the components of the tool. Per-component overrides will be supported in the future.',
+            description="Values that will apply to all the components of the tool. Per-component overrides will be supported in the future.",
             validate_default=True,
         ),
-    ] = {'notify': False}
+    ] = {"notify": False}
 
 
 class ComponentsDeployToken(BaseModel):
-    token: Annotated[UUID | None, Field(title='Token')] = None
-    creation_date: Annotated[AwareDatetime | None, Field(title='Creation Date')] = None
+    token: Annotated[UUID | None, Field(title="Token")] = None
+    creation_date: Annotated[AwareDatetime | None, Field(title="Creation Date")] = None
 
 
 class BuildId(StrEnum):
-    no_id_yet = 'no-id-yet'
-    no_build_needed = 'no-build-needed'
+    no_id_yet = "no-id-yet"
+    no_build_needed = "no-build-needed"
 
 
 class ComponentsDeploymentBuildState(StrEnum):
-    pending = 'pending'
-    running = 'running'
-    failed = 'failed'
-    successful = 'successful'
-    unknown = 'unknown'
-    skipped = 'skipped'
-    cancelled = 'cancelled'
+    pending = "pending"
+    running = "running"
+    failed = "failed"
+    successful = "successful"
+    unknown = "unknown"
+    skipped = "skipped"
+    cancelled = "cancelled"
 
 
 class ComponentsDeploymentCreateRequest(BaseModel):
     description: Annotated[
         str | None,
         Field(
-            description='Optional human-readable context describing what is being deployed and why.',
-            examples=['Deploy T401993: add deployment descriptions'],
-            title='Description',
+            description="Optional human-readable context describing what is being deployed and why.",
+            examples=["Deploy T401993: add deployment descriptions"],
+            title="Description",
         ),
-    ] = ''
+    ] = ""
 
 
 class ComponentsDeploymentRunState(StrEnum):
-    pending = 'pending'
-    failed = 'failed'
-    successful = 'successful'
-    skipped = 'skipped'
-    unknown = 'unknown'
+    pending = "pending"
+    failed = "failed"
+    successful = "successful"
+    skipped = "skipped"
+    unknown = "unknown"
 
 
 class ComponentsDeploymentState(StrEnum):
-    pending = 'pending'
-    running = 'running'
-    failed = 'failed'
-    timed_out = 'timed_out'
-    successful = 'successful'
-    cancelling = 'cancelling'
-    cancelled = 'cancelled'
+    pending = "pending"
+    running = "running"
+    failed = "failed"
+    timed_out = "timed_out"
+    successful = "successful"
+    cancelling = "cancelling"
+    cancelled = "cancelled"
 
 
 class ComponentsGetToolsWithConfigData(BaseModel):
-    matching_tools: Annotated[list[str], Field(title='Matching Tools')]
+    matching_tools: Annotated[list[str], Field(title="Matching Tools")]
 
 
 class ComponentsHealthState(BaseModel):
-    status: Annotated[Status, Field(title='Status')]
+    status: Annotated[Status, Field(title="Status")]
 
 
 class ComponentsJobsEmailOption(StrEnum):
-    none = 'none'
-    all = 'all'
-    onfinish = 'onfinish'
-    onfailure = 'onfailure'
+    none = "none"
+    all = "all"
+    onfinish = "onfinish"
+    onfailure = "onfailure"
 
 
 class ComponentsMount(StrEnum):
-    all = 'all'
-    none = 'none'
+    all = "all"
+    none = "none"
 
 
 class ComponentsPortProtocol(StrEnum):
-    tcp = 'tcp'
-    udp = 'udp'
+    tcp = "tcp"
+    udp = "udp"
 
 
 class ComponentsResponseMessages(BaseModel):
-    info: Annotated[list[str] | None, Field(title='Info')] = []
-    warning: Annotated[list[str] | None, Field(title='Warning')] = [
-        'You are using a beta feature of Toolforge.'
+    info: Annotated[list[str] | None, Field(title="Info")] = []
+    warning: Annotated[list[str] | None, Field(title="Warning")] = [
+        "You are using a beta feature of Toolforge."
     ]
-    error: Annotated[list[str] | None, Field(title='Error')] = []
+    error: Annotated[list[str] | None, Field(title="Error")] = []
 
 
 class ComponentsScheduledRunInfo(BaseModel):
     cpu: Annotated[
         str | None,
-        Field(description='Job CPU resource limit.', examples=['1'], title='Cpu'),
+        Field(description="Job CPU resource limit.", examples=["1"], title="Cpu"),
     ] = None
     emails: Annotated[
         ComponentsJobsEmailOption | None,
-        Field(description='Job emails setting.', examples=['none']),
-    ] = 'none'
+        Field(description="Job emails setting.", examples=["none"]),
+    ] = "none"
     memory: Annotated[
         str | None,
         Field(
-            description='Job memory resource limit.', examples=['1G'], title='Memory'
+            description="Job memory resource limit.", examples=["1G"], title="Memory"
         ),
     ] = None
     mount: Annotated[
         ComponentsMount | None,
         Field(
-            description='NFS mount configuration for the job.', examples=['none', 'all']
+            description="NFS mount configuration for the job.", examples=["none", "all"]
         ),
-    ] = 'none'
+    ] = "none"
     filelog: Annotated[
         bool | None,
         Field(
-            description='Whether this job uses filelog or not.',
+            description="Whether this job uses filelog or not.",
             examples=[False],
-            title='Filelog',
+            title="Filelog",
         ),
     ] = None
     filelog_stderr: Annotated[
         str | None,
         Field(
-            description='Path to the stderr file log.',
-            examples=['logs/my-job.err'],
-            title='Filelog Stderr',
+            description="Path to the stderr file log.",
+            examples=["logs/my-job.err"],
+            title="Filelog Stderr",
         ),
     ] = None
     filelog_stdout: Annotated[
         str | None,
         Field(
-            description='Path to the stdout file log.',
-            examples=['logs/my-job.out'],
-            title='Filelog Stdout',
+            description="Path to the stdout file log.",
+            examples=["logs/my-job.out"],
+            title="Filelog Stdout",
         ),
     ] = None
     command: Annotated[
         str,
         Field(
-            description='Command to use to run this component, `launcher` will be prepended to it to load the environment if needed.',
+            description="Command to use to run this component, `launcher` will be prepended to it to load the environment if needed.",
             examples=["bash -c 'while date; do sleep 10; done'"],
-            title='Command',
+            title="Command",
         ),
     ]
     retry: Annotated[
@@ -249,70 +249,70 @@ class ComponentsScheduledRunInfo(BaseModel):
             examples=[0],
             ge=0,
             le=5,
-            title='Retry',
+            title="Retry",
         ),
     ] = None
     schedule: Annotated[
         str,
         Field(
-            description='If the job is a cronjob, execution schedule.',
-            examples=['@hourly', '*/15 * * * *'],
-            title='Schedule',
+            description="If the job is a cronjob, execution schedule.",
+            examples=["@hourly", "*/15 * * * *"],
+            title="Schedule",
         ),
     ]
     timeout: Annotated[
         int | None,
         Field(
-            description='Maximum amount of seconds the job will be allowed to run before it is failed',
+            description="Maximum amount of seconds the job will be allowed to run before it is failed",
             examples=[120],
             ge=0,
-            title='Timeout',
+            title="Timeout",
         ),
     ] = None
 
 
 class ComponentsSearchParameters(BaseModel):
-    matches: Annotated[dict[str, Any], Field(title='Matches')]
+    matches: Annotated[dict[str, Any], Field(title="Matches")]
 
 
 class ComponentsSourceBuildInfo(BaseModel):
     repository: Annotated[
         AnyUrl,
         Field(
-            description='URL of the public git repository with the code to build.',
+            description="URL of the public git repository with the code to build.",
             examples=[
-                'https://gitlab.wikimedia.org/toolforge-repos/sample-complex-app-backend'
+                "https://gitlab.wikimedia.org/toolforge-repos/sample-complex-app-backend"
             ],
-            title='Repository',
+            title="Repository",
         ),
     ]
     ref: Annotated[
         str,
         Field(
-            description='Git ref to build from. This can be a tag, a branch name or a commit SHA.',
-            examples=['main', 'v1.2.3', '35b594f5d452c288c4a15fe667a7dfb94a7e5489'],
-            title='Ref',
+            description="Git ref to build from. This can be a tag, a branch name or a commit SHA.",
+            examples=["main", "v1.2.3", "35b594f5d452c288c4a15fe667a7dfb94a7e5489"],
+            title="Ref",
         ),
     ]
     use_latest_versions: Annotated[
         bool | None,
         Field(
-            description='If set, it will use the latest buildpacks and run images for this build. Helpful to always get the latest versions or test them before they become standard.',
-            title='Use Latest Versions',
+            description="If set, it will use the latest buildpacks and run images for this build. Helpful to always get the latest versions or test them before they become standard.",
+            title="Use Latest Versions",
         ),
     ] = None
     use_deprecated_versions: Annotated[
         bool | None,
         Field(
-            description='If set, it will use the deprecated buildpacks and run images for this build. Helpful while migrating to the newer buildpacks.',
-            title='Use Deprecated Versions',
+            description="If set, it will use the deprecated buildpacks and run images for this build. Helpful while migrating to the newer buildpacks.",
+            title="Use Deprecated Versions",
         ),
     ] = None
     envvars: Annotated[
-        dict[constr(pattern=r'^[A-Z][A-Z_0-9]{2,}[A-Z0-9]$'), str] | None,
+        dict[constr(pattern=r"^[A-Z][A-Z_0-9]{2,}[A-Z0-9]$"), str] | None,
         Field(
-            description='Environment variables and values to be set at build time',
-            title='Envvars',
+            description="Environment variables and values to be set at build time",
+            title="Envvars",
         ),
     ] = None
 
@@ -321,36 +321,36 @@ class ComponentsSourceBuildReference(BaseModel):
     reuse_from: Annotated[
         str,
         Field(
-            description='Component to re-use the build from.',
-            examples=['parent-component'],
-            title='Reuse From',
+            description="Component to re-use the build from.",
+            examples=["parent-component"],
+            title="Reuse From",
         ),
     ]
 
 
 class ConfigVersionEnum(StrEnum):
-    v1beta1 = 'v1beta1'
+    v1beta1 = "v1beta1"
 
 
 class ConfigVersion(RootModel[ConfigVersionEnum | None]):
-    root: Annotated[ConfigVersionEnum | None, Field(title='Config Version')] = 'v1beta1'
+    root: Annotated[ConfigVersionEnum | None, Field(title="Config Version")] = "v1beta1"
 
 
 class ComponentsValidationError(BaseModel):
-    loc: Annotated[list[str | int], Field(title='Location')]
-    msg: Annotated[str, Field(title='Message')]
-    type: Annotated[str, Field(title='Error Type')]
+    loc: Annotated[list[str | int], Field(title="Location")]
+    msg: Annotated[str, Field(title="Message")]
+    type: Annotated[str, Field(title="Error Type")]
 
 
 class EnvvarsEnvvarName(RootModel[str]):
-    root: Annotated[str, Field(pattern='^[A-Z][A-Z_0-9]{2,}[A-Z0-9]$')]
+    root: Annotated[str, Field(pattern="^[A-Z][A-Z_0-9]{2,}[A-Z0-9]$")]
 
 
 class EnvvarsEnvvarsQuota(BaseModel):
     quota: Annotated[
-        int | None, Field(description='The quota available to the user')
+        int | None, Field(description="The quota available to the user")
     ] = None
-    used: Annotated[int | None, Field(description='The quota used by the user')] = None
+    used: Annotated[int | None, Field(description="The quota used by the user")] = None
 
 
 class EnvvarsResponseMessages(BaseModel):
@@ -412,33 +412,33 @@ class JobsJobLogs(RootModel[str]):
 
 
 class JobsHealthCheckType(StrEnum):
-    script = 'script'
-    http = 'http'
+    script = "script"
+    http = "http"
 
 
 class JobsScriptHealthCheck(BaseModel):
-    type: Literal['script']
+    type: Literal["script"]
     script: str
 
 
 class JobsHttpHealthCheck(BaseModel):
-    type: Literal['http']
+    type: Literal["http"]
     path: str
 
 
 class JobsEmailOption(StrEnum):
-    none = 'none'
-    all = 'all'
-    onfinish = 'onfinish'
-    onfailure = 'onfailure'
+    none = "none"
+    all = "all"
+    onfinish = "onfinish"
+    onfailure = "onfailure"
 
 
 class JobsStatusShort(StrEnum):
-    pending = 'pending'
-    running = 'running'
-    succeeded = 'succeeded'
-    failed = 'failed'
-    unknown = 'unknown'
+    pending = "pending"
+    running = "running"
+    succeeded = "succeeded"
+    failed = "failed"
+    unknown = "unknown"
 
 
 class JobsCommonJobStatus(BaseModel):
@@ -447,14 +447,14 @@ class JobsCommonJobStatus(BaseModel):
         list[Any] | None,
         Field(
             description="This field is for more detailed explanation of a job's status",
-            examples=[['scheduling', 'initializing', 'exitcode 1']],
+            examples=[["scheduling", "initializing", "exitcode 1"]],
         ),
     ] = None
     duration: Annotated[
         str,
         Field(
-            description='This shows an estimate of how long a job has been in the current status',
-            examples=['24d24h59m45s'],
+            description="This shows an estimate of how long a job has been in the current status",
+            examples=["24d24h59m45s"],
         ),
     ]
     up_to_date: Annotated[
@@ -473,15 +473,15 @@ class JobsScheduledJobStatus(JobsCommonJobStatus):
     previous_schedule: Annotated[
         str | None,
         Field(
-            description='datetime string of the prev time the job was triggered (iso8601)',
-            examples=['2025-08-27T10:07:48Z'],
+            description="datetime string of the prev time the job was triggered (iso8601)",
+            examples=["2025-08-27T10:07:48Z"],
         ),
     ] = None
     next_schedule: Annotated[
         str | None,
         Field(
-            description='datetime string of the next time the job will be triggered (iso8601)',
-            examples=['2025-08-28T10:07:48Z'],
+            description="datetime string of the next time the job will be triggered (iso8601)",
+            examples=["2025-08-28T10:07:48Z"],
         ),
     ] = None
 
@@ -491,40 +491,40 @@ class JobsContinuousJobStatus(JobsCommonJobStatus):
 
 
 class Mount(StrEnum):
-    all = 'all'
-    none = 'none'
+    all = "all"
+    none = "none"
 
 
 class JobsStorageOptions(BaseModel):
     mount: Annotated[
         Mount | None,
-        Field(description='NFS mount configuration for the job.', examples=['none']),
-    ] = 'all'
+        Field(description="NFS mount configuration for the job.", examples=["none"]),
+    ] = "all"
 
 
 class JobsCommonOptions(JobsStorageOptions):
     name: Annotated[
         str,
         Field(
-            description='Unique name that identifies the job.',
-            examples=['my-job'],
+            description="Unique name that identifies the job.",
+            examples=["my-job"],
             max_length=52,
             min_length=1,
-            pattern='^[a-z0-9]([-a-z0-9]*[a-z0-9])?([.][a-z0-9]([-a-z0-9]*[a-z0-9])?)*$',
+            pattern="^[a-z0-9]([-a-z0-9]*[a-z0-9])?([.][a-z0-9]([-a-z0-9]*[a-z0-9])?)*$",
         ),
     ]
     imagename: Annotated[
         str,
         Field(
-            description='Container image the job uses.',
-            examples=['tool-my-tool/tool-my-tool:latest'],
+            description="Container image the job uses.",
+            examples=["tool-my-tool/tool-my-tool:latest"],
         ),
     ]
     memory: Annotated[
-        str | None, Field(description='Job memory resource limit.', examples=['1G'])
+        str | None, Field(description="Job memory resource limit.", examples=["1G"])
     ] = None
     cpu: Annotated[
-        str | None, Field(description='Job CPU resource limit.', examples=['1'])
+        str | None, Field(description="Job CPU resource limit.", examples=["1"])
     ] = None
     emails: JobsEmailOption | None = None
 
@@ -532,28 +532,28 @@ class JobsCommonOptions(JobsStorageOptions):
 class JobsFileLoggingOptions(JobsStorageOptions):
     filelog: Annotated[
         bool | None,
-        Field(description='Whether this job uses filelog or not.', examples=[False]),
+        Field(description="Whether this job uses filelog or not.", examples=[False]),
     ] = False
     filelog_stdout: Annotated[
         str | None,
-        Field(description='Path to the stdout file log.', examples=['logs/my-job.out']),
+        Field(description="Path to the stdout file log.", examples=["logs/my-job.out"]),
     ] = None
     filelog_stderr: Annotated[
         str | None,
-        Field(description='Path to the stderr file log.', examples=['logs/my-job.err']),
+        Field(description="Path to the stderr file log.", examples=["logs/my-job.err"]),
     ] = None
 
 
 class JobType(StrEnum):
-    one_off = 'one-off'
+    one_off = "one-off"
 
 
 class JobsNewOneOffJob(JobsCommonOptions, JobsFileLoggingOptions):
     cmd: Annotated[
         str,
         Field(
-            description='Command that this job is executing.',
-            examples=['./some-command.sh --with-args'],
+            description="Command that this job is executing.",
+            examples=["./some-command.sh --with-args"],
         ),
     ]
     job_type: JobType | None = None
@@ -569,15 +569,15 @@ class JobsNewOneOffJob(JobsCommonOptions, JobsFileLoggingOptions):
 
 
 class JobType1(StrEnum):
-    scheduled = 'scheduled'
+    scheduled = "scheduled"
 
 
 class JobsNewScheduledJob(JobsCommonOptions, JobsFileLoggingOptions):
     cmd: Annotated[
         str,
         Field(
-            description='Command that this job is executing.',
-            examples=['./some-command.sh --with-args'],
+            description="Command that this job is executing.",
+            examples=["./some-command.sh --with-args"],
         ),
     ]
     job_type: JobType1 | None = None
@@ -593,14 +593,14 @@ class JobsNewScheduledJob(JobsCommonOptions, JobsFileLoggingOptions):
     schedule: Annotated[
         str,
         Field(
-            description='If the job is a cronjob, execution schedule.',
-            examples=['@hourly'],
+            description="If the job is a cronjob, execution schedule.",
+            examples=["@hourly"],
         ),
     ]
     timeout: Annotated[
         int | None,
         Field(
-            description='Maximum amount of seconds the job will be allowed to run before it is failed',
+            description="Maximum amount of seconds the job will be allowed to run before it is failed",
             examples=[120],
             ge=0,
         ),
@@ -608,26 +608,26 @@ class JobsNewScheduledJob(JobsCommonOptions, JobsFileLoggingOptions):
 
 
 class JobType2(StrEnum):
-    continuous = 'continuous'
+    continuous = "continuous"
 
 
 class PortProtocol(StrEnum):
-    tcp = 'tcp'
-    udp = 'udp'
+    tcp = "tcp"
+    udp = "udp"
 
 
 class JobsNewContinuousJob(JobsCommonOptions, JobsFileLoggingOptions):
     cmd: Annotated[
         str,
         Field(
-            description='Command that this job is executing.',
-            examples=['./some-command.sh --with-args'],
+            description="Command that this job is executing.",
+            examples=["./some-command.sh --with-args"],
         ),
     ]
     continuous: Annotated[
         bool | None,
         Field(
-            description='If a job should be always running.\nThis is deprecated and is only here for backward compatibility.\nUse job_type instead.\n',
+            description="If a job should be always running.\nThis is deprecated and is only here for backward compatibility.\nUse job_type instead.\n",
             examples=[True],
         ),
     ] = None
@@ -635,13 +635,13 @@ class JobsNewContinuousJob(JobsCommonOptions, JobsFileLoggingOptions):
     replicas: Annotated[
         int | None,
         Field(
-            description='Number of replicas to be used for the job', examples=[1], ge=1
+            description="Number of replicas to be used for the job", examples=[1], ge=1
         ),
     ] = None
     port: Annotated[
         int | None,
         Field(
-            description='If passed, it will make this port available internally for other jobs (and externally under https/443 if `publish` is also passed)',
+            description="If passed, it will make this port available internally for other jobs (and externally under https/443 if `publish` is also passed)",
             examples=[8080],
             ge=1,
             le=65535,
@@ -649,25 +649,25 @@ class JobsNewContinuousJob(JobsCommonOptions, JobsFileLoggingOptions):
     ] = None
     port_protocol: Annotated[
         PortProtocol | None,
-        Field(description='Protocol for the port exposed by the job', examples=['tcp']),
-    ] = 'tcp'
+        Field(description="Protocol for the port exposed by the job", examples=["tcp"]),
+    ] = "tcp"
     publish: Annotated[
         str | None,
         Field(
             description="Indicates if this job is exposed to the internet via https://{toolname}.toolforge.org by specifying the path.\nOnly the root path '/' is supported for now\n",
-            examples=['/'],
+            examples=["/"],
         ),
     ] = None
     health_check: Annotated[
         JobsScriptHealthCheck | JobsHttpHealthCheck | None,
         Field(
-            description='Health check configuration for the job', discriminator='type'
+            description="Health check configuration for the job", discriminator="type"
         ),
     ] = None
 
 
 class JobType3(StrEnum):
-    webservice = 'webservice'
+    webservice = "webservice"
 
 
 class JobsNewWebserviceJob(JobsCommonOptions):
@@ -675,19 +675,19 @@ class JobsNewWebserviceJob(JobsCommonOptions):
         str,
         Field(
             description="Unique name that identifies the job. Defaults to 'webservice' if omitted.",
-            examples=['webservice'],
+            examples=["webservice"],
             max_length=52,
             min_length=1,
-            pattern='^[a-z0-9]([-a-z0-9]*[a-z0-9])?([.][a-z0-9]([-a-z0-9]*[a-z0-9])?)*$',
+            pattern="^[a-z0-9]([-a-z0-9]*[a-z0-9])?([.][a-z0-9]([-a-z0-9]*[a-z0-9])?)*$",
         ),
     ]
     cmd: Annotated[
         str | None,
         Field(
             description="Command that this job is executing. Leave empty to use the image's webservice default command.",
-            examples=['./some-command.sh --with-args'],
+            examples=["./some-command.sh --with-args"],
         ),
-    ] = ''
+    ] = ""
     job_type: JobType3
     port: Annotated[
         int | None,
@@ -701,13 +701,13 @@ class JobsNewWebserviceJob(JobsCommonOptions):
     replicas: Annotated[
         int | None,
         Field(
-            description='Number of replicas to be used for the job', examples=[1], ge=1
+            description="Number of replicas to be used for the job", examples=[1], ge=1
         ),
     ] = None
     health_check: Annotated[
         JobsScriptHealthCheck | JobsHttpHealthCheck | None,
         Field(
-            description='Health check configuration for the job', discriminator='type'
+            description="Health check configuration for the job", discriminator="type"
         ),
     ] = None
 
@@ -716,52 +716,52 @@ class JobsDefinedCommonOptions(JobsCommonOptions):
     image: Annotated[
         str | None,
         Field(
-            description='Container image the job uses.',
-            examples=['tool-my-tool/tool-my-tool:latest'],
+            description="Container image the job uses.",
+            examples=["tool-my-tool/tool-my-tool:latest"],
         ),
     ] = None
     image_state: Annotated[
         str | None,
         Field(
-            description='Information about the image state, i.e, if it is stable, deprecated, or something else.',
-            examples=['stable'],
+            description="Information about the image state, i.e, if it is stable, deprecated, or something else.",
+            examples=["stable"],
         ),
     ] = None
     status_short: Annotated[
-        str | None, Field(description='Job status, short text.', examples=['Running.'])
+        str | None, Field(description="Job status, short text.", examples=["Running."])
     ] = None
     status_long: Annotated[
         str | None,
         Field(
-            description='Job status, extended text.',
-            examples=['Running since 30 seconds ago.'],
+            description="Job status, extended text.",
+            examples=["Running since 30 seconds ago."],
         ),
     ] = None
     status: Annotated[
         JobsOneOffJobStatus | JobsContinuousJobStatus | JobsScheduledJobStatus | None,
         Field(
-            description='v2 of status_long|status_short, for standardized job status reporting'
+            description="v2 of status_long|status_short, for standardized job status reporting"
         ),
     ] = None
 
 
 class JobType4(StrEnum):
-    one_off = 'one-off'
+    one_off = "one-off"
 
 
 class JobsDefinedOneOffJob(JobsDefinedCommonOptions, JobsFileLoggingOptions):
     cmd: Annotated[
         str,
         Field(
-            description='Command that this job is executing.',
-            examples=['./some-command.sh --with-args'],
+            description="Command that this job is executing.",
+            examples=["./some-command.sh --with-args"],
         ),
     ]
     job_type: JobType4
     retry: Annotated[
         int | None,
         Field(
-            description='Job retry policy. Zero means no retry at all (the default)',
+            description="Job retry policy. Zero means no retry at all (the default)",
             examples=[0],
             ge=0,
             le=5,
@@ -770,22 +770,22 @@ class JobsDefinedOneOffJob(JobsDefinedCommonOptions, JobsFileLoggingOptions):
 
 
 class JobType5(StrEnum):
-    scheduled = 'scheduled'
+    scheduled = "scheduled"
 
 
 class JobsDefinedScheduledJob(JobsDefinedCommonOptions, JobsFileLoggingOptions):
     cmd: Annotated[
         str,
         Field(
-            description='Command that this job is executing.',
-            examples=['./some-command.sh --with-args'],
+            description="Command that this job is executing.",
+            examples=["./some-command.sh --with-args"],
         ),
     ]
     job_type: JobType5
     retry: Annotated[
         int | None,
         Field(
-            description='Job retry policy. Zero means no retry at all (the default)',
+            description="Job retry policy. Zero means no retry at all (the default)",
             examples=[0],
             ge=0,
             le=5,
@@ -794,21 +794,21 @@ class JobsDefinedScheduledJob(JobsDefinedCommonOptions, JobsFileLoggingOptions):
     schedule: Annotated[
         str,
         Field(
-            description='If the job is a cronjob, execution schedule.',
-            examples=['@hourly'],
+            description="If the job is a cronjob, execution schedule.",
+            examples=["@hourly"],
         ),
     ]
     schedule_actual: Annotated[
         str | None,
         Field(
-            description='If the job is a cronjob, actual execution schedule.',
-            examples=['15 * * * *'],
+            description="If the job is a cronjob, actual execution schedule.",
+            examples=["15 * * * *"],
         ),
     ] = None
     timeout: Annotated[
         int | None,
         Field(
-            description='Maximum amount of seconds the job will be allowed to run before it is failed',
+            description="Maximum amount of seconds the job will be allowed to run before it is failed",
             examples=[120],
             ge=0,
         ),
@@ -816,21 +816,21 @@ class JobsDefinedScheduledJob(JobsDefinedCommonOptions, JobsFileLoggingOptions):
 
 
 class JobType6(StrEnum):
-    continuous = 'continuous'
+    continuous = "continuous"
 
 
 class JobsDefinedContinuousJob(JobsDefinedCommonOptions, JobsFileLoggingOptions):
     cmd: Annotated[
         str,
         Field(
-            description='Command that this job is executing.',
-            examples=['./some-command.sh --with-args'],
+            description="Command that this job is executing.",
+            examples=["./some-command.sh --with-args"],
         ),
     ]
     continuous: Annotated[
         bool | None,
         Field(
-            description='If a job should be always running.\nThis is deprecated and is only here for backward compatibility.\nUse job_type instead.\n',
+            description="If a job should be always running.\nThis is deprecated and is only here for backward compatibility.\nUse job_type instead.\n",
             examples=[True],
         ),
     ] = None
@@ -838,36 +838,36 @@ class JobsDefinedContinuousJob(JobsDefinedCommonOptions, JobsFileLoggingOptions)
     replicas: Annotated[
         int | None,
         Field(
-            description='Number of replicas to be used for the job', examples=[1], ge=1
+            description="Number of replicas to be used for the job", examples=[1], ge=1
         ),
     ] = None
     port: Annotated[
         int | None,
         Field(
-            description='Port to expose for the job', examples=[8080], ge=1, le=65535
+            description="Port to expose for the job", examples=[8080], ge=1, le=65535
         ),
     ] = None
     port_protocol: Annotated[
         PortProtocol | None,
-        Field(description='Protocol for the port exposed by the job', examples=['tcp']),
-    ] = 'tcp'
+        Field(description="Protocol for the port exposed by the job", examples=["tcp"]),
+    ] = "tcp"
     publish: Annotated[
         str | None,
         Field(
             description="Returns the job's publish path, if the job is published.\n",
-            examples=['/'],
+            examples=["/"],
         ),
     ] = None
     health_check: Annotated[
         JobsScriptHealthCheck | JobsHttpHealthCheck | None,
         Field(
-            description='Health check configuration for the job', discriminator='type'
+            description="Health check configuration for the job", discriminator="type"
         ),
     ] = None
 
 
 class JobType7(StrEnum):
-    webservice = 'webservice'
+    webservice = "webservice"
 
 
 class JobsDefinedWebserviceJob(JobsDefinedCommonOptions):
@@ -875,138 +875,138 @@ class JobsDefinedWebserviceJob(JobsDefinedCommonOptions):
         str | None,
         Field(
             description="Command that this job is executing. Empty means job uses image's webservice default command.",
-            examples=['./some-command.sh --with-args'],
+            examples=["./some-command.sh --with-args"],
         ),
-    ] = ''
+    ] = ""
     job_type: JobType7
     port: Annotated[
         int | None,
-        Field(description='Port exposed for the job', examples=[8000], ge=1, le=65535),
+        Field(description="Port exposed for the job", examples=[8000], ge=1, le=65535),
     ] = None
     replicas: Annotated[
         int | None,
         Field(
-            description='Number of replicas to be used for the job', examples=[1], ge=1
+            description="Number of replicas to be used for the job", examples=[1], ge=1
         ),
     ] = None
     health_check: Annotated[
         JobsScriptHealthCheck | JobsHttpHealthCheck | None,
         Field(
-            description='Health check configuration for the job', discriminator='type'
+            description="Health check configuration for the job", discriminator="type"
         ),
     ] = None
 
 
 class LogsDeploymentCreated(BaseModel):
-    source: Annotated[Literal['deployments'], Field(title='Source')] = 'deployments'
-    event_type: Annotated[Literal['created'], Field(title='Event Type')] = 'created'
-    deployment_id: Annotated[str, Field(title='Deployment Id')]
-    datetime: Annotated[AwareDatetime | None, Field(title='Datetime')] = None
-    user_name: Annotated[str | None, Field(title='User Name')] = ''
-    jobs: Annotated[list[str] | None, Field(title='Jobs')] = []
-    builds: Annotated[list[str] | None, Field(title='Builds')] = []
-    description: Annotated[str | None, Field(title='Description')] = ''
+    source: Annotated[Literal["deployments"], Field(title="Source")] = "deployments"
+    event_type: Annotated[Literal["created"], Field(title="Event Type")] = "created"
+    deployment_id: Annotated[str, Field(title="Deployment Id")]
+    datetime: Annotated[AwareDatetime | None, Field(title="Datetime")] = None
+    user_name: Annotated[str | None, Field(title="User Name")] = ""
+    jobs: Annotated[list[str] | None, Field(title="Jobs")] = []
+    builds: Annotated[list[str] | None, Field(title="Builds")] = []
+    description: Annotated[str | None, Field(title="Description")] = ""
 
 
 class LogsDeploymentFailed(BaseModel):
-    message_format: Annotated[Literal['json'], Field(title='Message Format')] = 'json'
-    message: Annotated[str, Field(title='Message')]
-    source: Annotated[Literal['deployments'], Field(title='Source')] = 'deployments'
-    event_type: Annotated[Literal['failed'], Field(title='Event Type')] = 'failed'
-    deployment_id: Annotated[str, Field(title='Deployment Id')]
-    datetime: Annotated[AwareDatetime | None, Field(title='Datetime')] = None
-    user_name: Annotated[str | None, Field(title='User Name')] = ''
-    jobs: Annotated[list[str] | None, Field(title='Jobs')] = []
-    builds: Annotated[list[str] | None, Field(title='Builds')] = []
-    description: Annotated[str | None, Field(title='Description')] = ''
+    message_format: Annotated[Literal["json"], Field(title="Message Format")] = "json"
+    message: Annotated[str, Field(title="Message")]
+    source: Annotated[Literal["deployments"], Field(title="Source")] = "deployments"
+    event_type: Annotated[Literal["failed"], Field(title="Event Type")] = "failed"
+    deployment_id: Annotated[str, Field(title="Deployment Id")]
+    datetime: Annotated[AwareDatetime | None, Field(title="Datetime")] = None
+    user_name: Annotated[str | None, Field(title="User Name")] = ""
+    jobs: Annotated[list[str] | None, Field(title="Jobs")] = []
+    builds: Annotated[list[str] | None, Field(title="Builds")] = []
+    description: Annotated[str | None, Field(title="Description")] = ""
 
 
 class LogsDeploymentSucceeded(BaseModel):
-    source: Annotated[Literal['deployments'], Field(title='Source')] = 'deployments'
-    event_type: Annotated[Literal['succeeded'], Field(title='Event Type')] = 'succeeded'
-    deployment_id: Annotated[str, Field(title='Deployment Id')]
-    datetime: Annotated[AwareDatetime | None, Field(title='Datetime')] = None
-    user_name: Annotated[str | None, Field(title='User Name')] = ''
-    jobs: Annotated[list[str] | None, Field(title='Jobs')] = []
-    builds: Annotated[list[str] | None, Field(title='Builds')] = []
-    description: Annotated[str | None, Field(title='Description')] = ''
+    source: Annotated[Literal["deployments"], Field(title="Source")] = "deployments"
+    event_type: Annotated[Literal["succeeded"], Field(title="Event Type")] = "succeeded"
+    deployment_id: Annotated[str, Field(title="Deployment Id")]
+    datetime: Annotated[AwareDatetime | None, Field(title="Datetime")] = None
+    user_name: Annotated[str | None, Field(title="User Name")] = ""
+    jobs: Annotated[list[str] | None, Field(title="Jobs")] = []
+    builds: Annotated[list[str] | None, Field(title="Builds")] = []
+    description: Annotated[str | None, Field(title="Description")] = ""
 
 
 class LogsHealthState(BaseModel):
-    status: Annotated[Status, Field(title='Status')]
+    status: Annotated[Status, Field(title="Status")]
 
 
 class LogsJobCreated(BaseModel):
-    message_format: Annotated[Literal['json'], Field(title='Message Format')] = 'json'
-    message: Annotated[str, Field(title='Message')]
-    source: Annotated[Literal['jobs'], Field(title='Source')] = 'jobs'
-    event_type: Annotated[Literal['created'], Field(title='Event Type')] = 'created'
-    job_name: Annotated[str, Field(title='Job Name')]
-    datetime: Annotated[AwareDatetime | None, Field(title='Datetime')] = None
-    user_name: Annotated[str | None, Field(title='User Name')] = ''
+    message_format: Annotated[Literal["json"], Field(title="Message Format")] = "json"
+    message: Annotated[str, Field(title="Message")]
+    source: Annotated[Literal["jobs"], Field(title="Source")] = "jobs"
+    event_type: Annotated[Literal["created"], Field(title="Event Type")] = "created"
+    job_name: Annotated[str, Field(title="Job Name")]
+    datetime: Annotated[AwareDatetime | None, Field(title="Datetime")] = None
+    user_name: Annotated[str | None, Field(title="User Name")] = ""
 
 
 class LogsJobDeleted(BaseModel):
-    message_format: Annotated[Literal['json'], Field(title='Message Format')] = 'json'
-    message: Annotated[str, Field(title='Message')]
-    source: Annotated[Literal['jobs'], Field(title='Source')] = 'jobs'
-    event_type: Annotated[Literal['deleted'], Field(title='Event Type')] = 'deleted'
-    job_name: Annotated[str, Field(title='Job Name')]
-    datetime: Annotated[AwareDatetime | None, Field(title='Datetime')] = None
-    user_name: Annotated[str | None, Field(title='User Name')] = ''
+    message_format: Annotated[Literal["json"], Field(title="Message Format")] = "json"
+    message: Annotated[str, Field(title="Message")]
+    source: Annotated[Literal["jobs"], Field(title="Source")] = "jobs"
+    event_type: Annotated[Literal["deleted"], Field(title="Event Type")] = "deleted"
+    job_name: Annotated[str, Field(title="Job Name")]
+    datetime: Annotated[AwareDatetime | None, Field(title="Datetime")] = None
+    user_name: Annotated[str | None, Field(title="User Name")] = ""
 
 
 class LogsJobRestarted(BaseModel):
-    source: Annotated[Literal['jobs'], Field(title='Source')] = 'jobs'
-    event_type: Annotated[Literal['restarted'], Field(title='Event Type')] = 'restarted'
-    job_name: Annotated[str, Field(title='Job Name')]
-    datetime: Annotated[AwareDatetime | None, Field(title='Datetime')] = None
-    user_name: Annotated[str | None, Field(title='User Name')] = ''
+    source: Annotated[Literal["jobs"], Field(title="Source")] = "jobs"
+    event_type: Annotated[Literal["restarted"], Field(title="Event Type")] = "restarted"
+    job_name: Annotated[str, Field(title="Job Name")]
+    datetime: Annotated[AwareDatetime | None, Field(title="Datetime")] = None
+    user_name: Annotated[str | None, Field(title="User Name")] = ""
 
 
 class LogsJobUpdated(BaseModel):
-    message_format: Annotated[Literal['json'], Field(title='Message Format')] = 'json'
-    message: Annotated[str, Field(title='Message')]
-    source: Annotated[Literal['jobs'], Field(title='Source')] = 'jobs'
-    event_type: Annotated[Literal['updated'], Field(title='Event Type')] = 'updated'
-    job_name: Annotated[str, Field(title='Job Name')]
-    datetime: Annotated[AwareDatetime | None, Field(title='Datetime')] = None
-    user_name: Annotated[str | None, Field(title='User Name')] = ''
+    message_format: Annotated[Literal["json"], Field(title="Message Format")] = "json"
+    message: Annotated[str, Field(title="Message")]
+    source: Annotated[Literal["jobs"], Field(title="Source")] = "jobs"
+    event_type: Annotated[Literal["updated"], Field(title="Event Type")] = "updated"
+    job_name: Annotated[str, Field(title="Job Name")]
+    datetime: Annotated[AwareDatetime | None, Field(title="Datetime")] = None
+    user_name: Annotated[str | None, Field(title="User Name")] = ""
 
 
 class LogsLogWriteResult(BaseModel):
-    status: Annotated[Status, Field(title='Status')]
+    status: Annotated[Status, Field(title="Status")]
 
 
 class LogsNextPageRef(BaseModel):
-    url: Annotated[str, Field(title='Url')]
+    url: Annotated[str, Field(title="Url")]
 
 
 class LogsResponseMessages(BaseModel):
-    info: Annotated[list[str] | None, Field(title='Info')] = []
-    warning: Annotated[list[str] | None, Field(title='Warning')] = []
-    error: Annotated[list[str] | None, Field(title='Error')] = []
+    info: Annotated[list[str] | None, Field(title="Info")] = []
+    warning: Annotated[list[str] | None, Field(title="Warning")] = []
+    error: Annotated[list[str] | None, Field(title="Error")] = []
 
 
 class LogsRunLog(BaseModel):
-    source: Annotated[Literal['run-logs'], Field(title='Source')] = 'run-logs'
-    job_name: Annotated[str, Field(title='Job Name')]
-    pod: Annotated[str | None, Field(title='Pod')] = ''
-    container: Annotated[str | None, Field(title='Container')] = ''
-    datetime: Annotated[AwareDatetime, Field(title='Datetime')]
-    message: Annotated[str, Field(title='Message')]
+    source: Annotated[Literal["run-logs"], Field(title="Source")] = "run-logs"
+    job_name: Annotated[str, Field(title="Job Name")]
+    pod: Annotated[str | None, Field(title="Pod")] = ""
+    container: Annotated[str | None, Field(title="Container")] = ""
+    datetime: Annotated[AwareDatetime, Field(title="Datetime")]
+    message: Annotated[str, Field(title="Message")]
 
 
 class LogsSources(StrEnum):
-    jobs = 'jobs'
-    run_logs = 'run-logs'
-    deployments = 'deployments'
+    jobs = "jobs"
+    run_logs = "run-logs"
+    deployments = "deployments"
 
 
 class LogsValidationError(BaseModel):
-    loc: Annotated[list[str | int], Field(title='Location')]
-    msg: Annotated[str, Field(title='Message')]
-    type: Annotated[str, Field(title='Error Type')]
+    loc: Annotated[list[str | int], Field(title="Location")]
+    msg: Annotated[str, Field(title="Message")]
+    type: Annotated[str, Field(title="Error Type")]
 
 
 class BuildsBuildCondition(BaseModel):
@@ -1015,7 +1015,7 @@ class BuildsBuildCondition(BaseModel):
 
 
 class BuildsCancelResponse(BaseModel):
-    id: Annotated[str | None, Field(description='Id of the cancelled build')] = None
+    id: Annotated[str | None, Field(description="Id of the cancelled build")] = None
     messages: BuildsResponseMessages | None = None
 
 
@@ -1024,7 +1024,7 @@ class BuildsCleanResponse(BaseModel):
 
 
 class BuildsDeleteResponse(BaseModel):
-    id: Annotated[str | None, Field(description='Id of the deleted build')] = None
+    id: Annotated[str | None, Field(description="Id of the deleted build")] = None
     messages: BuildsResponseMessages | None = None
 
 
@@ -1043,9 +1043,9 @@ class ComponentsApiResponseDeployToken(BaseModel):
     messages: Annotated[
         ComponentsResponseMessages | None, Field(validate_default=True)
     ] = {
-        'info': [],
-        'warning': ['You are using a beta feature of Toolforge.'],
-        'error': [],
+        "info": [],
+        "warning": ["You are using a beta feature of Toolforge."],
+        "error": [],
     }
 
 
@@ -1054,9 +1054,9 @@ class ComponentsApiResponseGetToolsWithConfigData(BaseModel):
     messages: Annotated[
         ComponentsResponseMessages | None, Field(validate_default=True)
     ] = {
-        'info': [],
-        'warning': ['You are using a beta feature of Toolforge.'],
-        'error': [],
+        "info": [],
+        "warning": ["You are using a beta feature of Toolforge."],
+        "error": [],
     }
 
 
@@ -1065,149 +1065,149 @@ class ComponentsApiResponseHealthState(BaseModel):
     messages: Annotated[
         ComponentsResponseMessages | None, Field(validate_default=True)
     ] = {
-        'info': [],
-        'warning': ['You are using a beta feature of Toolforge.'],
-        'error': [],
+        "info": [],
+        "warning": ["You are using a beta feature of Toolforge."],
+        "error": [],
     }
 
 
 class ComponentsContinuousRunInfo(BaseModel):
     cpu: Annotated[
         str | None,
-        Field(description='Job CPU resource limit.', examples=['1'], title='Cpu'),
+        Field(description="Job CPU resource limit.", examples=["1"], title="Cpu"),
     ] = None
     emails: Annotated[
         ComponentsJobsEmailOption | None,
-        Field(description='Job emails setting.', examples=['none']),
-    ] = 'none'
+        Field(description="Job emails setting.", examples=["none"]),
+    ] = "none"
     memory: Annotated[
         str | None,
         Field(
-            description='Job memory resource limit.', examples=['1G'], title='Memory'
+            description="Job memory resource limit.", examples=["1G"], title="Memory"
         ),
     ] = None
     mount: Annotated[
         ComponentsMount | None,
         Field(
-            description='NFS mount configuration for the job.', examples=['none', 'all']
+            description="NFS mount configuration for the job.", examples=["none", "all"]
         ),
-    ] = 'none'
+    ] = "none"
     filelog: Annotated[
         bool | None,
         Field(
-            description='Whether this job uses filelog or not.',
+            description="Whether this job uses filelog or not.",
             examples=[False],
-            title='Filelog',
+            title="Filelog",
         ),
     ] = None
     filelog_stderr: Annotated[
         str | None,
         Field(
-            description='Path to the stderr file log.',
-            examples=['logs/my-job.err'],
-            title='Filelog Stderr',
+            description="Path to the stderr file log.",
+            examples=["logs/my-job.err"],
+            title="Filelog Stderr",
         ),
     ] = None
     filelog_stdout: Annotated[
         str | None,
         Field(
-            description='Path to the stdout file log.',
-            examples=['logs/my-job.out'],
-            title='Filelog Stdout',
+            description="Path to the stdout file log.",
+            examples=["logs/my-job.out"],
+            title="Filelog Stdout",
         ),
     ] = None
     command: Annotated[
         str,
         Field(
-            description='Command to use to run this component, `launcher` will be prepended to it to load the environment if needed.',
+            description="Command to use to run this component, `launcher` will be prepended to it to load the environment if needed.",
             examples=["bash -c 'while date; do sleep 10; done'"],
-            title='Command',
+            title="Command",
         ),
     ]
     port: Annotated[
         int | None,
         Field(
-            description='Port where the service listens on. Other components can then address this one with `http://<this_component_name>:<port>`',
+            description="Port where the service listens on. Other components can then address this one with `http://<this_component_name>:<port>`",
             examples=[8080],
-            title='Port',
+            title="Port",
         ),
     ] = None
     port_protocol: Annotated[
         ComponentsPortProtocol | None,
         Field(
-            description='Protocol to use while exposing port for the job.',
-            examples=['tcp'],
+            description="Protocol to use while exposing port for the job.",
+            examples=["tcp"],
         ),
-    ] = 'tcp'
+    ] = "tcp"
     publish: Annotated[
         str | None,
         Field(
             description="If set, it will expose this component to the internet via https://<tool_name>.toolforge.org<path>. Only the root path '/' is supported for now.",
-            examples=['/'],
-            pattern='^/$',
-            title='Publish',
+            examples=["/"],
+            pattern="^/$",
+            title="Publish",
         ),
     ] = None
     replicas: Annotated[
         int | None,
         Field(
-            description='Number of replicas to be used for the job. Configurable only when continuous is true.',
+            description="Number of replicas to be used for the job. Configurable only when continuous is true.",
             examples=[1],
             ge=1,
-            title='Replicas',
+            title="Replicas",
         ),
     ] = None
     health_check_script: Annotated[
         str | None,
         Field(
-            description='Script/command to run to check that the service is running correctly. This will run inside the same container as the service itself.',
-            examples=['test -e /tmp/everything_is_ok'],
-            title='Health Check Script',
+            description="Script/command to run to check that the service is running correctly. This will run inside the same container as the service itself.",
+            examples=["test -e /tmp/everything_is_ok"],
+            title="Health Check Script",
         ),
     ] = None
     health_check_http: Annotated[
         str | None,
         Field(
-            description='HTTP path to query for the status of the system. It expects an HTTP 200 OK response, anything else is interpreted as failure.',
-            examples=['/healthz'],
-            title='Health Check Http',
+            description="HTTP path to query for the status of the system. It expects an HTTP 200 OK response, anything else is interpreted as failure.",
+            examples=["/healthz"],
+            title="Health Check Http",
         ),
     ] = None
 
 
 class ComponentsDeploymentBuildInfo(BaseModel):
-    build_id: Annotated[str | BuildId, Field(title='Build Id')]
+    build_id: Annotated[str | BuildId, Field(title="Build Id")]
     build_status: ComponentsDeploymentBuildState
     build_image: Annotated[
-        str | Literal['no-image-yet'] | None, Field(title='Build Image')
-    ] = 'no-image-yet'
-    build_long_status: Annotated[str | None, Field(title='Build Long Status')] = ''
+        str | Literal["no-image-yet"] | None, Field(title="Build Image")
+    ] = "no-image-yet"
+    build_long_status: Annotated[str | None, Field(title="Build Long Status")] = ""
 
 
 class ComponentsDeploymentRunInfo(BaseModel):
     run_status: ComponentsDeploymentRunState
-    run_long_status: Annotated[str | None, Field(title='Run Long Status')] = ''
+    run_long_status: Annotated[str | None, Field(title="Run Long Status")] = ""
 
 
 class ComponentsHTTPValidationError(BaseModel):
-    detail: Annotated[list[ComponentsValidationError] | None, Field(title='Detail')] = (
+    detail: Annotated[list[ComponentsValidationError] | None, Field(title="Detail")] = (
         None
     )
 
 
 class ComponentsScheduledComponentInfo(BaseModel):
     build: Annotated[
-        ComponentsSourceBuildInfo | ComponentsSourceBuildReference, Field(title='Build')
+        ComponentsSourceBuildInfo | ComponentsSourceBuildReference, Field(title="Build")
     ]
     run: ComponentsScheduledRunInfo
-    component_type: Annotated[Literal['scheduled'], Field(title='Component Type')] = (
-        'scheduled'
+    component_type: Annotated[Literal["scheduled"], Field(title="Component Type")] = (
+        "scheduled"
     )
 
 
 class EnvvarsEnvvar(BaseModel):
     name: EnvvarsEnvvarName
-    value: Annotated[str, Field(description='Value of the envvar to store')]
+    value: Annotated[str, Field(description="Value of the envvar to store")]
 
 
 class EnvvarsGetResponse(BaseModel):
@@ -1272,27 +1272,27 @@ class JobsHealthResponse(BaseModel):
 class LogsApiResponseHealthState(BaseModel):
     data: LogsHealthState
     messages: Annotated[LogsResponseMessages | None, Field(validate_default=True)] = {
-        'info': [],
-        'warning': [],
-        'error': [],
+        "info": [],
+        "warning": [],
+        "error": [],
     }
 
 
 class LogsApiResponseLogWriteResult(BaseModel):
     data: LogsLogWriteResult
     messages: Annotated[LogsResponseMessages | None, Field(validate_default=True)] = {
-        'info': [],
-        'warning': [],
-        'error': [],
+        "info": [],
+        "warning": [],
+        "error": [],
     }
 
 
 class LogsHTTPValidationError(BaseModel):
-    detail: Annotated[list[LogsValidationError] | None, Field(title='Detail')] = None
+    detail: Annotated[list[LogsValidationError] | None, Field(title="Detail")] = None
 
 
 class LogsJobsLogs(BaseModel):
-    logs: Annotated[list[LogsRunLog], Field(title='Logs')]
+    logs: Annotated[list[LogsRunLog], Field(title="Logs")]
     next: LogsNextPageRef | None = None
 
 
@@ -1308,7 +1308,7 @@ class LogsLogPage(BaseModel):
             | LogsJobDeleted
             | LogsJobCreated
         ],
-        Field(title='Logs'),
+        Field(title="Logs"),
     ]
     next: LogsNextPageRef | None = None
 
@@ -1349,38 +1349,38 @@ class BuildsQuotaResponse(BaseModel):
 
 class ComponentsContinuousComponentInfo(BaseModel):
     build: Annotated[
-        ComponentsSourceBuildInfo | ComponentsSourceBuildReference, Field(title='Build')
+        ComponentsSourceBuildInfo | ComponentsSourceBuildReference, Field(title="Build")
     ]
     run: ComponentsContinuousRunInfo
-    component_type: Annotated[Literal['continuous'], Field(title='Component Type')] = (
-        'continuous'
+    component_type: Annotated[Literal["continuous"], Field(title="Component Type")] = (
+        "continuous"
     )
 
 
 class ComponentsToolConfig(BaseModel):
     config_version: Annotated[
         ConfigVersion | None,
-        Field(examples=['v1beta1'], title='Config Version', validate_default=True),
-    ] = 'v1beta1'
+        Field(examples=["v1beta1"], title="Config Version", validate_default=True),
+    ] = "v1beta1"
     source_url: Annotated[
         AnyUrl | None,
         Field(
-            description='If passed, it will ignore anything else and try to fetch the configuration from the given URL on every deploy.',
-            title='Source Url',
+            description="If passed, it will ignore anything else and try to fetch the configuration from the given URL on every deploy.",
+            title="Source Url",
         ),
     ] = None
     defaults: Annotated[
         ComponentsConfigDefaults | None,
         Field(
-            description='Some fields that will apply tool-wide', validate_default=True
+            description="Some fields that will apply tool-wide", validate_default=True
         ),
-    ] = {'alerts': {'notify': False}}
+    ] = {"alerts": {"notify": False}}
     components: Annotated[
         dict[str, ComponentsContinuousComponentInfo | ComponentsScheduledComponentInfo]
         | None,
         Field(
-            description='List of components to run. Each component matches a continuous job, scheduled job, one-off job or webservice.',
-            title='Components',
+            description="List of components to run. Each component matches a continuous job, scheduled job, one-off job or webservice.",
+            title="Components",
         ),
     ] = None
 
@@ -1388,18 +1388,18 @@ class ComponentsToolConfig(BaseModel):
 class LogsApiResponseJobsLogs(BaseModel):
     data: LogsJobsLogs
     messages: Annotated[LogsResponseMessages | None, Field(validate_default=True)] = {
-        'info': [],
-        'warning': [],
-        'error': [],
+        "info": [],
+        "warning": [],
+        "error": [],
     }
 
 
 class LogsApiResponseLogPage(BaseModel):
     data: LogsLogPage
     messages: Annotated[LogsResponseMessages | None, Field(validate_default=True)] = {
-        'info': [],
-        'warning': [],
-        'error': [],
+        "info": [],
+        "warning": [],
+        "error": [],
     }
 
 
@@ -1408,33 +1408,33 @@ class ComponentsApiResponseToolConfig(BaseModel):
     messages: Annotated[
         ComponentsResponseMessages | None, Field(validate_default=True)
     ] = {
-        'info': [],
-        'warning': ['You are using a beta feature of Toolforge.'],
-        'error': [],
+        "info": [],
+        "warning": ["You are using a beta feature of Toolforge."],
+        "error": [],
     }
 
 
 class ComponentsDeployment(BaseModel):
-    deploy_id: Annotated[str, Field(title='Deploy Id')]
-    creation_time: Annotated[str, Field(title='Creation Time')]
+    deploy_id: Annotated[str, Field(title="Deploy Id")]
+    creation_time: Annotated[str, Field(title="Creation Time")]
     description: Annotated[
         str | None,
         Field(
-            description='Human-readable context describing what was deployed and why.',
-            title='Description',
+            description="Human-readable context describing what was deployed and why.",
+            title="Description",
         ),
-    ] = ''
-    builds: Annotated[dict[str, ComponentsDeploymentBuildInfo], Field(title='Builds')]
-    runs: Annotated[dict[str, ComponentsDeploymentRunInfo], Field(title='Runs')]
+    ] = ""
+    builds: Annotated[dict[str, ComponentsDeploymentBuildInfo], Field(title="Builds")]
+    runs: Annotated[dict[str, ComponentsDeploymentRunInfo], Field(title="Runs")]
     tool_config: ComponentsToolConfig | None = None
-    status: ComponentsDeploymentState | None = 'pending'
-    long_status: Annotated[str | None, Field(title='Long Status')] = ''
-    force_build: Annotated[bool | None, Field(title='Force Build')] = False
-    force_run: Annotated[bool | None, Field(title='Force Run')] = False
+    status: ComponentsDeploymentState | None = "pending"
+    long_status: Annotated[str | None, Field(title="Long Status")] = ""
+    force_build: Annotated[bool | None, Field(title="Force Build")] = False
+    force_run: Annotated[bool | None, Field(title="Force Run")] = False
 
 
 class ComponentsDeploymentList(BaseModel):
-    deployments: Annotated[list[ComponentsDeployment], Field(title='Deployments')]
+    deployments: Annotated[list[ComponentsDeployment], Field(title="Deployments")]
 
 
 class ComponentsApiResponseDeploymentList(BaseModel):
@@ -1442,9 +1442,9 @@ class ComponentsApiResponseDeploymentList(BaseModel):
     messages: Annotated[
         ComponentsResponseMessages | None, Field(validate_default=True)
     ] = {
-        'info': [],
-        'warning': ['You are using a beta feature of Toolforge.'],
-        'error': [],
+        "info": [],
+        "warning": ["You are using a beta feature of Toolforge."],
+        "error": [],
     }
 
 
@@ -1453,7 +1453,7 @@ class ComponentsApiResponseDeployment(BaseModel):
     messages: Annotated[
         ComponentsResponseMessages | None, Field(validate_default=True)
     ] = {
-        'info': [],
-        'warning': ['You are using a beta feature of Toolforge.'],
-        'error': [],
+        "info": [],
+        "warning": ["You are using a beta feature of Toolforge."],
+        "error": [],
     }
