@@ -592,6 +592,65 @@ class TestDoDeploy:
         expected_deployments[0].long_status = gotten_deployments[0].long_status
         toolforge_client_mock.patch.assert_not_called()
 
+    def test_fails_deployment_when_build_cannot_start(
+        self,
+        monkeypatch: MonkeyPatch,
+    ):
+        my_storage = MockStorage()
+        my_tool_config = get_tool_config()
+        my_deployment = get_deployment_from_tool_config(tool_config=my_tool_config)
+        my_storage.create_deployment(tool_name="my-tool", deployment=my_deployment)
+
+        toolforge_client_mock = MagicMock(spec=ToolforgeClient)
+        monkeypatch.setattr(
+            "components.runtime.toolforge.get_toolforge_client",
+            lambda: toolforge_client_mock,
+        )
+        toolforge_client_mock.get.return_value = {"builds": []}
+        response = Response()
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        response._content = b'{"error": ["could not resolve ref"]}'
+        toolforge_client_mock.post.side_effect = HTTPError(response=response)
+
+        expected_deployments = [
+            Deployment(
+                deploy_id="my-deploy-id",
+                creation_time="2021-06-01T00:00:00",
+                builds={
+                    "my-component": DeploymentBuildInfo(
+                        build_id="no-id-yet",
+                        build_status=DeploymentBuildState.failed,
+                        build_long_status="could not resolve ref",
+                    )
+                },
+                runs={
+                    "my-component": DeploymentRunInfo(
+                        run_status=DeploymentRunState.skipped,
+                        run_long_status="Skipped due to previous failure",
+                    )
+                },
+                tool_config=get_tool_config(),
+                status=DeploymentState.failed,
+                long_status="I will not be checked",
+            )
+        ]
+
+        do_deploy(
+            deployment=my_deployment,
+            storage=my_storage,
+            tool_config=my_tool_config,
+            tool_name="my-tool",
+            runtime=get_runtime(settings=get_settings()),
+        )
+
+        gotten_deployments = my_storage.list_deployments(tool_name="my-tool")
+        assert gotten_deployments
+        expected_deployments[0].long_status = gotten_deployments[0].long_status
+        assert gotten_deployments == expected_deployments
+        # the build was tried once, not retried in a loop
+        assert toolforge_client_mock.post.call_count == 1
+        toolforge_client_mock.patch.assert_not_called()
+
     def test_times_out_deployment_not_finished_in_1h(
         self,
         monkeypatch: MonkeyPatch,
