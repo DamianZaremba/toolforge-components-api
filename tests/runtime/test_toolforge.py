@@ -213,6 +213,7 @@ class TestResolveRef:
         expected_git_command = [
             "git",
             "ls-remote",
+            "--end-of-options",
             build_info.repository.encoded_string(),
             "HEAD",
         ]
@@ -229,7 +230,34 @@ class TestResolveRef:
         run_mock.assert_called_once()
         assert run_mock.call_args[0][0] == expected_git_command
 
-    def test_returns_empty_if_ls_remote_fails(self, monkeypatch: pytest.MonkeyPatch):
+    def test_passes_ref_after_end_of_options_so_it_cant_be_an_option(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
+        bad_ref = "--bad-option=bad-value"
+        build_info = get_dummy_source_build_info(ref=bad_ref)
+        expected_git_command = [
+            "git",
+            "ls-remote",
+            "--end-of-options",
+            build_info.repository.encoded_string(),
+            bad_ref,
+        ]
+        run_mock: MagicMock = create_autospec(subprocess.run)
+        run_mock.return_value = subprocess.CompletedProcess(
+            returncode=0,
+            args=[],
+            stdout="34306785891ddb972d9964baeefd9a7db9459aa8\tHEAD",
+        )
+        monkeypatch.setattr(target=toolforge.subprocess, name="run", value=run_mock)
+
+        _resolve_ref(build_info=build_info)
+
+        run_mock.assert_called_once()
+        assert run_mock.call_args[0][0] == expected_git_command
+
+    def raises_BuildFailed_if_git_returns_no_output(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
         build_info = get_dummy_source_build_info()
         run_mock = create_autospec(subprocess.run)
         run_mock.return_value = subprocess.CompletedProcess(returncode=1, args=[])
@@ -240,7 +268,7 @@ class TestResolveRef:
         assert gotten_ref == ""
         run_mock.assert_called_once()
 
-    def raises_BuildFailed_if_git_returns_no_output(
+    def test_raises_BuildFailed_if_git_returns_no_output(
         self, monkeypatch: pytest.MonkeyPatch
     ):
         build_info = get_dummy_source_build_info(ref="")
