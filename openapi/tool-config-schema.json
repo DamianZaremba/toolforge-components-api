@@ -35,10 +35,12 @@
               "default": false
             }
           },
+          "additionalProperties": false,
           "type": "object",
           "title": "ConfigAlerts"
         }
       },
+      "additionalProperties": false,
       "type": "object",
       "title": "ConfigDefaults"
     },
@@ -92,6 +94,7 @@
                         "description": "Environment variables and values to be set at build time"
                       }
                     },
+                    "additionalProperties": false,
                     "type": "object",
                     "required": [
                       "repository",
@@ -110,6 +113,7 @@
                         ]
                       }
                     },
+                    "additionalProperties": false,
                     "type": "object",
                     "required": [
                       "reuse_from"
@@ -238,6 +242,7 @@
                     ]
                   }
                 },
+                "additionalProperties": false,
                 "type": "object",
                 "required": [
                   "command"
@@ -251,6 +256,7 @@
                 "default": "continuous"
               }
             },
+            "additionalProperties": false,
             "type": "object",
             "required": [
               "build",
@@ -305,6 +311,7 @@
                         "description": "Environment variables and values to be set at build time"
                       }
                     },
+                    "additionalProperties": false,
                     "type": "object",
                     "required": [
                       "repository",
@@ -323,6 +330,7 @@
                         ]
                       }
                     },
+                    "additionalProperties": false,
                     "type": "object",
                     "required": [
                       "reuse_from"
@@ -429,6 +437,7 @@
                     ]
                   }
                 },
+                "additionalProperties": false,
                 "type": "object",
                 "required": [
                   "command",
@@ -443,6 +452,7 @@
                 "default": "scheduled"
               }
             },
+            "additionalProperties": false,
             "type": "object",
             "required": [
               "build",
@@ -457,6 +467,7 @@
       "description": "List of components to run. Each component matches a continuous job, scheduled job, one-off job or webservice."
     }
   },
+  "additionalProperties": false,
   "type": "object",
   "title": "ToolConfig"
 }

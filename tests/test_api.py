@@ -182,20 +182,9 @@ class TestUpdateToolConfig:
             "The 'x-toolforge-tool' header does not match the tool in the path"
         ]
 
-    def test_returns_warning_with_unknown_fields(
-        self, authenticated_client: TestClient
-    ):
-        expected_tool_config = get_fake_tool_config()
-        expected_messages = ResponseMessages(
-            warning=[
-                "You are using a beta feature of Toolforge.",
-                "Unknown field components.component1.internal_extra_field, skipped",
-                "Unknown field extra_field_1, skipped",
-            ],
-            info=["Configuration for test-tool-1 updated successfully."],
-        )
+    def test_fails_with_unknown_fields(self, authenticated_client: TestClient):
         sent_config = json.loads(
-            expected_tool_config.model_dump_json(exclude_unset=True)
+            get_fake_tool_config().model_dump_json(exclude_unset=True)
         )
         sent_config["extra_field_1"] = 1234
         sent_config["components"]["component1"]["internal_extra_field"] = 1234
@@ -203,12 +192,10 @@ class TestUpdateToolConfig:
             "/v1/tool/test-tool-1/config", json=sent_config
         )
 
-        assert raw_response.status_code == status.HTTP_200_OK
-        gotten_response = ToolConfigResponse.model_validate(raw_response.json())
-        assert gotten_response.data.model_dump(
-            exclude_unset=True
-        ) == expected_tool_config.model_dump(exclude_unset=True)
-        assert gotten_response.messages == expected_messages
+        assert raw_response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        errors = "\n".join(raw_response.json()["messages"]["error"])
+        assert "extra_field_1: Extra inputs are not permitted" in errors
+        assert "internal_extra_field: Extra inputs are not permitted" in errors
 
     def test_fetches_config_when_source_url_passed(
         self, authenticated_client: TestClient, monkeypatch: pytest.MonkeyPatch
