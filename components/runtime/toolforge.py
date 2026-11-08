@@ -100,8 +100,8 @@ def _check_for_matching_build(
         logger.debug("Found no matching build")
         return None
 
-    if latest_component_build.current_builder is False:
-        logger.debug("Found build with non-current builder")
+    if latest_component_build.is_outdated:
+        logger.debug("Found build with outdated builder")
         return None
 
     logger.debug(

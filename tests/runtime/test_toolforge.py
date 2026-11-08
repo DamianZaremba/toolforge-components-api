@@ -374,7 +374,7 @@ class TestCheckForMatchingBuild:
         toolforge_client_get_mock.assert_called_once()
         matches_parameters_mock.assert_called_once()
 
-    def test_returns_none_if_found_build_has_non_current_builder(
+    def test_returns_none_if_found_build_is_outdated(
         self, monkeypatch: pytest.MonkeyPatch
     ):
         toolforge_client_get_mock = self.mock_builds_get(
@@ -382,7 +382,7 @@ class TestCheckForMatchingBuild:
             builds=[
                 get_dummy_builds_build(
                     resolved_ref="myresolvedref",
-                    current_builder=False,
+                    is_outdated=True,
                     parameters=get_dummy_builds_build_parameters(
                         image_name="my-component-name"
                     ),
@@ -452,16 +452,16 @@ class TestCheckForMatchingBuild:
         resolve_ref_mock.assert_called()
 
     @cases(
-        "current_builder",
-        ["current builder", True],
-        ["builds-api does not support current_builder", None],
+        "is_outdated",
+        ["build is not outdated", False],
+        ["builds-api does not support is_outdated", None],
     )
     def test_returns_matching_build_if_found_build_matches_params_and_ref(
-        self, monkeypatch: pytest.MonkeyPatch, current_builder: bool | None
+        self, monkeypatch: pytest.MonkeyPatch, is_outdated: bool | None
     ):
         expected_build = get_dummy_builds_build(
             resolved_ref="myresolvedref",
-            current_builder=current_builder,
+            is_outdated=is_outdated,
             parameters=get_dummy_builds_build_parameters(
                 image_name="my-component-name"
             ),

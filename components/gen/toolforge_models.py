@@ -1315,7 +1315,7 @@ class LogsLogPage(BaseModel):
 
 class BuildsBuild(BuildsBuildCondition):
     build_id: str | None = None
-    current_builder: bool | None = None
+    is_outdated: bool | None = None
     destination_image: str | None = None
     end_time: str | None = None
     parameters: BuildsBuildParameters | None = None
