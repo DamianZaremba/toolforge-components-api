@@ -374,6 +374,45 @@ class TestCheckForMatchingBuild:
         toolforge_client_get_mock.assert_called_once()
         matches_parameters_mock.assert_called_once()
 
+    def test_returns_none_if_found_build_is_outdated(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
+        toolforge_client_get_mock = self.mock_builds_get(
+            monkeypatch=monkeypatch,
+            builds=[
+                get_dummy_builds_build(
+                    resolved_ref="myresolvedref",
+                    is_outdated=True,
+                    parameters=get_dummy_builds_build_parameters(
+                        image_name="my-component-name"
+                    ),
+                ).model_dump()
+            ],
+        )
+        matches_parameters_mock: MagicMock = create_autospec(
+            _matches_parameters, return_value=True
+        )
+        monkeypatch.setattr(
+            target=toolforge, name="_matches_parameters", value=matches_parameters_mock
+        )
+        resolve_ref_mock: MagicMock = create_autospec(
+            _resolve_ref, return_value="myresolvedref"
+        )
+        monkeypatch.setattr(
+            target=toolforge, name="_resolve_ref", value=resolve_ref_mock
+        )
+
+        gotten_match = _check_for_matching_build(
+            component_name="my-component-name",
+            build_info=get_dummy_source_build_info(),
+            tool_name="not_relevant",
+        )
+
+        assert gotten_match is None
+        toolforge_client_get_mock.assert_called_once()
+        matches_parameters_mock.assert_not_called()
+        resolve_ref_mock.assert_not_called()
+
     def test_returns_none_if_found_build_does_not_match_resolved_ref(
         self, monkeypatch: pytest.MonkeyPatch
     ):
@@ -412,11 +451,17 @@ class TestCheckForMatchingBuild:
         matches_parameters_mock.assert_called_once()
         resolve_ref_mock.assert_called()
 
+    @cases(
+        "is_outdated",
+        ["build is not outdated", False],
+        ["builds-api does not support is_outdated", None],
+    )
     def test_returns_matching_build_if_found_build_matches_params_and_ref(
-        self, monkeypatch: pytest.MonkeyPatch
+        self, monkeypatch: pytest.MonkeyPatch, is_outdated: bool | None
     ):
         expected_build = get_dummy_builds_build(
             resolved_ref="myresolvedref",
+            is_outdated=is_outdated,
             parameters=get_dummy_builds_build_parameters(
                 image_name="my-component-name"
             ),
