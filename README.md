@@ -44,8 +44,11 @@ yaml-language-server, you have to add this line to the top:
 To regenerate the toolforge models you can just run:
 
 ```shell
-dcaro@lima-kilo$ poetry run datamodel-codegen --url https://api.svc.toolforge.org/openapi.json --output components/gen/toolforge_models.py --output-model-type pydantic_v2.BaseModel --use-annotated
+dcaro@lima-kilo$ poetry run utils/generate_toolforge_models.py
 ```
+
+It targets the python version from `pyproject.toml` and formats the code like
+the pre-commit hooks do.
 
 ### Using the kubernetes storage connecting directly to lima-kilo
 
