@@ -672,7 +672,7 @@ class JobType3(StrEnum):
 
 class JobsNewWebserviceJob(JobsCommonOptions):
     name: Annotated[
-        str,
+        str | None,
         Field(
             description="Unique name that identifies the job. Defaults to 'webservice' if omitted.",
             examples=["webservice"],
@@ -680,7 +680,7 @@ class JobsNewWebserviceJob(JobsCommonOptions):
             min_length=1,
             pattern="^[a-z0-9]([-a-z0-9]*[a-z0-9])?([.][a-z0-9]([-a-z0-9]*[a-z0-9])?)*$",
         ),
-    ]
+    ] = "webservice"
     cmd: Annotated[
         str | None,
         Field(
