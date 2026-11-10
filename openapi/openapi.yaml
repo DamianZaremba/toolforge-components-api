@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Toolforge Components API
-  version: 0.13.1
+  version: 0.14.0
 servers:
 - url: http://127.0.0.1:8000
   description: Local direct development server.
@@ -664,6 +664,7 @@ components:
           description: Enable if you want to receive notification emails for tool
             alerts (beta feature)
           default: false
+      additionalProperties: false
       type: object
       title: ConfigAlerts
     ConfigDefaults:
@@ -674,6 +675,7 @@ components:
             overrides will be supported in the future.
           default:
             notify: false
+      additionalProperties: false
       type: object
       title: ConfigDefaults
     ContinuousComponentInfo:
@@ -690,6 +692,7 @@ components:
           const: continuous
           title: Component Type
           default: continuous
+      additionalProperties: false
       type: object
       required:
       - build
@@ -790,6 +793,7 @@ components:
             an HTTP 200 OK response, anything else is interpreted as failure.
           examples:
           - /healthz
+      additionalProperties: false
       type: object
       required:
       - command
@@ -1043,6 +1047,7 @@ components:
           const: scheduled
           title: Component Type
           default: scheduled
+      additionalProperties: false
       type: object
       required:
       - build
@@ -1123,6 +1128,7 @@ components:
             it is failed
           examples:
           - 120
+      additionalProperties: false
       type: object
       required:
       - command
@@ -1175,6 +1181,7 @@ components:
           type: object
           title: Envvars
           description: Environment variables and values to be set at build time
+      additionalProperties: false
       type: object
       required:
       - repository
@@ -1188,6 +1195,7 @@ components:
           description: Component to re-use the build from.
           examples:
           - parent-component
+      additionalProperties: false
       type: object
       required:
       - reuse_from
@@ -1226,6 +1234,7 @@ components:
           title: Components
           description: List of components to run. Each component matches a continuous
             job, scheduled job, one-off job or webservice.
+      additionalProperties: false
       type: object
       title: ToolConfig
     ValidationError:

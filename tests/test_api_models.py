@@ -21,9 +21,6 @@ BUILD_JSON = {
     "ref": "main",
 }
 BUILD = SourceBuildInfo(repository=AnyGitUrl(BUILD_JSON["repository"]), ref="main")
-SKIP_UNTIL_UNKNOWN_FIELDS_ARE_REJECTED = pytest.mark.skip(
-    reason="unknown fields are silently dropped instead of rejected"
-)
 
 
 class TestComponentInfo:
@@ -88,7 +85,7 @@ class TestComponentInfo:
         "component_json,expected_error",
         [
             "no component_type, command, schedule and port -> error: schedule not allowed with port",
-            pytest.param(
+            [
                 {
                     "run": {
                         "command": "my-command",
@@ -97,12 +94,11 @@ class TestComponentInfo:
                     }
                 },
                 "ContinuousComponentInfo.run.schedule",
-                marks=SKIP_UNTIL_UNKNOWN_FIELDS_ARE_REJECTED,
-            ),
+            ],
         ],
         [
             "no component_type, command, schedule, timeout and port -> error: port not allowed with schedule",
-            pytest.param(
+            [
                 {
                     "run": {
                         "command": "my-command",
@@ -112,8 +108,7 @@ class TestComponentInfo:
                     }
                 },
                 "ScheduledComponentInfo.run.port",
-                marks=SKIP_UNTIL_UNKNOWN_FIELDS_ARE_REJECTED,
-            ),
+            ],
         ],
         [
             "no component_type, no run fields -> error: command required",
@@ -125,18 +120,17 @@ class TestComponentInfo:
         ],
         [
             "component_type continuous, command and schedule -> error: schedule not allowed",
-            pytest.param(
+            [
                 {
                     "component_type": "continuous",
                     "run": {"command": "my-command", "schedule": "@daily"},
                 },
                 "ContinuousComponentInfo.run.schedule",
-                marks=SKIP_UNTIL_UNKNOWN_FIELDS_ARE_REJECTED,
-            ),
+            ],
         ],
         [
             "component_type scheduled, command, schedule and port -> error: port not allowed",
-            pytest.param(
+            [
                 {
                     "component_type": "scheduled",
                     "run": {
@@ -146,8 +140,7 @@ class TestComponentInfo:
                     },
                 },
                 "ScheduledComponentInfo.run.port",
-                marks=SKIP_UNTIL_UNKNOWN_FIELDS_ARE_REJECTED,
-            ),
+            ],
         ],
         [
             "component_type scheduled, command without schedule -> error: schedule required",

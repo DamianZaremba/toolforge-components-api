@@ -1,8 +1,8 @@
 import json
 import logging
-from typing import Annotated, Any
+from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Body, Depends, Header, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, Header, Query
 from pydantic import Field
 
 from ..models.api_models import (
@@ -66,47 +66,10 @@ def get_tool_config(
     )
 
 
-def _get_unknown_config_fields(
-    user_passed_config: dict[str, Any],
-    parsed_config: dict[str, Any],
-    cur_path: str = "",
-) -> list[str]:
-    # We could instead try to use pydantic `extra="allowed"`, but that would mean changing every model and then
-    # stripping the extra fields when storing/returning the models.
-    unknown_fields: list[str] = []
-    for key, value in user_passed_config.items():
-        if key not in parsed_config:
-            unknown_fields.append(f"{cur_path}{key}")
-            continue
-
-        if isinstance(value, dict):
-            unknown_fields.extend(
-                _get_unknown_config_fields(
-                    user_passed_config=value,
-                    parsed_config=parsed_config[key],
-                    cur_path=f"{cur_path}{key}.",
-                )
-            )
-
-        if isinstance(value, list):
-            for index, elem in enumerate(value):
-                if isinstance(elem, dict):
-                    unknown_fields.extend(
-                        _get_unknown_config_fields(
-                            user_passed_config=elem,
-                            parsed_config=parsed_config[key][index],
-                            cur_path=f"{cur_path}{key}[{index}].",
-                        )
-                    )
-
-    return unknown_fields
-
-
 @header_auth_router.post("/{toolname}/config", response_model_exclude_unset=True)
 async def update_tool_config(
     toolname: str,
     config: ToolConfig,
-    request: Request,
     storage: Annotated[Storage, Depends(get_storage)],
 ) -> ToolConfigResponse:
     """Update or create the configuration for a specific tool."""
@@ -115,13 +78,6 @@ async def update_tool_config(
     # trigger a fetch from source_url if there was any
     updated_config = handlers.get_and_refetch_config_if_needed(
         toolname=toolname, storage=storage
-    )
-    warning_messages.extend(
-        f"Unknown field {field}, skipped"
-        for field in _get_unknown_config_fields(
-            user_passed_config=await request.json(),
-            parsed_config=updated_config.model_dump(),
-        )
     )
     messages = ResponseMessages(
         info=[f"Configuration for {toolname} updated successfully."],
