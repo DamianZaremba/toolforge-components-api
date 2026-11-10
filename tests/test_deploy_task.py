@@ -41,7 +41,12 @@ from components.runtime.utils import get_runtime
 from components.settings import get_settings
 from components.storage.mock import MockStorage
 
-from .testlibs import get_defined_job, get_deployment_from_tool_config, get_tool_config
+from .testlibs import (
+    get_defined_job,
+    get_deployment_from_tool_config,
+    get_tool_config,
+    get_webservice_tool_config,
+)
 
 
 class TestDoDeploy:
@@ -1451,6 +1456,46 @@ class TestDoDeploy:
             ],
             any_order=True,
         )
+
+    def test_starts_build_and_runs_single_webservice_component(
+        self, monkeypatch: MonkeyPatch
+    ):
+        my_storage = MockStorage()
+        my_tool_config = get_webservice_tool_config()
+        my_deployment = get_deployment_from_tool_config(tool_config=my_tool_config)
+        my_storage.create_deployment(tool_name="my-tool", deployment=my_deployment)
+
+        toolforge_client_mock = MagicMock(spec=ToolforgeClient)
+        monkeypatch.setattr(
+            "components.runtime.toolforge.get_toolforge_client",
+            lambda: toolforge_client_mock,
+        )
+        toolforge_client_mock.post.return_value = {"new_build": {"name": "my-build"}}
+        toolforge_client_mock.get.return_value = {
+            "build": {
+                "status": BuildsBuildStatus.BUILD_SUCCESS.value,
+                "destination_image": "tool-my-tool/my-webservice:latest",
+            }
+        }
+        toolforge_client_mock.patch.return_value = JobsUpdateResponse(
+            messages=JobsResponseMessages(), job_changed=True
+        ).model_dump()
+
+        do_deploy(
+            deployment=my_deployment,
+            storage=my_storage,
+            tool_config=my_tool_config,
+            tool_name="my-tool",
+            runtime=get_runtime(settings=get_settings()),
+        )
+
+        gotten_deployments = my_storage.list_deployments(tool_name="my-tool")
+        assert gotten_deployments[0].status == DeploymentState.successful
+        toolforge_client_mock.patch.assert_called_once()
+        sent_job = toolforge_client_mock.patch.call_args.kwargs["json"]
+        assert sent_job["job_type"] == "webservice"
+        # Without command, jobs-api runs the "web" entry of the Procfile.
+        assert "cmd" not in sent_job
 
 
 class TestExceptionRetry:
