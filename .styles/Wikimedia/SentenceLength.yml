@@ -1,0 +1,7 @@
+extends: occurrence
+message: "Shorten or split this sentence to under 33 words to improve readability."
+link: https://www.mediawiki.org/wiki/Documentation/Tools/Linting/Linter_rule_reference#Wikimedia.SentenceLength
+scope: sentence
+level: warning
+max: 33
+token: \b(\w+)\b

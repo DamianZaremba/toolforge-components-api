@@ -1,0 +1,39 @@
+extends: substitution
+message: "Use any of the following: '%s' instead of '%s'."
+link: https://www.mediawiki.org/wiki/Documentation/Tools/Linting/Linter_rule_reference#Wikimedia.InclusiveLanguage
+level: warning
+ignorecase: true
+action:
+  name: replace
+swap:
+  blackhat:                         unethical hacker|attacker
+  blacklist:                        denylist|deny|exclude|prohibit|forbid|mute
+  blindly:                          mindlessly|without validating
+  blow up:                          break|destroy
+  crazy:                            wild|confusing|confounding
+  cripple:                          slow|break
+  crippled:                         slowed|broken
+  dumb:                             mindless|without validating
+  dummy:                            placeholder|test case
+  grandfathered:                    legacy|exempt
+  guru:                             expert
+  guys:                             people|folks
+  handicap:                         hurt|negatively affect
+  kill switch:                      off switch|emergency switch|feature flag
+  kill it with fire:                remove
+  mankind:                          humanity
+  manpower:                         resources|human effort
+  mantra:                           motto|mission
+  master:                           main|primary|source
+  newbie:                           newcomer
+  ninja:                            expert
+  n00b:                             newcomer
+  noob:                             newcomer
+  preferred pronouns:               pronouns|personal pronouns
+  sane:                             reasonable|typical|common
+  sanity check:                     is valid|is correct|integrity check
+  slave:                            secondary|replica
+  tribe:                            team|squad|group
+  tribal knowledge:                 organizational knowledge|institutional knowledge
+  whitehat:                         ethical hacker
+  whitelist:                        allowlist|allow|include|permit

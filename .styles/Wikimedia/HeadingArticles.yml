@@ -1,0 +1,7 @@
+extends: existence
+message: "Avoid using articles at the beginning of a heading."
+link: https://www.mediawiki.org/wiki/Documentation/Tools/Linting/Linter_rule_reference#Wikimedia.HeadingArticles
+level: suggestion
+scope: heading
+tokens:
+  - '^[Tt]he |^[Aa]n? '
